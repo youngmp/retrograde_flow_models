@@ -39,7 +39,7 @@ class Params(object):
     """
 
     def __init__(self,u=None,N=200,L0=10,L=30,eps=0,
-                 d_f=1,d_p=1,
+                 df=1,dp=1,
                  T=300,dt=0.001):
         """
         ur: speed of retrograde flow as a function of r
@@ -58,8 +58,8 @@ class Params(object):
         self.L0 = L0
         
         self.r, self.dr = np.linspace(L0,L,N,retstep=True)
-        self.d_p = d_p
-        self.d_f = d_f
+        self.dp = dp
+        self.df = df
 
         self.T = T
         self.dt = dt
@@ -98,18 +98,18 @@ def rhs(t,y,pars):
     #print(y[0],y[1])
     drp = (r[1:]*u(r[1:])*p[1:]-r[:-1]*u(r[:-1])*p[:-1])/(r[:-1]*dr)
     #print(drp[0])
-    tfp = pars.d_p*p[:-1] - pars.d_f*f[:-1]
+    tfp = pars.dp*p[:-1] - pars.df*f[:-1]
     
     out[:pars.N-1] = tfp
     out[pars.N:-1] = drp - tfp
     
     #drp = (r[:-1]*u(r[:-1])*p[:-1]-r[1:]*u(r[:-1])*p[:-1])/(r[1:]*dr)
-    #tfp = pars.d_p*p[1:-1] - pars.d_f*f[1:-1]
+    #tfp = pars.dp*p[1:-1] - pars.df*f[1:-1]
     #out[1:pars.N-1] = tfp
     #out[pars.N+1:-1] = drp - tfp
 
     #drp = (r[2:]*u(r[2:])*p[2:]-r[:-2]*u(r[:-2])*p[:-2])/(2*r[1:-1]*dr)
-    #tfp = pars.d_p*p[1:-1] - pars.d_f*f[1:-1]
+    #tfp = pars.dp*p[1:-1] - pars.df*f[1:-1]
     #out[1:pars.N-1] = tfp
     #out[pars.N+1:-1] = drp - tfp
 
@@ -245,29 +245,29 @@ def main():
 
     # basin-hopping parameters
     p_bh = {'eps':8.37055184e-03,
-            'd_f':7.44798956,
-            'd_p':9.04261998,
+            'df':7.44798956,
+            'dp':9.04261998,
             'L':25,
             'T':300,'dt':0.01}
 
     # least squares parameters
     p_ls = {'eps':1.78128872e-02,
-            'd_f':4.58942054e+01,
-            'd_p':2.05296340e-01,
+            'df':4.58942054e+01,
+            'dp':2.05296340e-01,
             'L':25,
             'T':300,'dt':0.01}
 
     # "fits" but doesn't capture steady-state.
     p_bh_2 = {'eps':0.9438153,
-              'd_f':1.1886299,
-              'd_p':6.97629,
+              'df':1.1886299,
+              'dp':6.97629,
               'L':25,
               'T':600,'dt':0.01}
 
 
     p_bh_2 = {'eps':0.42816316,
-              'd_f':2.12893668,
-              'd_p':1.4024988,
+              'df':2.12893668,
+              'dp':1.4024988,
               'L':25,
               'T':600,'dt':0.01}
 
