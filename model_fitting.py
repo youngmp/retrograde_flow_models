@@ -7,6 +7,10 @@ F(r,0) = I_control - P(r,0), P(r,0) = epsilon
 start with linear PDE for simplicity.
 
 Use initial and final data to start. Will add timed-dependent data eventually.
+
+steady-state is roughly 2 hours based on radius range [10,25].
+120 minutes to reach steady-state. simulate out to 240 minutes
+then compare I[-1,:] to I[int(TN/2),:]
 """
 
 import mol
@@ -26,17 +30,23 @@ def get_solution(p=None,control_fn=None):
 
     return t,y
 
-def cost_fn(x,control_fn,steadys_fn,p):
+def cost_fn(x,control_fn,steadys_fn,p,par_names=None):
     """
     function for use in least squares.
-    x is eps,d_f,d_p.
+    x is combination or subset of eps,df,dp.
+    par_names: list of variables in order of x
     returns L2 norm.
     """
-    
-    eps,d_f,d_p = x
-    p.eps = eps
-    p.d_f = d_f
-    p.d_p = d_p
+    assert(len(x) == len(par_names))
+
+    # update parameter values
+    #eps,d_f,d_p = x
+    for i,val in enumerate(x):
+        setattr(p,par_names[i],val)
+        
+    #p.eps = eps
+    #p.d_f = d_f
+    #p.d_p = d_p
     
     _,y = get_solution(p,control_fn=control_fn)
 
@@ -47,7 +57,7 @@ def cost_fn(x,control_fn,steadys_fn,p):
 
     #print('p.r call',p.r)
     err1 = np.linalg.norm(steadys_fn(p.r)-I[:,-1])
-    err2 = np.linalg.norm(I[:,-1] - I[:,-int(p.TN/5)])
+    err2 = np.linalg.norm(I[:,-1] - I[:,-int(p.TN/2)])
 
     if False:
         fig = plt.figure()
@@ -67,43 +77,53 @@ def cost_fn(x,control_fn,steadys_fn,p):
         plt.show()
         
     
-    print(err1,err2,p.eps,p.d_f,p.d_p)
+    print(err1,err2,p.eps,p.df,p.dp)
     return err1+err2
 
-def main():
-    
+
+def get_residuals(par_names=['eps','df','dp'],
+                  bounds=[(0,1),(0,100),(0,100)],
+                  init=[.001,1,1]):
+        
     funs = mol.build_data_dict(return_interp=True)
     data_avg, data_rep, control_fn, steadys_fn = funs
-
-    p = mol.Params(T=600,dt=0.01,L=25)
-    #print(cost_fn((.1,2,1),control_fn,steadys_fn,p))
-    init = [.001,1,1]
-    #init = [1.78128872e-02, 4.58942054e+01, 2.05296340e-01]
     
-    args = (control_fn,steadys_fn,p)
-    #res = least_squares(cost_fn,init,args=args,
-    #                    bounds=([[0,0,0],[np.inf,np.inf,np.inf]]))
+    assert(len(par_names) == len(bounds))
+    assert(len(init) == len(bounds))
+
+    p = mol.Params(T=240,dt=0.01,L=25)
+    
+    args = (control_fn,steadys_fn,p,par_names)
 
     minimizer_kwargs = {"method": "Powell",
-                        'bounds':[(0,1),(0,100),(0,100)],
+                        'bounds':bounds,
                         'args':args}
+    
     res = basinhopping(cost_fn,init,minimizer_kwargs=minimizer_kwargs)
 
-    print('residuals',res.x)
-    print('cost',res.cost)
-    print('optimality',res.optimality)
-
-    eps,d_f,d_p = res.x
-    p.eps = eps
-    p.d_f = d_f
-    p.d_p = d_p
     
+
+def main():
+
+    #res = get_residuals(par_names=['eps'],
+    #                    bounds=[(0,1)],
+    #                    init=[0.001])
+
+    res = get_residuals()
+    
+    print('residuals',res.x)
+    #print('cost',res.cost)
+    #print('optimality',res.optimality)
+
+    for i, val in enumerate(res.x):
+        setattr(p,par_names[i],val)
+        
     t,y = get_solution(p=p,control_fn=control_fn)
     
     fsol = y[:p.N,:]
     psol = y[p.N:,:]
 
-    ratio = p.d_p/(p.d_f+p.d_p)
+    ratio = p.dp/(p.df+p.dp)
     
     fig,axs = plt.subplots(nrows=2,ncols=2,sharey='row')
 
