@@ -166,9 +166,9 @@ def main():
         # dp = 0
         fname = p.data_dir+'scenario0_residuals.txt'
 
-        par_names=['eps','df']
-        bounds = [(0,1),(0,100)]
-        init = [0.001,1]
+        par_names=['eps','df','u_val']
+        bounds = [(0,1),(0,100),(0,2)]
+        init = [0.001,1,0.16]
         parfix = {'dp':0}
 
     elif args.scenario == 1:
@@ -176,9 +176,9 @@ def main():
         # df = dp = 0
         fname = p.data_dir+'scenario1_residuals.txt'
 
-        par_names=['eps']
-        bounds = [(0,1)]
-        init = [0.001]
+        par_names=['eps','u_val']
+        bounds = [(0,1),(0,2)]
+        init = [0.001,0.16]
         parfix = {'df':0,'dp':0}
 
     elif args.scenario == 2:
@@ -186,14 +186,14 @@ def main():
         # df = 0
         fname = p.data_dir+'scenario2_residuals.txt'
 
-        par_names=['eps','dp']
-        bounds = [(0,1),(0,100)]
-        init = [0.001,1]
+        par_names=['eps','dp','u_val']
+        bounds = [(0,1),(0,100),(0,2)]
+        init = [0.001,1,0.16]
         parfix = {'df':0}
 
     elif args.scenario == 3:
         pass
-
+    
     elif args.scenario == 4:
         pass
 
