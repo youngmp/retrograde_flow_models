@@ -14,21 +14,12 @@ then compare I[-1,:] to I[int(TN/2),:]
 """
 
 import mol
+import os
+import argparse
 
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import least_squares
-from scipy.optimize import basinhopping
-
-def get_solution(p=None,control_fn=None):
-
-    y0 = np.zeros(2*p.N)
-    y0[:p.N] = control_fn(p.r)*p.eps
-    y0[p.N:] = control_fn(p.r)*(1-p.eps)
-    
-    t,y = mol.run_euler(y0,p)
-
-    return t,y
+from scipy.optimize import basinhopping, dual_annealing
 
 def cost_fn(x,control_fn,steadys_fn,p,par_names=None):
     """
@@ -39,59 +30,87 @@ def cost_fn(x,control_fn,steadys_fn,p,par_names=None):
     """
     assert(len(x) == len(par_names))
 
+    #p.__init__()
     # update parameter values
     #eps,d_f,d_p = x
     for i,val in enumerate(x):
         setattr(p,par_names[i],val)
-        
-    #p.eps = eps
-    #p.d_f = d_f
-    #p.d_p = d_p
+
+    p.control_fn = control_fn
+    p.steadys_fn = steadys_fn
+
+    TN = int(p.T/p.dt)
     
-    _,y = get_solution(p,control_fn=control_fn)
+    p = mol.run_euler(p)
+    y = p.y
 
     fsol = y[:p.N,:]
     psol = y[p.N:,:]
 
     I = fsol + psol
+    #'2h', '4h', '30min', '1h', '24h', 'control', '8h30'
 
     #print('p.r call',p.r)
-    err1 = np.linalg.norm(steadys_fn(p.r)-I[:,-1])
-    err2 = np.linalg.norm(I[:,-1] - I[:,-int(p.TN/2)])
+    err = 0
+    for hour in p.data_avg.keys():
 
-    if False:
-        fig = plt.figure()
-        ax1 = fig.add_subplot(211)
-        ax2 = fig.add_subplot(212)
+        # convert hour to index
+        if hour == 'control':
+            pass # ignore initial condition (trivial)
+        else:
+            time = float(hour[:-1])
+            minute = time*60
+            idx = int(minute/p.dt)
+
+            # weight
+            if time >= 0.5 or time <=4:
+                w = 5
+            
+            data = p.data_avg_fns[hour](p.r)
+            err += w*np.linalg.norm(data-I[:,idx])
         
-        ax1.plot(I[:,-1])
-        ax1.plot(fsol[:,-1])
-        ax1.plot(psol[:,-1])
-        ax1.plot(steadys_fn(p.r))
+    stdout = (err,p.eps,p.df,p.dp,p.u(0))
+    s1 = 'err={:.2f},eps={:.2f},'\
+        +'d_f={:.2f}, dp={:.2f}, u_val={:.2f}'
+    print(s1.format(*stdout))
+    return err
 
-        ax2.plot(I[:,0])
-        ax2.plot(fsol[:,0])
-        ax2.plot(psol[:,0])
-        ax2.plot(control_fn(p.r))
 
-        plt.show()
-        
+def get_data_residuals(p,par_names=['eps','df','dp'],
+                       bounds=[(0,1),(0,100),(0,100)],
+                       init=[.001,1,1],
+                       parfix={}):
     
-    print(err1,err2,p.eps,p.df,p.dp)
-    return err1+err2
+    """
+    fit sim to data
 
+    p: parameter object
+    par_names: list of parameter names to be used in optimization
+    bounds: tuple of lo-hi bounds for each parameter
+    init: initial guess
+    parfix: dict of parameters to fix at this value.
+    """
 
-def get_residuals(par_names=['eps','df','dp'],
-                  bounds=[(0,1),(0,100),(0,100)],
-                  init=[.001,1,1]):
-        
-    funs = mol.build_data_dict(return_interp=True)
-    data_avg, data_rep, control_fn, steadys_fn = funs
+    d_class = mol.Data()
     
+    data_avg, data_rep = d_class._build_data_dict()
+
+    # fit gaussian.
+    
+    pars_control = d_class._load_gaussian_pars(d_class.data_dir,data_avg,
+                                               'control',n_gauss=6)
+    pars_steadys = d_class._load_gaussian_pars(d_class.data_dir,data_avg,
+                                               '24h',n_gauss=6)
+    
+    
+    control_fn = d_class.control_fn
+    steadys_fn = d_class.steadys_fn
+
     assert(len(par_names) == len(bounds))
     assert(len(init) == len(bounds))
 
-    p = mol.Params(T=240,dt=0.01,L=25)
+    for key in parfix:
+        setattr(p,key,parfix[key])
     
     args = (control_fn,steadys_fn,p,par_names)
 
@@ -99,76 +118,117 @@ def get_residuals(par_names=['eps','df','dp'],
                         'bounds':bounds,
                         'args':args}
     
-    res = basinhopping(cost_fn,init,minimizer_kwargs=minimizer_kwargs)
+    #res = basinhopping(cost_fn,init,minimizer_kwargs=minimizer_kwargs)
+    res = dual_annealing(cost_fn,bounds=bounds,args=args)
 
+    return res
     
 
 def main():
 
-    #res = get_residuals(par_names=['eps'],
-    #                    bounds=[(0,1)],
-    #                    init=[0.001])
+    parser = argparse.ArgumentParser(description='run model fitting for retrograde flow',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    res = get_residuals()
+    parser.add_argument('-p','--show-plots',dest='plots',action='store_true',
+                        help='If true, display plots')
+    parser.add_argument('-v','--save-residuals',dest='save_residuals',action='store_true',
+                        help='If true, save residuals from optimization')
+
+    parser.add_argument('-q','--quiet',dest='quiet',action='store_true',
+                        help='If true, suppress all print statements')
+    parser.add_argument('-s','--scenario',dest='scenario',
+                        help='Choose scenario. see code for scenarios',type=int,
+                        default=-1)
+
+    parser.add_argument('-r','--recompute',dest='recompute',action='store_true',
+                        help='If true, recompute optimization data')
     
-    print('residuals',res.x)
-    #print('cost',res.cost)
-    #print('optimality',res.optimality)
+    parser.set_defaults(plots= False,save_residuals=False,quiet=False)
+    args = parser.parse_args()
+    print(args)
 
-    for i, val in enumerate(res.x):
-        setattr(p,par_names[i],val)
+    # 1440 minutes in 24 h
+    p = mol.Params(T=1500,dt=0.01,L=25)
+
+    
+    if args.scenario == -1:
+        # original model fitting eps, df, dp
+
+        fname = p.data_dir+'scenario-1_residuals.txt'
+
+        par_names=['eps','df','dp','u_val']
+        bounds = [(0,1),(0,1),(0,10),(0,2)]
+        init = [0.1,0,1,.15]
+        parfix = {}
+
+    if args.scenario == 0:
+        # purely reversible trapping
+        # dp = 0
+        fname = p.data_dir+'scenario0_residuals.txt'
+
+        par_names=['eps','df']
+        bounds = [(0,1),(0,100)]
+        init = [0.001,1]
+        parfix = {'dp':0}
+
+    elif args.scenario == 1:
+        # non-dynamical trapping, pure transport
+        # df = dp = 0
+        fname = p.data_dir+'scenario1_residuals.txt'
+
+        par_names=['eps']
+        bounds = [(0,1)]
+        init = [0.001]
+        parfix = {'df':0,'dp':0}
+
+    elif args.scenario == 2:
+        # irreversible trapping
+        # df = 0
+        fname = p.data_dir+'scenario2_residuals.txt'
+
+        par_names=['eps','dp']
+        bounds = [(0,1),(0,100)]
+        init = [0.001,1]
+        parfix = {'df':0}
+
+    elif args.scenario == 3:
+        pass
+
+    elif args.scenario == 4:
+        pass
+
+    
+    file_not_found = not(os.path.isfile(fname))
+    
+    if args.recompute or file_not_found:
+        res = get_data_residuals(p,par_names=par_names,
+                                 bounds=bounds,
+                                 init=init,
+                                 parfix=parfix)
         
-    t,y = get_solution(p=p,control_fn=control_fn)
-    
-    fsol = y[:p.N,:]
-    psol = y[p.N:,:]
+        np.savetxt(fname,res.x)
+        res_arr = res.x
+        
+    else:
+        
+        res_arr = np.loadtxt(fname)
 
-    ratio = p.dp/(p.df+p.dp)
-    
-    fig,axs = plt.subplots(nrows=2,ncols=2,sharey='row')
+    #p.__init__(T=200,dt=0.01)
+    for i, val in enumerate(res_arr):
+        setattr(p,par_names[i],val)
 
-    axs[0,0].imshow(fsol[::-1,:],aspect='auto',
-                    extent=(t[0],t[-1],p.r[0],p.r[-1]))
+    print(par_names,res_arr)
+    if args.plots:
 
-    axs[0,1].imshow(psol[::-1,:],aspect='auto',
-                    extent=(t[0],t[-1],p.r[0],p.r[-1]))
-
-    axs[1,0].plot(p.r,fsol[:,0],label='Initial F')
-    axs[1,0].plot(p.r,fsol[:,-1],label='Final F')
-    #axs[1,0].plot(p.r,steadys_fn(p.r)*(1-ratio),label='Final*dp/(df+dp)')
-    
-    axs[1,1].plot(p.r,psol[:,0],label='Initial P')
-    axs[1,1].plot(p.r,psol[:,-1],label='Final P')
-    #axs[1,1].plot(p.r,steadys_fn(p.r)*ratio,label='Final*df/(df+dp)')
-
-    axs[0,0].set_xlabel('t')
-    axs[0,1].set_xlabel('t')
-    axs[1,0].set_xlabel('r')
-    axs[1,1].set_xlabel('r')
-
-    axs[0,0].set_ylabel('r')
-    axs[0,1].set_ylabel('r')
-    axs[1,0].set_ylabel('Normalized Intensity')
-    axs[1,1].set_ylabel('Normalized Intensity')
-
-    axs[0,0].set_title('F')
-    axs[0,1].set_title('P')
-
-    axs[1,0].set_title('F')
-    axs[1,1].set_title('P')
-
-    
-
-    #axs[2,0].set_title('Final F')
-    #axs[2,1].set_title('Final P')
-
-    axs[1,0].legend()
-    axs[1,1].legend()
-
-    plt.tight_layout()
-    plt.show()
-
-
+        
+        
+        p.T = 200
+        p.dt = .002
+        print(int(p.T/p.dt))
+        p = mol.run_euler(p)
+        mol.plot_sim(p)
+        
+        plt.show()
 
 if __name__ == "__main__":
     main()
