@@ -89,19 +89,6 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
     """
 
     d_class = mol.Data()
-    
-    data_avg, data_rep = d_class._build_data_dict()
-
-    # fit gaussian.
-    
-    pars_control = d_class._load_gaussian_pars(d_class.data_dir,data_avg,
-                                               'control',n_gauss=6)
-    pars_steadys = d_class._load_gaussian_pars(d_class.data_dir,data_avg,
-                                               '24h',n_gauss=6)
-    
-    
-    control_fn = d_class.control_fn
-    steadys_fn = d_class.steadys_fn
 
     assert(len(par_names) == len(bounds))
     assert(len(init) == len(bounds))
