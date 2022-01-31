@@ -21,7 +21,7 @@ import numpy as np
 from scipy.optimize import least_squares
 from scipy.optimize import basinhopping, dual_annealing
 
-def cost_fn(x,control_fn,steadys_fn,p,par_names=None):
+def cost_fn(x,p,par_names=None):
     """
     function for use in least squares.
     x is combination or subset of eps,df,dp.
@@ -35,9 +35,6 @@ def cost_fn(x,control_fn,steadys_fn,p,par_names=None):
     #eps,d_f,d_p = x
     for i,val in enumerate(x):
         setattr(p,par_names[i],val)
-
-    p.control_fn = control_fn
-    p.steadys_fn = steadys_fn
 
     TN = int(p.T/p.dt)
     
@@ -112,7 +109,7 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
     for key in parfix:
         setattr(p,key,parfix[key])
     
-    args = (control_fn,steadys_fn,p,par_names)
+    args = (p,par_names)
 
     minimizer_kwargs = {"method": "Powell",
                         'bounds':bounds,
