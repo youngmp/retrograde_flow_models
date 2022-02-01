@@ -1,3 +1,4 @@
+
 """
 method of lines implementation of one of Steph's PDEs
 
@@ -31,7 +32,9 @@ import os
 
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
+from matplotlib.gridspec import GridSpec
 from scipy.optimize import least_squares as lsq
 from scipy.integrate import solve_ivp
 from scipy.interpolate import interp1d
@@ -43,9 +46,13 @@ class Data:
     use in other functions
     """
 
-    def __init__(self,recompute=False,
-                 data_dir='./data/'):
+    def __init__(self,recompute=True,
+                 data_dir='./data/',
+                 L0=10,
+                 L=30):
 
+        self.L = L
+        self.L0 = L0
         self.recompute = recompute
         self.data_dir = data_dir
                 
@@ -54,7 +61,7 @@ class Data:
             os.mkdir(self.data_dir)
 
         
-        data_avg, data_rep = self._build_data_dict()
+        data_avg, data_rep = self._build_data_dict(L0=self.L0,L=self.L)
 
         self.data_avg_fns = self._build_data_fns(data_avg)
 
@@ -64,17 +71,14 @@ class Data:
         # generate functions
         print('data keys',data_avg.keys())
 
-        pars_control = self._load_gaussian_pars(self.data_dir,data_avg,'control',n_gauss=6)
-        pars_steadys = self._load_gaussian_pars(self.data_dir,data_avg,'24h',n_gauss=6)
-
-        # from steph's code with n_gauss=3. also for different data set:
-        #pars = [807.2,13.79,7.407,1506,0.2757,14.96,296.4,20.64,3.677]
+        pars_control = self._load_gaussian_pars(self.data_dir,data_avg,'control',n_gauss=7)
+        pars_steadys = self._load_gaussian_pars(self.data_dir,data_avg,'24h',n_gauss=7)
                 
         self.control_fn = CallableGaussian(pars_control)
         self.steadys_fn = CallableGaussian(pars_steadys)
         #p.steadys_fn = steadys_fn
         
-        if False:
+        if True:
             #plot_data(data_rep,data_avg)
 
             fn_ctrl = get_1d_interp(data_avg['control'])
@@ -89,7 +93,7 @@ class Data:
 
 
     @staticmethod
-    def _load_gaussian_pars(data_dir,data,time,n_gauss=6,recompute=False):
+    def _load_gaussian_pars(data_dir,data,time,n_gauss=6,recompute=True):
         """
         time: str. time of data
         """
@@ -113,7 +117,8 @@ class Data:
             return np.loadtxt(fname)
         
     @staticmethod
-    def _build_data_dict(fname='patrons20180327dynamiqueNZ_reformatted.xlsx'):
+    def _build_data_dict(fname='patrons20180327dynamiqueNZ_reformatted.xlsx',
+                         L0=10,L=30):
 
         # load intensity data
         data_raw = pd.read_excel(fname,engine = 'openpyxl',header=[0,1,2])
@@ -139,18 +144,24 @@ class Data:
             rep_data.dropna(subset=['radius'],inplace=True)
             x1 = rep_data['radius']; y1 = rep_data['intensity']
 
-            z1 = np.zeros((len(x1),2))
-            z1[:,0] = x1; z1[:,1] = y1
+            mask = (x1>=L0)*(x1<=L)
+            n = np.sum(y1[mask]*np.diff(x1[mask],prepend=0))
+            
+            z1 = np.zeros((len(x1[mask]),2))
+            z1[:,0] = x1[mask]; z1[:,1] = y1[mask]/n
             data_rep[hour] = z1
 
             # save avg data
             avg_cell_number = cols[0][0]
             avg_data = data_raw[hour][avg_cell_number]
             avg_data.dropna(inplace=True)
-
+            
             x2 = avg_data['radius']; y2 = avg_data['intensity']
-            z2 = np.zeros((len(x2),2))
-            z2[:,0] = x2; z2[:,1] = y2
+            mask = (x2>=L0)*(x2<=L)
+
+            n = np.sum(y2[mask]*np.diff(x2[mask],prepend=0))
+            z2 = np.zeros((len(x2[mask]),2))
+            z2[:,0] = x2[mask]; z2[:,1] = y2[mask]/n
             data_avg[hour] = z2
 
         return data_avg, data_rep
@@ -178,7 +189,7 @@ class Params(Data):
     class for holding and moving parameters
     """
 
-    def __init__(self,u=None,N=200,L0=10,L=30,eps=0,
+    def __init__(self,u=None,N=200,eps=0,
                  df=1,dp=1,u_val=0.16,
                  T=300,dt=0.001):
         """
@@ -196,10 +207,8 @@ class Params(Data):
 
         self.eps = eps
         self.N = N
-        self.L = L
-        self.L0 = L0
         
-        self.r, self.dr = np.linspace(L0,L,N,retstep=True)
+        self.r, self.dr = np.linspace(self.L0,self.L,N,retstep=True)
         self.dp = dp
         self.df = df
 
@@ -535,7 +544,7 @@ def plot_sim_intermediate(p):
     nrows = 3
     ncols = 2
 
-    fig,axs = plt.subplots(nrows=3,ncols=7,figsize=(15,5))
+    fig,axs = plt.subplots(nrows=3,ncols=7,figsize=(15,5),sharey='row')
 
     # keys list sorted manually for now.
     keys_list = ['control', '0.5h', '1h', '2h', '4h', '8.5h', '24h']
@@ -686,9 +695,9 @@ def get_gaussian_res(x_data,y_data,time,n_gauss=3):
     #par_init = [1,0,1,1,5,1,1,10,1,1,15,1,1,20,1]
     par_init = np.zeros(3*n_gauss)
     for i in range(int(len(par_init)/3)):
-        par_init[3*i] = 40 # magnitude
-        par_init[3*i+1] = i*35/len(par_init) # shift
-        par_init[3*i+2] = 10 # width
+        par_init[3*i] = .1 # magnitude
+        par_init[3*i+1] = i*35/int(len(par_init)/3) # shift
+        par_init[3*i+2] = 5 # width
         
     res = lsq(cost_fn,par_init,args=(x_data,y_data))
 
@@ -703,14 +712,10 @@ def main():
     np.random.seed(0)
 
     #pars = parsets(scenario)
-    #eps=0.23,d_f=0.00, dp=0.19, u_val=1.88
-    #eps=0.42,d_f=1.70, dp=1.27, u_val=0.10
-    #8576.94,eps=0.17,d_f=0.00, dp=0.05, u_val=0.51
-    pars = {'eps':2.39975793e-01,
-            'df':3.42670426e-04,
-            'dp':4.99991100e-02,
-            'L':25,
-            'u_val':5.11413083e-01,
+    pars = {'eps':0,
+            'df':4.80607607e-04,
+            'dp':4.28388798e-01,
+            'u_val':1.79645389e+00,
             'T':1500,'dt':0.01}
 
     p = Params(**pars)
@@ -720,9 +725,6 @@ def main():
 
     # plot solution
     if True:
-
-        import matplotlib.pyplot as plt
-        from matplotlib.gridspec import GridSpec
         
         plot_sim(p)
         plot_sim_intermediate(p)
