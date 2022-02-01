@@ -46,7 +46,7 @@ class Data:
     use in other functions
     """
 
-    def __init__(self,recompute=True,
+    def __init__(self,recompute=False,
                  data_dir='./data/',
                  L0=10,
                  L=30):
@@ -78,7 +78,7 @@ class Data:
         self.steadys_fn = CallableGaussian(pars_steadys)
         #p.steadys_fn = steadys_fn
         
-        if True:
+        if False:
             #plot_data(data_rep,data_avg)
 
             fn_ctrl = get_1d_interp(data_avg['control'])
@@ -93,7 +93,7 @@ class Data:
 
 
     @staticmethod
-    def _load_gaussian_pars(data_dir,data,time,n_gauss=6,recompute=True):
+    def _load_gaussian_pars(data_dir,data,time,n_gauss=6,recompute=False):
         """
         time: str. time of data
         """
@@ -190,7 +190,7 @@ class Params(Data):
     """
 
     def __init__(self,u=None,N=200,eps=0,
-                 df=1,dp=1,u_val=0.16,
+                 df=1,dp=1,uval=0.16,
                  T=300,dt=0.001):
         """
         ur: speed of retrograde flow as a function of r
@@ -201,7 +201,7 @@ class Params(Data):
 
         #self.data_dir = data_dir
 
-        self.u_val = u_val
+        self.uval = uval
         
         self.u = self._u_constant
 
@@ -228,7 +228,7 @@ class Params(Data):
         constant case.
         """
         
-        return self.u_val
+        return self.uval
 
 class CallableGaussian(object):
     """
@@ -243,42 +243,41 @@ class CallableGaussian(object):
     def __call__(self,x):
         return g_approx(x,self.pars)
 
-def parsets(scenario='default'):
+def parsets(scenario='default',method=''):
 
     
     if scenario == 'default':
-        # original model basin hopping
-        pars = {
-            'eps':3.98753912e-01,
-            'df':9.99994286e+00,
-            'dp':9.60477704e-06,
-            'L':25,
-            'T':240,'dt':0.01
+        if method == 'annealing':
+            pars = {'eps':0.00000000e+00,
+                    'df':4.80607607e-04,
+                    'dp':4.28388798e-01,
+                    'uval':1.79645389e+00,
+                    'T':1500,'dt':0.01
             }
     
     elif scenario == 0:
-        # scenario 0 basin hopping
-        pars = {'eps':5.124609595622879599e-02,
-                 'df':9.999999856722284619e+01,
-                 'dp':0,
-                 'L':25,
-                 'T':240,'dt':0.01}
+        if method == 'annealing':
+            pars = {'eps':6.79309767e-03,
+                    'df':6.65433710e+01,
+                    'dp':0,
+                    'uval':5.65823966e-03,
+                    'T':1500,'dt':0.01}
+            
     elif scenario == 1:
-        # scenario 1 basin hopping
-        pars = {'eps':2.195541389442963173e-09,
-                'df':0,
-                'dp':0,
-                'L':25,
-                'T':240,'dt':0.01}
+        if method == 'annealing':
+            pars = {'eps':0.18585833,
+                    'df':0,
+                    'dp':0,
+                    'uval':0.0062434,
+                    'T':1500,'dt':0.01}
 
     elif scenario == 2:
-        # scenario 2 basin hopping
-        pars = {'eps':9.995982448891826966e-13,
-                'df':0,
-                'dp':5.363445591446823507e-05,
-                'L':25,
-                'T':240,'dt':0.01}
-
+        if method == 'annealing':
+            pars = {'eps':0,
+                    'df':0,
+                    'dp':0.38812839,
+                    'uval':2,
+                    'T':1500,'dt':0.01}
 
     return pars
 
@@ -708,15 +707,11 @@ def get_gaussian_res(x_data,y_data,time,n_gauss=3):
 
 def main():    
 
-    scenario = 'default'
+    scenario = 2
+    method = 'annealing'
     np.random.seed(0)
 
-    #pars = parsets(scenario)
-    pars = {'eps':0,
-            'df':4.80607607e-04,
-            'dp':4.28388798e-01,
-            'u_val':1.79645389e+00,
-            'T':1500,'dt':0.01}
+    pars = parsets(scenario,method)
 
     p = Params(**pars)
 
