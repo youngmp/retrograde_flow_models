@@ -21,7 +21,7 @@ import numpy as np
 from scipy.optimize import least_squares
 from scipy.optimize import basinhopping, dual_annealing
 
-def cost_fn(x,p,par_names=None):
+def cost_fn(x,p,par_names=None,ss_condition=False):
     """
     function for use in least squares.
     x is combination or subset of eps,df,dp.
@@ -37,10 +37,12 @@ def cost_fn(x,p,par_names=None):
         setattr(p,par_names[i],val)
 
     TN = int(p.T/p.dt)
+
     
     p = mol.run_euler(p)
     y = p.y
 
+    # get solution
     fsol = y[:p.N,:]
     psol = y[p.N:,:]
 
@@ -49,6 +51,7 @@ def cost_fn(x,p,par_names=None):
 
     #print('p.r call',p.r)
     err = 0
+
     for hour in p.data_avg.keys():
 
         # convert hour to index
@@ -60,15 +63,19 @@ def cost_fn(x,p,par_names=None):
             idx = int(minute/p.dt)
 
             # weight
-            if time >= 0.5 or time <=4:
-                w = 5
+            if time >= 2 or time <=9:
+                w = 1
             
             data = p.data_avg_fns[hour](p.r)
             err += w*np.linalg.norm(data-I[:,idx])
+
+    if ss_condition:
+        if np.linalg.norm(I[:,int(120/p.dt)]-I[:,int(1440/p.dt)]) > 1e-5:
+            err = 1000
         
     stdout = (err,p.eps,p.df,p.dp,p.u(0))
-    s1 = 'err={:.2f},eps={:.2f},'\
-        +'d_f={:.2f}, dp={:.2f}, u_val={:.2f}'
+    s1 = 'err={:.4f},eps={:.4f},'\
+        +'d_f={:.4f}, dp={:.4f}, uval={:.4f}'
     print(s1.format(*stdout))
     return err
 
@@ -76,7 +83,7 @@ def cost_fn(x,p,par_names=None):
 def get_data_residuals(p,par_names=['eps','df','dp'],
                        bounds=[(0,1),(0,100),(0,100)],
                        init=[.001,1,1],
-                       parfix={}):
+                       parfix={},ss_condition=False):
     
     """
     fit sim to data
@@ -96,7 +103,7 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
     for key in parfix:
         setattr(p,key,parfix[key])
     
-    args = (p,par_names)
+    args = (p,par_names,ss_condition)
 
     minimizer_kwargs = {"method": "Powell",
                         'bounds':bounds,
@@ -124,6 +131,11 @@ def main():
                         help='Choose scenario. see code for scenarios',type=int,
                         default=-1)
 
+    parser.add_argument('--steady-state-condition',dest='ss_condition',
+                        action='store_true',
+                        help='Choose whether or not to force steady-state condition',
+                        default=False)
+
     parser.add_argument('-r','--recompute',dest='recompute',action='store_true',
                         help='If true, recompute optimization data')
     
@@ -132,15 +144,15 @@ def main():
     print(args)
 
     # 1440 minutes in 24 h
-    p = mol.Params(T=1500,dt=0.01,L=25)
+    p = mol.Params(T=1500,dt=0.01)
 
     
     if args.scenario == -1:
         # original model fitting eps, df, dp
 
-        fname = p.data_dir+'scenario-1_residuals.txt'
+        fname_pre = p.data_dir+'scenario-1_residuals'
 
-        par_names=['eps','df','dp','u_val']
+        par_names=['eps','df','dp','uval']
         bounds = [(0,1),(0,1),(0,10),(0,2)]
         init = [0.1,0,1,.15]
         parfix = {}
@@ -148,9 +160,9 @@ def main():
     if args.scenario == 0:
         # purely reversible trapping
         # dp = 0
-        fname = p.data_dir+'scenario0_residuals.txt'
+        fname_pre = p.data_dir+'scenario0_residuals'
 
-        par_names=['eps','df','u_val']
+        par_names=['eps','df','uval']
         bounds = [(0,1),(0,100),(0,2)]
         init = [0.001,1,0.16]
         parfix = {'dp':0}
@@ -158,9 +170,9 @@ def main():
     elif args.scenario == 1:
         # non-dynamical trapping, pure transport
         # df = dp = 0
-        fname = p.data_dir+'scenario1_residuals.txt'
+        fname_pre = p.data_dir+'scenario1_residuals'
 
-        par_names=['eps','u_val']
+        par_names=['eps','uval']
         bounds = [(0,1),(0,2)]
         init = [0.001,0.16]
         parfix = {'df':0,'dp':0}
@@ -168,9 +180,9 @@ def main():
     elif args.scenario == 2:
         # irreversible trapping
         # df = 0
-        fname = p.data_dir+'scenario2_residuals.txt'
+        fname_pre = p.data_dir+'scenario2_residuals'
 
-        par_names=['eps','dp','u_val']
+        par_names=['eps','dp','uval']
         bounds = [(0,1),(0,100),(0,2)]
         init = [0.001,1,0.16]
         parfix = {'df':0}
@@ -181,6 +193,10 @@ def main():
     elif args.scenario == 4:
         pass
 
+    if args.ss_condition:
+        fname_pre += '_ss'
+
+    fname = fname_pre + '.txt'
     
     file_not_found = not(os.path.isfile(fname))
     
@@ -188,7 +204,8 @@ def main():
         res = get_data_residuals(p,par_names=par_names,
                                  bounds=bounds,
                                  init=init,
-                                 parfix=parfix)
+                                 parfix=parfix,
+                                 ss_condition=args.ss_condition)
         
         np.savetxt(fname,res.x)
         res_arr = res.x
