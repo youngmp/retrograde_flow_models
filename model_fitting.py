@@ -21,7 +21,8 @@ import numpy as np
 from scipy.optimize import least_squares
 from scipy.optimize import basinhopping, dual_annealing
 
-def cost_fn(x,p,par_names=None,ss_condition=False):
+def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
+            scenario=None):
     """
     function for use in least squares.
     x is combination or subset of eps,df,dp.
@@ -39,7 +40,7 @@ def cost_fn(x,p,par_names=None,ss_condition=False):
     TN = int(p.T/p.dt)
 
     
-    p = mol.run_euler(p)
+    p = mol.run_euler(p,scenario)
     y = p.y
 
     # get solution
@@ -72,10 +73,15 @@ def cost_fn(x,p,par_names=None,ss_condition=False):
     if ss_condition:
         if np.linalg.norm(I[:,int(120/p.dt)]-I[:,int(1440/p.dt)]) > 1e-5:
             err = 1000
-        
-    stdout = (err,p.eps,p.df,p.dp,p.u(0))
-    s1 = 'err={:.4f},eps={:.4f},'\
-        +'d_f={:.4f}, dp={:.4f}, uval={:.4f}'
+
+    stdout = [err,p.eps,p.df,p.dp,p.u(0),p.imax]
+    s1 = 'err={:.4f}, eps={:.4f}, '\
+        +'d_f={:.4f}, dp={:.4f}, uval={:.4f}, '\
+        +'imax={:.4f}'
+
+    if psource:
+        stdout.append(p.psource)
+        s1 += ', psource={:.4f}'
     print(s1.format(*stdout))
     return err
 
@@ -83,7 +89,9 @@ def cost_fn(x,p,par_names=None,ss_condition=False):
 def get_data_residuals(p,par_names=['eps','df','dp'],
                        bounds=[(0,1),(0,100),(0,100)],
                        init=[.001,1,1],
-                       parfix={},ss_condition=False):
+                       parfix={},ss_condition=False,
+                       psource=False,
+                       scenario=None):
     
     """
     fit sim to data
@@ -103,7 +111,8 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
     for key in parfix:
         setattr(p,key,parfix[key])
     
-    args = (p,par_names,ss_condition)
+    args = (p,par_names,ss_condition,psource,
+            scenario)
 
     minimizer_kwargs = {"method": "Powell",
                         'bounds':bounds,
@@ -121,12 +130,10 @@ def main():
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('-p','--show-plots',dest='plots',action='store_true',
-                        help='If true, display plots')
-    parser.add_argument('-v','--save-residuals',dest='save_residuals',action='store_true',
-                        help='If true, save residuals from optimization')
+                        help='If true, display plots',default=False)
 
     parser.add_argument('-q','--quiet',dest='quiet',action='store_true',
-                        help='If true, suppress all print statements')
+                        help='If true, suppress all print statements',default=False)
     parser.add_argument('-s','--scenario',dest='scenario',
                         help='Choose scenario. see code for scenarios',type=int,
                         default=-1)
@@ -136,10 +143,14 @@ def main():
                         help='Choose whether or not to force steady-state condition',
                         default=False)
 
+    parser.add_argument('--psource',dest='psource',
+                        action='store_true',
+                        help='Include source for P in search',
+                        default=False)
+
     parser.add_argument('-r','--recompute',dest='recompute',action='store_true',
                         help='If true, recompute optimization data')
-    
-    parser.set_defaults(plots= False,save_residuals=False,quiet=False)
+
     args = parser.parse_args()
     print(args)
 
@@ -191,7 +202,18 @@ def main():
         pass
     
     elif args.scenario == 4:
-        pass
+        fname_pre = p.data_dir+'scenario4_residuals'
+
+        par_names=['eps','dp','uval','imax']
+        bounds = [(0,1),(0,100),(0,2),(0,1000)]
+        init = [0.001,1,0.16,100]
+        parfix = {'df':0}
+
+    if args.psource:
+        par_names.append('psource')
+        bounds.append((0,1))
+        init.append(0)
+        fname_pre += '_psource'
 
     if args.ss_condition:
         fname_pre += '_ss'
@@ -205,7 +227,9 @@ def main():
                                  bounds=bounds,
                                  init=init,
                                  parfix=parfix,
-                                 ss_condition=args.ss_condition)
+                                 ss_condition=args.ss_condition,
+                                 psource=args.psource,
+                                 scenario=args.scenario)
         
         np.savetxt(fname,res.x)
         res_arr = res.x
@@ -220,8 +244,6 @@ def main():
 
     print(par_names,res_arr)
     if args.plots:
-
-        
         
         p.T = 200
         p.dt = .002

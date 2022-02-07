@@ -28,6 +28,8 @@ T(F,P) = d_p F - d_f F
 let's try no-flux at the origin? before doubling up on the domain.
 """
 
+print('******add scenario with uval = 0.16 and search only on eps')
+
 import os
 
 import pandas as pd
@@ -191,7 +193,8 @@ class Params(Data):
 
     def __init__(self,u=None,N=200,eps=0,
                  df=1,dp=1,uval=0.16,
-                 T=300,dt=0.001):
+                 T=300,dt=0.001,psource=0,
+                 imax=100):
         """
         ur: speed of retrograde flow as a function of r
         N: domain mesh size
@@ -202,8 +205,10 @@ class Params(Data):
         #self.data_dir = data_dir
 
         self.uval = uval
-        
+
+        self.imax = imax
         self.u = self._u_constant
+        self.psource = psource
 
         self.eps = eps
         self.N = N
@@ -281,34 +286,6 @@ def parsets(scenario='default',method=''):
 
     return pars
 
-def rhs(t,y,pars):
-    """
-    t: float, time.
-    y: 2*N array
-    p: object of parameters
-    """
-    
-    r = pars.r
-    dr = pars.dr
-    u = pars.u
-    f = y[:pars.N]
-    p = y[pars.N:]
-
-    out = pars.du
-
-    #print(y[0],y[1])
-    drp = (r[1:]*u(r[1:])*p[1:]-r[:-1]*u(r[:-1])*p[:-1])/(r[:-1]*dr)
-    #print(drp[0])
-    tfp = pars.dp*p[:-1] - pars.df*f[:-1]
-    
-    out[:pars.N-1] = tfp
-    out[pars.N:-1] = drp - tfp
-
-    # manually update last P derivative
-    #out[-1] = 0
-
-    return out
-
 
 def u_dyn(c,t):
     return c*t
@@ -368,7 +345,37 @@ def gauss_test_fn(x,mu,sig,amp=1):
     return amp*np.exp(-0.5*(x-mu)**2/sig**2)
     
 
-def run_euler(p):
+def rhs(t,y,pars,scenario='default'):
+    """
+    t: float, time.
+    y: 2*N array
+    p: object of parameters
+    """
+
+    r = pars.r
+    dr = pars.dr
+    u = pars.u
+    f = y[:pars.N]
+    p = y[pars.N:]
+
+    out = pars.du
+
+    drp = (r[1:]*u(r[1:])*p[1:]-r[:-1]*u(r[:-1])*p[:-1])/(r[:-1]*dr)
+
+    if (scenario == 'default') or (scenario == 0)\
+       or (scenario == 1) or (scenario == 2):
+        tfp = pars.dp*p[:-1] - pars.df*f[:-1]
+    elif scenario == 4:
+        tfp = -pars.dp*(1-p[:-1]/pars.imax)
+    else:
+        raise ValueError('Unrecognized or unimplemented scenario',scenario)
+    
+    out[:pars.N-1] = tfp
+    out[pars.N:-1] = drp - tfp
+
+    return out
+
+def run_euler(p,scenario):
     """
     t: time array
     y0: initial condition
@@ -386,8 +393,9 @@ def run_euler(p):
     y[:,0] = y0
     
     for i in range(TN-1):
-        y[-1,i] = 0
-        y[:,i+1] = y[:,i] + p.dt*rhs(t[i],y[:,i],pars=p)
+        y[-1,i] = p.psource
+        y[:,i+1] = y[:,i] + p.dt*rhs(t[i],y[:,i],pars=p,
+                                     scenario=scenario)
         #y[p.N-1,i+1] = y[p.N-2,i+1]
 
     p.t = t
@@ -396,7 +404,7 @@ def run_euler(p):
 
     return p
 
-def get_ana(p,t,option='i',scenario='1'):
+def get_ana(p,t,option='i',scenario=1):
     """
     analytical solution.
     given time t return solution on domain r.
@@ -421,7 +429,7 @@ def get_ana(p,t,option='i',scenario='1'):
     r = p.r
     u = p.u(r)
 
-    if scenario == '1':
+    if scenario == 1:
 
         if option == 'i':
             #print(u,t)#,p_fn(r+u*t))
@@ -576,7 +584,7 @@ def plot_sim_intermediate(p):
     return fig
 
 
-def construct_ana_imshow_data(p,nsol=5,option='f'):
+def construct_ana_imshow_data(p,nsol=5,option='f',scenario=1):
     """
     construct imshow data using analytical solution
     """
@@ -585,11 +593,12 @@ def construct_ana_imshow_data(p,nsol=5,option='f'):
     data = np.zeros((p.N,TN))
     
     for i in range(TN):        
-        data[:,i] = get_ana(p,p.t[i],option=option)
+        data[:,i] = get_ana(p,p.t[i],option=option,
+                            scenario=scenario)
 
     return data
 
-def plot_ana(p):
+def plot_ana(p,scenario=1):
 
 
     fig, axs = plt.subplots(nrows=3,ncols=2)
@@ -610,8 +619,8 @@ def plot_ana(p):
     axs[1,1].plot(p.r,psol[:,-1],label='Final P')
 
     # plot imshow data of solutions
-    fsol = construct_ana_imshow_data(p,option='f')
-    psol = construct_ana_imshow_data(p,option='p')
+    fsol = construct_ana_imshow_data(p,option='f',scenario=scenario)
+    psol = construct_ana_imshow_data(p,option='p',scenario=scenario)
 
     axs[0,0].imshow(fsol[::-1,:],aspect='auto',
                     extent=(p.t[0],p.t[-1],p.r[0],p.r[-1]))
@@ -707,16 +716,24 @@ def get_gaussian_res(x_data,y_data,time,n_gauss=3):
 
 def main():    
 
-    scenario = 2
+    scenario = 4
     method = 'annealing'
     np.random.seed(0)
 
-    pars = parsets(scenario,method)
-
+    #pars = parsets(scenario,method)
+    #uval=, imax=133.1764
+    #eps=, d_f=0.0000, dp=0.0000, uval=, imax=
+    pars = {'eps':0.7741,
+            'df':0,
+            'dp':0,
+            'uval':0.0538,
+            'psource':0.0000,
+            'imax':948.9595,
+            'T':1500,'dt':0.01}
     p = Params(**pars)
 
     # get numerical solution
-    p = run_euler(p)
+    p = run_euler(p,scenario)
 
     # plot solution
     if True:
