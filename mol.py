@@ -1,3 +1,12 @@
+import os
+
+import pandas as pd
+import numpy as np
+
+from scipy.optimize import least_squares as lsq
+from scipy.integrate import solve_ivp
+from scipy.interpolate import interp1d
+
 
 """
 method of lines implementation of one of Steph's PDEs
@@ -30,16 +39,6 @@ let's try no-flux at the origin? before doubling up on the domain.
 
 print('******add scenario with uval = 0.16 and search only on eps')
 
-import os
-
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-
-from matplotlib.gridspec import GridSpec
-from scipy.optimize import least_squares as lsq
-from scipy.integrate import solve_ivp
-from scipy.interpolate import interp1d
 
 
 class Data:
@@ -81,8 +80,6 @@ class Data:
         #p.steadys_fn = steadys_fn
         
         if False:
-            #plot_data(data_rep,data_avg)
-
             fn_ctrl = get_1d_interp(data_avg['control'])
 
             
@@ -120,7 +117,7 @@ class Data:
         
     @staticmethod
     def _build_data_dict(fname='patrons20180327dynamiqueNZ_reformatted.xlsx',
-                         L0=10,L=30):
+                         L0=10,L=30,normed=True):
 
         # load intensity data
         data_raw = pd.read_excel(fname,engine = 'openpyxl',header=[0,1,2])
@@ -146,9 +143,12 @@ class Data:
             rep_data.dropna(subset=['radius'],inplace=True)
             x1 = rep_data['radius']; y1 = rep_data['intensity']
 
-            mask = (x1>=L0)*(x1<=L)
-            n = np.sum(y1[mask]*np.diff(x1[mask],prepend=0))
-            
+            mask = (x1>=L0)&(x1<=L)
+            if normed:
+                n = np.sum(y1[mask]*np.diff(x1[mask],prepend=0))
+            else:
+                n = 1
+                
             z1 = np.zeros((len(x1[mask]),2))
             z1[:,0] = x1[mask]; z1[:,1] = y1[mask]/n
             data_rep[hour] = z1
@@ -159,9 +159,13 @@ class Data:
             avg_data.dropna(inplace=True)
             
             x2 = avg_data['radius']; y2 = avg_data['intensity']
-            mask = (x2>=L0)*(x2<=L)
+            mask = (x2>=L0)&(x2<=L)
 
-            n = np.sum(y2[mask]*np.diff(x2[mask],prepend=0))
+            if normed:
+                n = np.sum(y2[mask]*np.diff(x2[mask],prepend=0))
+            else:
+                n = 1
+            
             z2 = np.zeros((len(x2[mask]),2))
             z2[:,0] = x2[mask]; z2[:,1] = y2[mask]/n
             data_avg[hour] = z2
@@ -311,7 +315,6 @@ def plot_data(data_rep,data_avg):
     plotting function
     """
     
-
     # plot data if you want
     list_hours_subset = ['control','24h']
     #print(data_rep.keys(),data_avg.keys())
@@ -714,7 +717,12 @@ def get_gaussian_res(x_data,y_data,time,n_gauss=3):
     return pars
 
 
-def main():    
+def main():
+
+    import matplotlib.pyplot as plt
+    
+    from matplotlib.gridspec import GridSpec
+
 
     scenario = 4
     method = 'annealing'
