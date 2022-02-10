@@ -1,14 +1,6 @@
-import os
-
-import pandas as pd
-import numpy as np
-
-from scipy.optimize import least_squares as lsq
-from scipy.integrate import solve_ivp
-from scipy.interpolate import interp1d
-
-
 """
+fd1 = finite difference order 1
+
 method of lines implementation of one of Steph's PDEs
 
 see page 4 in Steph's draft
@@ -37,8 +29,15 @@ T(F,P) = d_p F - d_f F
 let's try no-flux at the origin? before doubling up on the domain.
 """
 
-print('******add scenario with uval = 0.16 and search only on eps')
 
+import os
+
+import pandas as pd
+import numpy as np
+
+from scipy.optimize import least_squares as lsq
+from scipy.integrate import solve_ivp
+from scipy.interpolate import interp1d
 
 
 class Data:
@@ -190,7 +189,7 @@ class Data:
 
         return data_fn
         
-class Params(Data):
+class PDEModel(Data):
     """
     class for holding and moving parameters
     """
@@ -239,6 +238,67 @@ class Params(Data):
         
         return self.uval
 
+    
+    def _fd1(self,t,y,scenario='default'):
+        """
+        finite diff for 1st order PDE
+        t: float, time.
+        y: 2*N array
+        p: object of parameters
+        """
+
+        r = self.r
+        dr = self.dr
+        u = self.u
+        f = y[:self.N]
+        p = y[self.N:]
+
+        out = self.du
+
+        drp = (r[1:]*u(r[1:])*p[1:]-r[:-1]*u(r[:-1])*p[:-1])/(r[:-1]*dr)
+
+        if (scenario == 'default') or (scenario == 0)\
+           or (scenario == 1) or (scenario == 2)\
+           or (scenario == -2) or (scenario == -3):
+            tfp = self.dp*p[:-1] - self.df*f[:-1]
+        elif scenario == 4:
+            tfp = -self.dp*(1-p[:-1]/self.imax)
+        else:
+            raise ValueError('Unrecognized or unimplemented scenario',scenario)
+
+        out[:self.N-1] = tfp
+        out[self.N:-1] = drp - tfp
+
+        return out
+
+    
+    def _run_euler(self,scenario):
+        """
+        t: time array
+        y0: initial condition
+        """
+
+        y0 = nself.zeros(2*self.N)
+        y0[:self.N] = self.control_fn(self.r)*self.eps
+        y0[self.N:] = self.control_fn(self.r)*(1-self.eps)
+
+        TN = int(self.T/self.dt)
+        t = nself.linspace(0,self.T,TN)
+        y = nself.zeros((2*self.N,TN))
+
+        y[:,0] = y0
+
+        for i in range(TN-1):
+            y[-1,i] = self.psource
+            y[:,i+1] = y[:,i] + self.dt*self._fd1(t[i],y[:,i],pars=p,
+                                                  scenario=scenario)
+            #y[self.N-1,i+1] = y[self.N-2,i+1]
+
+        self.t = t
+        self.y = y
+        self.y0 = y0
+
+
 class CallableGaussian(object):
     """
     create gaussian object to initialize with different parameters
@@ -253,7 +313,6 @@ class CallableGaussian(object):
         return g_approx(x,self.pars)
 
 def parsets(scenario='default',method=''):
-
     
     if scenario == 'default':
         if method == 'annealing':
@@ -340,72 +399,39 @@ def plot_data(data_rep,data_avg):
 
     return fig
 
-def gauss_test_fn(x,mu,sig,amp=1):
-    """
-    use gaussian initial distribution
-    for testing upwinding integrator
-    """
-    return amp*np.exp(-0.5*(x-mu)**2/sig**2)
-    
 
-def rhs(t,y,pars,scenario='default'):
+def fd2(t,y,obj,scenario='default'):
     """
+    finite diff for 2nd order ODE
     t: float, time.
     y: 2*N array
     p: object of parameters
     """
 
-    r = pars.r
-    dr = pars.dr
-    u = pars.u
-    f = y[:pars.N]
-    p = y[pars.N:]
+    r = obj.r
+    dr = obj.dr
+    u = obj.u
+    f = y[:obj.N]
+    p = y[obj.N:]
 
-    out = pars.du
+    out = obj.du
 
     drp = (r[1:]*u(r[1:])*p[1:]-r[:-1]*u(r[:-1])*p[:-1])/(r[:-1]*dr)
 
     if (scenario == 'default') or (scenario == 0)\
-       or (scenario == 1) or (scenario == 2):
-        tfp = pars.dp*p[:-1] - pars.df*f[:-1]
+       or (scenario == 1) or (scenario == 2)\
+       or (scenario == -2) or (scenario == -3):
+        tfp = obj.dp*p[:-1] - obj.df*f[:-1]
     elif scenario == 4:
-        tfp = -pars.dp*(1-p[:-1]/pars.imax)
+        tfp = -obj.dp*(1-p[:-1]/obj.imax)
     else:
         raise ValueError('Unrecognized or unimplemented scenario',scenario)
     
-    out[:pars.N-1] = tfp
-    out[pars.N:-1] = drp - tfp
+    out[:obj.N-1] = tfp
+    out[obj.N:-1] = drp - tfp
 
     return out
 
-def run_euler(p,scenario):
-    """
-    t: time array
-    y0: initial condition
-    """
-
-    y0 = np.zeros(2*p.N)
-    y0[:p.N] = p.control_fn(p.r)*p.eps
-    y0[p.N:] = p.control_fn(p.r)*(1-p.eps)
-    #y0[p.N:] = 100#gauss_test_fn(p.r,20,1)*100
-
-    TN = int(p.T/p.dt)
-    t = np.linspace(0,p.T,TN)
-    y = np.zeros((2*p.N,TN))
-
-    y[:,0] = y0
-    
-    for i in range(TN-1):
-        y[-1,i] = p.psource
-        y[:,i+1] = y[:,i] + p.dt*rhs(t[i],y[:,i],pars=p,
-                                     scenario=scenario)
-        #y[p.N-1,i+1] = y[p.N-2,i+1]
-
-    p.t = t
-    p.y = y
-    p.y0 = y0
-
-    return p
 
 def get_ana(p,t,option='i',scenario=1):
     """
@@ -738,10 +764,10 @@ def main():
             'psource':0.0000,
             'imax':948.9595,
             'T':1500,'dt':0.01}
-    p = Params(**pars)
+    p = PDEModel(**pars)
 
     # get numerical solution
-    p = run_euler(p,scenario)
+    p.run_euler(scenario)
 
     # plot solution
     if True:
