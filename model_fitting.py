@@ -13,7 +13,7 @@ steady-state is roughly 2 hours based on radius range [10,25].
 then compare I[-1,:] to I[int(TN/2),:]
 """
 
-import mol
+import fd1
 import os
 import argparse
 
@@ -40,7 +40,7 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
     TN = int(p.T/p.dt)
 
     
-    p = mol.run_euler(p,scenario)
+    p = fd1.run_euler(p,scenario)
     y = p.y
 
     # get solution
@@ -103,7 +103,7 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
     parfix: dict of parameters to fix at this value.
     """
 
-    d_class = mol.Data()
+    d_class = fd1.Data()
 
     assert(len(par_names) == len(bounds))
     assert(len(init) == len(bounds))
@@ -155,12 +155,28 @@ def main():
     print(args)
 
     # 1440 minutes in 24 h
-    p = mol.Params(T=1500,dt=0.01)
+    p = fd1.PDEModel(T=1500,dt=0.01)
 
+    if args.scenario == -3:
+        # uval = 0.16, search only eps full exchange
+        fname_pre = p.data_dir+'scenario-3_residuals'
+
+        par_names = ['eps','df','dp']
+        bounds = [(0,1),(0,10),(0,10)]
+        init = [0.1,1,1]
+        parfix = {'uval':0.16}
+
+    if args.scenario == -2:
+        # uval = 0.16, search only eps, no exchange
+        fname_pre = p.data_dir+'scenario-2_residuals'
+
+        par_names = ['eps']
+        bounds = [(0,1)]
+        init = [0.1]
+        parfix = {'uval':0.16,'df':0,'dp':0}
     
     if args.scenario == -1:
         # original model fitting eps, df, dp
-
         fname_pre = p.data_dir+'scenario-1_residuals'
 
         par_names=['eps','df','dp','uval']
@@ -221,6 +237,7 @@ def main():
     fname = fname_pre + '.txt'
     
     file_not_found = not(os.path.isfile(fname))
+    print(file_not_found)
     
     if args.recompute or file_not_found:
         res = get_data_residuals(p,par_names=par_names,
@@ -248,8 +265,8 @@ def main():
         p.T = 200
         p.dt = .002
         print(int(p.T/p.dt))
-        p = mol.run_euler(p)
-        mol.plot_sim(p)
+        p = fd1.run_euler(p)
+        fd1.plot_sim(p)
         
         plt.show()
 
