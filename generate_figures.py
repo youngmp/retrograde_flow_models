@@ -13,7 +13,7 @@ mpl.rcParams['pgf.texsystem'] = 'pdflatex'
 mpl.rcParams['text.latex.preamble'] = r'\usepackage{amsmath} \usepackage{siunitx}'
                   
 
-import mol
+import pde
 
 import numpy as np
 
@@ -28,7 +28,7 @@ def data_figure():
     import matplotlib.pyplot as plt
 
     # load normed data
-    d = mol.Data()
+    d = pde.Data()
 
     # load unnormed data
     data_avg_raw, data_rep_raw = d._build_data_dict(L0=d.L0,L=d.L,normed=False)
