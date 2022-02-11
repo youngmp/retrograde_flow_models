@@ -262,10 +262,10 @@ def main():
 
     elif args.scenario == 'test':
         fname_pre = p.data_dir+'scenario_test_residuals'
-        par_names = ['df','dp','uval','uvalf','fsource']
-        bounds = [(0,10),(0,10),(0,1),(0,1),(0,1)]
-        init = [1,1,1,1,1]
-        parfix = {'eps':0}
+        par_names = ['eps','df','dp','uval','uvalf','fsource']
+        bounds = [(0,1),(0,10),(0,10),(0,1),(0,1),(0,1)]
+        init = [0,1,1,1,1,1]
+        parfix = {}
         
     if args.psource:
         par_names.append('psource')
