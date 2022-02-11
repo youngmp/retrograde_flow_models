@@ -82,9 +82,13 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
     if psource:
         stdout.append(p.psource)
         s1 += ', psource={:.4f}'
+
+    if p.order == 2:
+        stdout.append(p.D)
+        s1 += ', D={:.4f}'
+    
     print(s1.format(*stdout))
     return err
-
 
 def get_data_residuals(p,par_names=['eps','df','dp'],
                        bounds=[(0,1),(0,100),(0,100)],
@@ -103,7 +107,7 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
     parfix: dict of parameters to fix at this value.
     """
 
-    d_class = fd1.Data()
+    d_class = pde.Data()
 
     assert(len(par_names) == len(bounds))
     assert(len(init) == len(bounds))
@@ -159,11 +163,11 @@ def main():
     if type(args.scenario) is int:
         order = 1; dt = 0.01
     else:
-        order = 2; dt = 0.002
+        order = 2; dt = 0.01
 
     
     # 1440 minutes in 24 h
-    p = fd1.PDEModel(T=1500,dt=dt,order=order)
+    p = pde.PDEModel(T=1500,dt=dt,order=order)
 
     if args.scenario == '-3':
         # uval = 0.16, search only eps full exchange
@@ -240,6 +244,14 @@ def main():
         init = [0.1,1,1,0.16,0]
         parfix = {}
 
+    
+    elif args.scenario == 'b':
+        fname_pre = p.data_dir+'scenario_b_residuals'
+        par_names = ['eps','df','dp']
+        bounds = [(0,1),(0,10),(0,10)]
+        init = [0.1,1,1]
+        parfix = {'D':.04,'uval':0.16}
+
     if args.psource:
         par_names.append('psource')
         bounds.append((0,1))
@@ -252,7 +264,6 @@ def main():
     fname = fname_pre + '.txt'
     
     file_not_found = not(os.path.isfile(fname))
-    print(file_not_found)
     
     if args.recompute or file_not_found:
         res = get_data_residuals(p,par_names=par_names,
@@ -263,7 +274,7 @@ def main():
                                  psource=args.psource,
                                  scenario=args.scenario)
 
-        np.savetxt(fname_pre+'_err.txt',res.fun)
+        np.savetxt(fname_pre+'_err.txt',np.array([res.fun]))
         np.savetxt(fname,res.x)
         res_arr = res.x
         
@@ -279,10 +290,10 @@ def main():
     if args.plots:
         
         p.T = 200
-        p.dt = .002
+        p.dt = .005
         print(int(p.T/p.dt))
-        p = fd1.run_euler(p)
-        fd1.plot_sim(p)
+        p = pde.run_euler(p)
+        pde.plot_sim(p)
         
         plt.show()
 
