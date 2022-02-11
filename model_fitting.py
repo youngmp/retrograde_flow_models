@@ -13,7 +13,7 @@ steady-state is roughly 2 hours based on radius range [10,25].
 then compare I[-1,:] to I[int(TN/2),:]
 """
 
-import fd1
+import pde
 import os
 import argparse
 
@@ -40,7 +40,7 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
     TN = int(p.T/p.dt)
 
     
-    p = fd1.run_euler(p,scenario)
+    p._run_euler(scenario)
     y = p.y
 
     # get solution
@@ -135,8 +135,8 @@ def main():
     parser.add_argument('-q','--quiet',dest='quiet',action='store_true',
                         help='If true, suppress all print statements',default=False)
     parser.add_argument('-s','--scenario',dest='scenario',
-                        help='Choose scenario. see code for scenarios',type=int,
-                        default=-1)
+                        help='Choose scenario. see code for scenarios',
+                        default='-1',type=str)
 
     parser.add_argument('--steady-state-condition',dest='ss_condition',
                         action='store_true',
@@ -154,10 +154,18 @@ def main():
     args = parser.parse_args()
     print(args)
 
-    # 1440 minutes in 24 h
-    p = fd1.PDEModel(T=1500,dt=0.01)
 
-    if args.scenario == -3:
+    
+    if type(args.scenario) is int:
+        order = 1; dt = 0.01
+    else:
+        order = 2; dt = 0.002
+
+    
+    # 1440 minutes in 24 h
+    p = fd1.PDEModel(T=1500,dt=dt,order=order)
+
+    if args.scenario == '-3':
         # uval = 0.16, search only eps full exchange
         fname_pre = p.data_dir+'scenario-3_residuals'
 
@@ -166,7 +174,7 @@ def main():
         init = [0.1,1,1]
         parfix = {'uval':0.16}
 
-    if args.scenario == -2:
+    if args.scenario == '-2':
         # uval = 0.16, search only eps, no exchange
         fname_pre = p.data_dir+'scenario-2_residuals'
 
@@ -175,16 +183,16 @@ def main():
         init = [0.1]
         parfix = {'uval':0.16,'df':0,'dp':0}
     
-    if args.scenario == -1:
+    if args.scenario == '-1':
         # original model fitting eps, df, dp
         fname_pre = p.data_dir+'scenario-1_residuals'
 
-        par_names=['eps','df','dp','uval']
+        par_names = ['eps','df','dp','uval']
         bounds = [(0,1),(0,1),(0,10),(0,2)]
         init = [0.1,0,1,.15]
         parfix = {}
 
-    if args.scenario == 0:
+    if args.scenario == '0':
         # purely reversible trapping
         # dp = 0
         fname_pre = p.data_dir+'scenario0_residuals'
@@ -194,7 +202,7 @@ def main():
         init = [0.001,1,0.16]
         parfix = {'dp':0}
 
-    elif args.scenario == 1:
+    elif args.scenario == '1':
         # non-dynamical trapping, pure transport
         # df = dp = 0
         fname_pre = p.data_dir+'scenario1_residuals'
@@ -204,7 +212,7 @@ def main():
         init = [0.001,0.16]
         parfix = {'df':0,'dp':0}
 
-    elif args.scenario == 2:
+    elif args.scenario == '2':
         # irreversible trapping
         # df = 0
         fname_pre = p.data_dir+'scenario2_residuals'
@@ -214,16 +222,23 @@ def main():
         init = [0.001,1,0.16]
         parfix = {'df':0}
 
-    elif args.scenario == 3:
+    elif args.scenario == '3':
         pass
     
-    elif args.scenario == 4:
+    elif args.scenario == '4':
         fname_pre = p.data_dir+'scenario4_residuals'
 
         par_names=['eps','dp','uval','imax']
         bounds = [(0,1),(0,100),(0,2),(0,1000)]
         init = [0.001,1,0.16,100]
         parfix = {'df':0}
+
+    elif args.scenario == 'a':
+        fname_pre = p.data_dir+'scenario_a_residuals'
+        par_names = ['eps','df','dp','uval','D']
+        bounds = [(0,1),(0,10),(0,10),(0,1),(0,1)]
+        init = [0.1,1,1,0.16,0]
+        parfix = {}
 
     if args.psource:
         par_names.append('psource')
@@ -247,7 +262,8 @@ def main():
                                  ss_condition=args.ss_condition,
                                  psource=args.psource,
                                  scenario=args.scenario)
-        
+
+        np.savetxt(fname_pre+'_err.txt',res.fun)
         np.savetxt(fname,res.x)
         res_arr = res.x
         
