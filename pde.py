@@ -283,35 +283,39 @@ class PDEModel(Data):
         p: object of parameters
         """
 
-        r = self.r
-        dr = self.dr
-        u = self.u
-        f = y[:self.N]
-        p = y[self.N:]
-        D = self.D
+        r = self.r;dr = self.dr;u = self.u;D = self.D
+        f = y[:self.N];p = y[self.N:]
 
         out = self.du
 
-        # interior points
+        tfp = self.dp*p - self.df*f
+
+        # interior derivatives
         drp2_i = D*(p[2:] - 2*p[1:-1] + p[:-2])/dr**2
-        drp1_i = (r*u+D)*(p[2:]-p[:-2])/(2*r[1:-1]*dr)
-        drp0_i = u*p[1:-1]/r[1:-2]
+        drp1_i = (r[1:-1]*u(r[1:-1])+D)*(p[2:]-p[:-2])/(2*r[1:-1]*dr)
+        drp0_i = u(r[1:-1])*p[1:-1]/r[1:-1]
 
-        # left endpoint
-        
+        # left endpoint derivative
+        p0 = p[1] + 2*u(r[0])*dr*p[0]/D
+        drp2_l = D*(p0 - 2*p[0] + p[1])/dr**2
+        drp1_l = (r[0]*u(r[0])+D)*(p[1]-p0)/(2*r[0]*dr)
+        drp0_l = u(r[0])*p[0]/r[0] - tfp[0]
 
-        # right endpoint
-
-        tfp_i = self.dp*p[:-1] - self.df*f[:-1]
+        # right endpoint derivative
+        pn1 = p[-2] - 2*u(r[-1])*dr*p[-1]/D
+        drp2_r = D*(pn1 - 2*p[-1] + p[-2])/dr**2
+        drp1_r = (r[-1]*u(r[-1])+D)*(pn1-p[-2])/(2*r[-1]*dr)
+        drp0_r = u(r[-1])*p[-1]/r[-1] - tfp[-1]
 
         # update interior derivatives
-        out[:self.N-1] = tfp_i
-        out[self.N+1:-1] = drp2_i + drp1_i + drp0_i - tfp_i
+        out[:self.N] = tfp
+        out[self.N+1:-1] = drp2_i + drp1_i + drp0_i - tfp[1:-1]
 
         # update left d
-        
+        out[self.N] = drp2_l + drp1_l + drp0_l
 
         # update right d
+        out[-1] = drp2_r + drp1_r + drp0_r
 
         return out
 
@@ -810,8 +814,8 @@ def main():
             'uval':0.0538,
             'psource':0.0000,
             'imax':948.9595,
-            'T':1500,'dt':0.01,
-            'order':2}
+            'T':500,'dt':0.002,
+            'order':2,'D':1}
     p = PDEModel(**pars)
 
     # get numerical solution
@@ -821,7 +825,7 @@ def main():
     if True:
         
         plot_sim(p)
-        plot_sim_intermediate(p)
+        #plot_sim_intermediate(p)
         #plot_ana(p)
     
     plt.show()
