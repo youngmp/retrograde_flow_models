@@ -77,7 +77,8 @@ class Data:
         self.control_fn = CallableGaussian(pars_control)
         self.steadys_fn = CallableGaussian(pars_steadys)
         #p.steadys_fn = steadys_fn
-        
+
+        """
         if False:
             fn_ctrl = get_1d_interp(data_avg['control'])
 
@@ -88,7 +89,7 @@ class Data:
             #plot_gaussian_fit(x_data,y_data,pars_control,t=t)
             plot_gaussian_fit(x_data,fn_ctrl(x_data),pars_control,t=t)
             plt.show()
-
+        """
 
     @staticmethod
     def _load_gaussian_pars(data_dir,data,time,n_gauss=6,recompute=False):
@@ -196,7 +197,9 @@ class PDEModel(Data):
 
     def __init__(self,u=None,N=100,eps=0,
                  df=1,dp=1,uval=0.16,
+                 uvalf=0,
                  T=300,dt=0.001,psource=0,
+                 fsource=0,
                  imax=100,order=1,D=1):
         """
         ur: speed of retrograde flow as a function of r
@@ -208,6 +211,7 @@ class PDEModel(Data):
         #self.data_dir = data_dir
 
         self.uval = uval
+        self.uvalf = uvalf
 
         self.order = order
 
@@ -215,11 +219,14 @@ class PDEModel(Data):
             self.rhs = self._fd1
         elif order == 2:
             self.rhs = self._fd2
+        elif order == 'test':
+            self.rhs = self._fd1a
 
         self.D = D
         self.imax = imax
         self.u = self._u_constant
         self.psource = psource
+        self.fsource = fsource
 
         self.eps = eps
         self.N = N
@@ -277,6 +284,36 @@ class PDEModel(Data):
 
         return out
 
+
+    def _fd1a(self,t,y,scenario='default'):
+        """
+        finite diff for 1st order PDE. assuming aterograde flow
+        t: float, time.
+        y: 2*N array
+        p: object of parameters
+        """
+
+        r = self.r
+        dr = self.dr
+        u = self.u; uu = u(r[0])
+        f = y[:self.N]
+        p = y[self.N:]
+
+        out = self.du
+
+        drf = -uu*(r[1:]*p[1:]-r[:-1]*p[:-1])/(r[1:]*dr)
+        drp =  uu*(r[1:]*p[1:]-r[:-1]*p[:-1])/(r[:-1]*dr)
+
+        tfp = self.dp*p - self.df*f
+        
+        out[1:self.N] = drf + tfp[1:]
+        out[self.N:-1] = drp - tfp[:-1]
+
+        #out[0] += self.fsource/dr
+        #out[-1] += f[-1]/dr
+
+        return out
+
     def _fd2(self,t,y,scenario='default'):
         """
         finite diff for 1st order PDE
@@ -329,8 +366,13 @@ class PDEModel(Data):
         """
 
         y0 = np.zeros(2*self.N)
-        y0[:self.N] = self.control_fn(self.r)*self.eps
-        y0[self.N:] = self.control_fn(self.r)*(1-self.eps)
+
+        if self.order == 'test':
+            y0[:self.N] += self.eps
+            y0[self.N:] = self.control_fn(self.r)
+        else:
+            y0[:self.N] = self.control_fn(self.r)*self.eps
+            y0[self.N:] = self.control_fn(self.r)*(1-self.eps)
 
         TN = int(self.T/self.dt)
         t = np.linspace(0,self.T,TN)
@@ -340,7 +382,10 @@ class PDEModel(Data):
 
         for i in range(TN-1):
             y[-1,i] = self.psource
+            if self.order == 'test':
+                y[0] = self.fsource
             y[:,i+1] = y[:,i] + self.dt*self.rhs(t[i],y[:,i],scenario=scenario)
+            
 
         self.t = t
         self.y = y
@@ -448,37 +493,6 @@ def plot_data(data_rep,data_avg):
     return fig
 
 
-def fd2(t,y,obj,scenario='default'):
-    """
-    finite diff for 2nd order ODE
-    t: float, time.
-    y: 2*N array
-    p: object of parameters
-    """
-
-    r = obj.r
-    dr = obj.dr
-    u = obj.u
-    f = y[:obj.N]
-    p = y[obj.N:]
-
-    out = obj.du
-
-    drp = (r[1:]*u(r[1:])*p[1:]-r[:-1]*u(r[:-1])*p[:-1])/(r[:-1]*dr)
-
-    if (scenario == 'default') or (scenario == 0)\
-       or (scenario == 1) or (scenario == 2)\
-       or (scenario == -2) or (scenario == -3):
-        tfp = obj.dp*p[:-1] - obj.df*f[:-1]
-    elif scenario == 4:
-        tfp = -obj.dp*(1-p[:-1]/obj.imax)
-    else:
-        raise ValueError('Unrecognized or unimplemented scenario',scenario)
-    
-    out[:obj.N-1] = tfp
-    out[obj.N:-1] = drp - tfp
-
-    return out
 
 
 def get_ana(p,t,option='i',scenario=1):
@@ -575,7 +589,11 @@ def plot_sim(p):
     fsol = p.y[:p.N,:]
     psol = p.y[p.N:,:]
 
-    I = fsol + psol
+    if p.order == 'test':
+        I = psol
+
+    else:
+        I = fsol + psol
     
     nrows = 3
     ncols = 2
@@ -605,10 +623,10 @@ def plot_sim(p):
     #axs[1,1].plot(p.r,steadys_fn(p.r)/2,label='Final/2')
 
     axs[2][0].plot(p.r,p.control_fn(p.r),label='Initial (data)')
-    axs[2][0].plot(p.r,fsol[:,0]+psol[:,0],label='Initial F+P (PDE)')
+    axs[2][0].plot(p.r,I[:,0],label='Initial F+P (PDE)')
 
     axs[2][1].plot(p.r,p.steadys_fn(p.r),label='Final (data)')
-    axs[2][1].plot(p.r,fsol[:,-1]+psol[:,-1],label='Final F+P (PDE)')
+    axs[2][1].plot(p.r,I[:,-1],label='Final F+P (PDE)')
 
     axs = add_plot_sim_labels(axs)
     
@@ -626,9 +644,14 @@ def plot_sim_intermediate(p):
     
     F = p.y[:p.N,:]
     P = p.y[p.N:,:]
+    #print(p.order)
 
-    I = F + P
-    
+    if p.order == 'test':
+        I = P
+
+    else:
+        I = F + P
+        
     nrows = 3
     ncols = 2
 
@@ -726,8 +749,6 @@ def plot_ana(p,scenario=1):
     plt.tight_layout()
 
     return fig
-    
-def plot_gaussian_fit(x_data,y_data,pars,t=''):
 
 def g_approx(r,pars):
     """
@@ -789,7 +810,7 @@ def main():
     from matplotlib.gridspec import GridSpec
 
 
-    scenario = 4
+    scenario = 'default'
     method = 'annealing'
     np.random.seed(0)
 
@@ -800,13 +821,19 @@ def main():
 
     #eps=, d_f=, dp=, uval=, imax=100.0000, D=0.2117
     #ps=, d_f=, dp=, uval=, imax=100.0000, D=0.0400
-    pars = {'eps':0.9996,
-            'df':0.0001,
-            'dp':8.2605,
-            'uval':0.1600,
-            'D':0.04,
+    #err=0.6189, eps=0.8226, d_f=0.0017, dp=7.4196, uval=0.1600, imax=100.0000, D=0.0400
+    #0.4272, eps=0.1676, d_f=0.5134, dp=7.1638, uval=0.0751, imax=100.0000, D=0.0037
+    #eps=0.4980, d_f=2.7535, dp=2.7527, uval=0.7784, imax=100.0000, fsource=0.1133, uvalf=0.0098
+    pars = {'eps':0.4980,
+            'df':2.7535,
+            'dp':2.7527,
+            'uval':0.7784,
+            'uvalf':0.0098,
+            'D':0.0,
             'T':1500,'dt':0.01,
-            'order':2}
+            'order':'test','N':200,
+            'fsource':0.1133}
+    
     p = PDEModel(**pars)
 
     # get numerical solution
