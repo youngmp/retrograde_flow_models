@@ -197,7 +197,7 @@ class PDEModel(Data):
     def __init__(self,u=None,N=200,eps=0,
                  df=1,dp=1,uval=0.16,
                  T=300,dt=0.001,psource=0,
-                 imax=100):
+                 imax=100,order=1,D=1):
         """
         ur: speed of retrograde flow as a function of r
         N: domain mesh size
@@ -209,6 +209,12 @@ class PDEModel(Data):
 
         self.uval = uval
 
+        if order == 1:
+            self.rhs = self._fd1
+        elif order == 2:
+            self.rhs = self._fd2
+
+        self.D = D
         self.imax = imax
         self.u = self._u_constant
         self.psource = psource
@@ -227,8 +233,6 @@ class PDEModel(Data):
         # dummy array to speed up integration
         self.du = np.zeros(2*N)
     
-
-        
     def _u_constant(self,r):
         """
         speed of retrograde flow induced by actin
@@ -271,6 +275,46 @@ class PDEModel(Data):
 
         return out
 
+    def _fd2(self,t,y,scenario='default'):
+        """
+        finite diff for 1st order PDE
+        t: float, time.
+        y: 2*N array
+        p: object of parameters
+        """
+
+        r = self.r
+        dr = self.dr
+        u = self.u
+        f = y[:self.N]
+        p = y[self.N:]
+        D = self.D
+
+        out = self.du
+
+        # interior points
+        drp2_i = D*(p[2:] - 2*p[1:-1] + p[:-2])/dr**2
+        drp1_i = (r*u+D)*(p[2:]-p[:-2])/(2*r[1:-1]*dr)
+        drp0_i = u*p[1:-1]/r[1:-2]
+
+        # left endpoint
+        
+
+        # right endpoint
+
+        tfp_i = self.dp*p[:-1] - self.df*f[:-1]
+
+        # update interior derivatives
+        out[:self.N-1] = tfp_i
+        out[self.N+1:-1] = drp2_i + drp1_i + drp0_i - tfp_i
+
+        # update left d
+        
+
+        # update right d
+
+        return out
+
     
     def _run_euler(self,scenario):
         """
@@ -278,21 +322,19 @@ class PDEModel(Data):
         y0: initial condition
         """
 
-        y0 = nself.zeros(2*self.N)
+        y0 = np.zeros(2*self.N)
         y0[:self.N] = self.control_fn(self.r)*self.eps
         y0[self.N:] = self.control_fn(self.r)*(1-self.eps)
 
         TN = int(self.T/self.dt)
-        t = nself.linspace(0,self.T,TN)
-        y = nself.zeros((2*self.N,TN))
+        t = np.linspace(0,self.T,TN)
+        y = np.zeros((2*self.N,TN))
 
         y[:,0] = y0
 
         for i in range(TN-1):
             y[-1,i] = self.psource
-            y[:,i+1] = y[:,i] + self.dt*self._fd1(t[i],y[:,i],pars=p,
-                                                  scenario=scenario)
-            #y[self.N-1,i+1] = y[self.N-2,i+1]
+            y[:,i+1] = y[:,i] + self.dt*self.rhs(t[i],y[:,i],scenario=scenario)
 
         self.t = t
         self.y = y
@@ -520,7 +562,9 @@ def plot_sim(p):
     plot first and last simulation data
     compared to data
     """
-    
+
+    import matplotlib.pyplot as plt
+    from matplotlib.gridspec import GridSpec
     
     fsol = p.y[:p.N,:]
     psol = p.y[p.N:,:]
@@ -571,6 +615,8 @@ def plot_sim_intermediate(p):
     plot simulation data
     including intermediate comparisons
     """
+
+    import matplotlib.pyplot as plt
     
     F = p.y[:p.N,:]
     P = p.y[p.N:,:]
@@ -630,6 +676,7 @@ def construct_ana_imshow_data(p,nsol=5,option='f',scenario=1):
 def plot_ana(p,scenario=1):
 
 
+    import matplotlib.pyplot as plt
     fig, axs = plt.subplots(nrows=3,ncols=2)
 
     TN = int(p.T/p.dt)
@@ -763,18 +810,19 @@ def main():
             'uval':0.0538,
             'psource':0.0000,
             'imax':948.9595,
-            'T':1500,'dt':0.01}
+            'T':1500,'dt':0.01,
+            'order':2}
     p = PDEModel(**pars)
 
     # get numerical solution
-    p.run_euler(scenario)
+    p._run_euler(scenario)
 
     # plot solution
     if True:
         
         plot_sim(p)
         plot_sim_intermediate(p)
-        plot_ana(p)
+        #plot_ana(p)
     
     plt.show()
 
