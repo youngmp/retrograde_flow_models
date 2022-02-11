@@ -194,7 +194,7 @@ class PDEModel(Data):
     class for holding and moving parameters
     """
 
-    def __init__(self,u=None,N=200,eps=0,
+    def __init__(self,u=None,N=100,eps=0,
                  df=1,dp=1,uval=0.16,
                  T=300,dt=0.001,psource=0,
                  imax=100,order=1,D=1):
@@ -208,6 +208,8 @@ class PDEModel(Data):
         #self.data_dir = data_dir
 
         self.uval = uval
+
+        self.order = order
 
         if order == 1:
             self.rhs = self._fd1
@@ -726,20 +728,6 @@ def plot_ana(p,scenario=1):
     return fig
     
 def plot_gaussian_fit(x_data,y_data,pars,t=''):
-    fig = plt.figure(figsize=(6,3))
-    ax = fig.add_subplot(111)
-    
-    ax.plot(x_data,g_approx(x_data,pars),label='Approx.')
-    ax.plot(x_data,y_data,label='Data')
-    ax.set_title(t)
-
-    ax.set_xlabel('r')
-    ax.set_ylabel('Norm. Intensity')
-    ax.legend()
-
-    plt.tight_layout()
-
-    return fig
 
 def g_approx(r,pars):
     """
@@ -808,14 +796,17 @@ def main():
     #pars = parsets(scenario,method)
     #uval=, imax=133.1764
     #eps=, d_f=0.0000, dp=0.0000, uval=, imax=
-    pars = {'eps':0.7741,
-            'df':0,
-            'dp':0,
-            'uval':0.0538,
-            'psource':0.0000,
-            'imax':948.9595,
-            'T':500,'dt':0.002,
-            'order':2,'D':1}
+    #eps=0.9067, d_f=0.1768, dp=4.8743, uval=0.1600, imax=100.0000, D=0.0100
+
+    #eps=, d_f=, dp=, uval=, imax=100.0000, D=0.2117
+    #ps=, d_f=, dp=, uval=, imax=100.0000, D=0.0400
+    pars = {'eps':0.9996,
+            'df':0.0001,
+            'dp':8.2605,
+            'uval':0.1600,
+            'D':0.04,
+            'T':1500,'dt':0.01,
+            'order':2}
     p = PDEModel(**pars)
 
     # get numerical solution
@@ -825,7 +816,7 @@ def main():
     if True:
         
         plot_sim(p)
-        #plot_sim_intermediate(p)
+        plot_sim_intermediate(p)
         #plot_ana(p)
     
     plt.show()
