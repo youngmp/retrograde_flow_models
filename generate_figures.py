@@ -97,6 +97,29 @@ def data_figure():
     return fig
 
 
+def gaussian_fit():
+    """
+    figure for fitting Gaussian to data
+    """
+
+    import matplotlib.pyplot as plt
+    
+    fig = plt.figure(figsize=(6,3))
+    ax = fig.add_subplot(111)
+    
+    ax.plot(x_data,g_approx(x_data,pars),label='Approx.')
+    ax.plot(x_data,y_data,label='Data')
+    ax.set_title(t)
+
+    ax.set_xlabel('r')
+    ax.set_ylabel('Norm. Intensity')
+    ax.legend()
+
+    plt.tight_layout()
+
+    return fig
+
+
 def generate_figure(function, args, filenames, title="", title_pos=(0.5,0.95)):
     """
     code taken from Shaw et al 2012 code

@@ -368,7 +368,7 @@ class PDEModel(Data):
         y0 = np.zeros(2*self.N)
 
         if self.order == 'test':
-            y0[:self.N] += self.eps
+            y0[:self.N] = self.eps*self.control_fn(self.r)
             y0[self.N:] = self.control_fn(self.r)
         else:
             y0[:self.N] = self.control_fn(self.r)*self.eps
@@ -594,6 +594,7 @@ def plot_sim(p):
 
     else:
         I = fsol + psol
+        print('a')
     
     nrows = 3
     ncols = 2
@@ -814,7 +815,7 @@ def main():
     method = 'annealing'
     np.random.seed(0)
 
-    #pars = parsets(scenario,method)
+    pars = parsets(scenario,method)
     #uval=, imax=133.1764
     #eps=, d_f=0.0000, dp=0.0000, uval=, imax=
     #eps=0.9067, d_f=0.1768, dp=4.8743, uval=0.1600, imax=100.0000, D=0.0100
@@ -823,16 +824,21 @@ def main():
     #ps=, d_f=, dp=, uval=, imax=100.0000, D=0.0400
     #err=0.6189, eps=0.8226, d_f=0.0017, dp=7.4196, uval=0.1600, imax=100.0000, D=0.0400
     #0.4272, eps=0.1676, d_f=0.5134, dp=7.1638, uval=0.0751, imax=100.0000, D=0.0037
-    #eps=0.4980, d_f=2.7535, dp=2.7527, uval=0.7784, imax=100.0000, fsource=0.1133, uvalf=0.0098
-    pars = {'eps':0.4980,
-            'df':2.7535,
-            'dp':2.7527,
-            'uval':0.7784,
-            'uvalf':0.0098,
-            'D':0.0,
-            'T':1500,'dt':0.01,
-            'order':'test','N':200,
-            'fsource':0.1133}
+    #eps=0.8278, d_f=3.2512, dp=3.6793, uval=0.5342, imax=100.0000, fsource=0.0627, uvalf=0.4949
+    #eps=0.0700, d_f=0.4221, dp=5.6531, uval=0.0951, imax=100.0000, D=0.0037; diffusion default
+    #eps=0.8874, d_f=0.4221, dp=6.6712, uval=0.0951, imax=100.0000, D=0.0037 diffusion default
+
+    #eps=0.9994, d_f=0.0001, dp=7.0515, uval=0.1600, imax=100.0000, D=0.0400; diffusion fix D, u
+    pars = {'eps':0.8874,
+            'df':0.4221,
+            'dp':6.6712,
+            'uval':0.0951,
+            #'fsource':0.0627,
+            #'uvalf':0,
+            'D':0.0037,
+            'T':1500,'dt':0.005,
+            'order':2,'N':200
+            }
     
     p = PDEModel(**pars)
 
