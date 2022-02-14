@@ -72,7 +72,7 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
             err += w*np.linalg.norm(data-I[:,idx])
 
     if ss_condition:
-        if np.linalg.norm(I[:,int(120/p.dt)]-I[:,int(1440/p.dt)]) > 1e-5:
+        if np.linalg.norm(I[:,int(1000/p.dt)]-I[:,int(1440/p.dt)]) > 1e-7:
             err = 1000
 
     stdout = [err,p.eps,p.df,p.dp,p.u(0),p.imax]
