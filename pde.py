@@ -594,7 +594,6 @@ def plot_sim(p):
 
     else:
         I = fsol + psol
-        print('a')
     
     nrows = 3
     ncols = 2
@@ -809,7 +808,6 @@ def main():
     import matplotlib.pyplot as plt
     
     from matplotlib.gridspec import GridSpec
-
 
     scenario = 'default'
     method = 'annealing'
