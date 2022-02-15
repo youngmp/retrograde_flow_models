@@ -47,10 +47,7 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
     fsol = y[:p.N,:]
     psol = y[p.N:,:]
 
-    if p.order == 'test':
-        I = psol
-    else:
-        I = fsol + psol
+    I = fsol + psol
         
     #'2h', '4h', '30min', '1h', '24h', 'control', '8h30'
     err = 0
@@ -88,10 +85,6 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
         stdout.append(p.D)
         s1 += ', D={:.4f}'
 
-    if p.order == 'test':
-        stdout.append(p.fsource)
-        stdout.append(p.uvalf)
-        s1 += ', fsource={:.4f}, uvalf={:.4f}'
     
     print(s1.format(*stdout))
     return err
@@ -168,9 +161,6 @@ def main():
         order = 1; dt = 0.01
     else:
         order = 2; dt = 0.01
-
-    if args.scenario == 'test':
-        order = 'test'
     
     # 1440 minutes in 24 h
     p = pde.PDEModel(T=1500,dt=dt,order=order)
@@ -258,12 +248,6 @@ def main():
         init = [0.1,1,1]
         parfix = {'D':.04,'uval':0.16}
 
-    elif args.scenario == 'test':
-        fname_pre = p.data_dir+'scenario_test_residuals'
-        par_names = ['eps','df','dp','uval','uvalf','fsource']
-        bounds = [(0,1),(0,10),(0,10),(0,1),(0,1),(0,1)]
-        init = [0,1,1,1,1,1]
-        parfix = {}
         
     if args.psource:
         par_names.append('psource')

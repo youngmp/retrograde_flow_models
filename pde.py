@@ -211,7 +211,6 @@ class PDEModel(Data):
         #self.data_dir = data_dir
 
         self.uval = uval
-        self.uvalf = uvalf
 
         self.order = order
 
@@ -219,11 +218,11 @@ class PDEModel(Data):
             self.rhs = self._fd1
         elif order == 2:
             self.rhs = self._fd2
-        elif order == 'test':
-            self.rhs = self._fd1a
 
         self.D = D
         self.imax = imax
+
+        if 
         self.u = self._u_constant
         self.psource = psource
         self.fsource = fsource
@@ -367,12 +366,8 @@ class PDEModel(Data):
 
         y0 = np.zeros(2*self.N)
 
-        if self.order == 'test':
-            y0[:self.N] = self.eps*self.control_fn(self.r)
-            y0[self.N:] = self.control_fn(self.r)
-        else:
-            y0[:self.N] = self.control_fn(self.r)*self.eps
-            y0[self.N:] = self.control_fn(self.r)*(1-self.eps)
+        y0[:self.N] = self.control_fn(self.r)*self.eps
+        y0[self.N:] = self.control_fn(self.r)*(1-self.eps)
 
         TN = int(self.T/self.dt)
         t = np.linspace(0,self.T,TN)
@@ -382,8 +377,6 @@ class PDEModel(Data):
 
         for i in range(TN-1):
             y[-1,i] = self.psource
-            if self.order == 'test':
-                y[0] = self.fsource
             y[:,i+1] = y[:,i] + self.dt*self.rhs(t[i],y[:,i],scenario=scenario)
             
 
@@ -589,11 +582,7 @@ def plot_sim(p):
     fsol = p.y[:p.N,:]
     psol = p.y[p.N:,:]
 
-    if p.order == 'test':
-        I = psol
-
-    else:
-        I = fsol + psol
+    I = fsol + psol
     
     nrows = 3
     ncols = 2
@@ -646,11 +635,7 @@ def plot_sim_intermediate(p):
     P = p.y[p.N:,:]
     #print(p.order)
 
-    if p.order == 'test':
-        I = P
-
-    else:
-        I = F + P
+    I = F + P
         
     nrows = 3
     ncols = 2
