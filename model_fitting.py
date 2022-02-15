@@ -163,8 +163,6 @@ def main():
 
     args = parser.parse_args()
     print(args)
-
-
     
     if type(args.scenario) is int:
         order = 1; dt = 0.01
@@ -277,8 +275,10 @@ def main():
         fname_pre += '_ss'
 
     fname = fname_pre + '.txt'
+    fname_err = fname_pre+'_err.txt'
     
-    file_not_found = not(os.path.isfile(fname))
+    file_not_found = not(os.path.isfile(fname))\
+                     and not(os.path.isfile(fname_err))
     
     if args.recompute or file_not_found:
         res = get_data_residuals(p,par_names=par_names,
@@ -288,28 +288,30 @@ def main():
                                  ss_condition=args.ss_condition,
                                  psource=args.psource,
                                  scenario=args.scenario)
-
-        np.savetxt(fname_pre+'_err.txt',np.array([res.fun]))
-        np.savetxt(fname,res.x)
-        res_arr = res.x
         
+        np.savetxt(fname,res.x)
+        np.savetxt(fname_err,[res.fun])
+        
+        res_arr = res.x
+        res_fun = res.fun
     else:
         
         res_arr = np.loadtxt(fname)
+        res_fun = np.loadtxt(fname_err)
 
     #p.__init__(T=200,dt=0.01)
     for i, val in enumerate(res_arr):
         setattr(p,par_names[i],val)
 
-    print(par_names,res_arr)
+    print(par_names,res_arr,'. err =',res_fun)
     if args.plots:
         
         p.T = 200
         p.dt = .005
         print(int(p.T/p.dt))
         p = pde.run_euler(p)
-        pde.plot_sim(p)
-        
+        pde.plot_sim(p)  
+      
         plt.show()
 
 if __name__ == "__main__":
