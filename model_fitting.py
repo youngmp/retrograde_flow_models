@@ -20,6 +20,7 @@ import argparse
 import numpy as np
 from scipy.optimize import least_squares
 from scipy.optimize import basinhopping, dual_annealing
+from scipy.interpolate import interp1d
 
 def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
             scenario=None):
@@ -247,6 +248,39 @@ def main():
         bounds = [(0,1),(0,10),(0,10)]
         init = [0.1,1,1]
         parfix = {'D':.04,'uval':0.16}
+
+    elif args.scenario == '1r':
+        # spatially dependent u
+
+        import matplotlib.pyplot as plt
+        data_avg,_ = p._build_data_dict(L0=p.L0,L=p.L,normed=False)
+        #data_avg_fns = p._build_data_fns(data_avg)
+        x = data_avg['24h'][:,0];y = data_avg['24h'][:,1]
+
+        pars_ss_unnormed = p._load_gaussian_pars(p.data_dir,data_avg,'24h',
+                                                 normed=False,n_gauss=15)
+
+        fn_24h = pde.CallableGaussian(pars_ss_unnormed)
+        
+        #fn_24h = interp1d(x,y,fill_value=(y[0],y[-1]),bounds_error=False,
+        #                  kind='cubic')
+
+        print(y[0],y[-5:])
+        p.u = interp1d(p.r,1/(p.r*fn_24h(p.r)))
+
+        if False:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            ax.plot(p.r,p.u(p.r))
+            #ax.plot(p.r,fn_24h(p.r))
+            #ax.plot(x,y)
+            plt.show()
+
+        fname_pre = p.data_dir+'scenario_1r_residuals'
+        par_names = ['uval']
+        bounds = [(0,5)]
+        init = [1]
+        parfix = {}
 
         
     if args.psource:
