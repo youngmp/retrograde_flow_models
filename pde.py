@@ -71,9 +71,11 @@ class Data:
         # generate functions
         print('data keys',data_avg.keys())
 
-        pars_control = self._load_gaussian_pars(self.data_dir,data_avg,'control',n_gauss=7)
-        pars_steadys = self._load_gaussian_pars(self.data_dir,data_avg,'24h',n_gauss=7)
-                
+        pars_control = self._load_gaussian_pars(self.data_dir,data_avg,'control',
+                                                normed=True,n_gauss=7)
+        pars_steadys = self._load_gaussian_pars(self.data_dir,data_avg,'24h',
+                                                normed=True,n_gauss=7)
+        
         self.control_fn = CallableGaussian(pars_control)
         self.steadys_fn = CallableGaussian(pars_steadys)
         #p.steadys_fn = steadys_fn
@@ -92,12 +94,12 @@ class Data:
         """
 
     @staticmethod
-    def _load_gaussian_pars(data_dir,data,time,n_gauss=6,recompute=False):
+    def _load_gaussian_pars(data_dir,data,time,normed,n_gauss=6,recompute=False):
         """
         time: str. time of data
         """
 
-        fname = data_dir + time + str(n_gauss) + '.txt'
+        fname = data_dir + time + str(n_gauss) +'_normed=' + str(normed) + '.txt'
         file_not_found = not(os.path.isfile(fname))
         
         if recompute or file_not_found:
@@ -197,20 +199,30 @@ class PDEModel(Data):
 
     def __init__(self,u=None,N=100,eps=0,
                  df=1,dp=1,uval=0.16,
-                 uvalf=0,
                  T=300,dt=0.001,psource=0,
-                 fsource=0,
                  imax=100,order=1,D=1):
         """
-        ur: speed of retrograde flow as a function of r
+        uval: scale for velocity.
         N: domain mesh size
         L: domain radius in um
+        T: total time
+        dt: time step
+        psource: Dirichlet right boundary for mobile P
+        order: 1st or 2nd order PDE (advection or advection + diffusion)
+        D: diffusion constant
         """
         super().__init__()
 
         #self.data_dir = data_dir
 
         self.uval = uval
+        
+        #if (type(self.uval) is float) or (type(self.uval) is int):
+        #    self.u = self._u_constant
+        #elif callable(self.uval):
+        #    self.u = self.uval
+
+        self.u = self._u_constant
 
         self.order = order
 
@@ -221,11 +233,8 @@ class PDEModel(Data):
 
         self.D = D
         self.imax = imax
-
-        if 
-        self.u = self._u_constant
+            
         self.psource = psource
-        self.fsource = fsource
 
         self.eps = eps
         self.N = N
@@ -246,9 +255,11 @@ class PDEModel(Data):
         speed of retrograde flow induced by actin
         r: domain position.
         constant case.
+        return 1, but it is scaled by uval in code.
+        needed to be compatible with user-defined velocities
         """
         
-        return self.uval
+        return 1
 
     
     def _fd1(self,t,y,scenario='default'):
@@ -265,9 +276,11 @@ class PDEModel(Data):
         f = y[:self.N]
         p = y[self.N:]
 
+        ur = self.uval*u(r)
+
         out = self.du
 
-        drp = (r[1:]*u(r[1:])*p[1:]-r[:-1]*u(r[:-1])*p[:-1])/(r[:-1]*dr)
+        drp = (r[1:]*ur[1:]*p[1:]-r[:-1]*ur[:-1]*p[:-1])/(r[:-1]*dr)
 
         if (scenario == 'default') or (scenario == 0)\
            or (scenario == 1) or (scenario == 2)\
@@ -275,6 +288,8 @@ class PDEModel(Data):
             tfp = self.dp*p[:-1] - self.df*f[:-1]
         elif scenario == 4:
             tfp = -self.dp*(1-p[:-1]/self.imax)
+        elif scenario == '1r':
+            tfp = 0
         else:
             raise ValueError('Unrecognized or unimplemented scenario',scenario)
 
@@ -283,35 +298,6 @@ class PDEModel(Data):
 
         return out
 
-
-    def _fd1a(self,t,y,scenario='default'):
-        """
-        finite diff for 1st order PDE. assuming aterograde flow
-        t: float, time.
-        y: 2*N array
-        p: object of parameters
-        """
-
-        r = self.r
-        dr = self.dr
-        u = self.u; uu = u(r[0])
-        f = y[:self.N]
-        p = y[self.N:]
-
-        out = self.du
-
-        drf = -uu*(r[1:]*p[1:]-r[:-1]*p[:-1])/(r[1:]*dr)
-        drp =  uu*(r[1:]*p[1:]-r[:-1]*p[:-1])/(r[:-1]*dr)
-
-        tfp = self.dp*p - self.df*f
-        
-        out[1:self.N] = drf + tfp[1:]
-        out[self.N:-1] = drp - tfp[:-1]
-
-        #out[0] += self.fsource/dr
-        #out[-1] += f[-1]/dr
-
-        return out
 
     def _fd2(self,t,y,scenario='default'):
         """
@@ -324,26 +310,28 @@ class PDEModel(Data):
         r = self.r;dr = self.dr;u = self.u;D = self.D
         f = y[:self.N];p = y[self.N:]
 
+        ur = self.uval*u(r)
+
         out = self.du
 
         tfp = self.dp*p - self.df*f
 
         # interior derivatives
         drp2_i = D*(p[2:] - 2*p[1:-1] + p[:-2])/dr**2
-        drp1_i = (r[1:-1]*u(r[1:-1])+D)*(p[2:]-p[:-2])/(2*r[1:-1]*dr)
-        drp0_i = u(r[1:-1])*p[1:-1]/r[1:-1]
+        drp1_i = (r[1:-1]*ur[1:-1]+D)*(p[2:]-p[:-2])/(2*r[1:-1]*dr)
+        drp0_i = ur[1:-1]*p[1:-1]/r[1:-1]
 
         # left endpoint derivative
-        p0 = p[1] + 2*u(r[0])*dr*p[0]/D
+        p0 = p[1] + 2*ur[0]*dr*p[0]/D
         drp2_l = D*(p0 - 2*p[0] + p[1])/dr**2
-        drp1_l = (r[0]*u(r[0])+D)*(p[1]-p0)/(2*r[0]*dr)
-        drp0_l = u(r[0])*p[0]/r[0] - tfp[0]
+        drp1_l = (r[0]*ur[0]+D)*(p[1]-p0)/(2*r[0]*dr)
+        drp0_l = ur[0]*p[0]/r[0] - tfp[0]
 
         # right endpoint derivative
-        pn1 = p[-2] - 2*u(r[-1])*dr*p[-1]/D
+        pn1 = p[-2] - 2*ur[-1]*dr*p[-1]/D
         drp2_r = D*(pn1 - 2*p[-1] + p[-2])/dr**2
-        drp1_r = (r[-1]*u(r[-1])+D)*(pn1-p[-2])/(2*r[-1]*dr)
-        drp0_r = u(r[-1])*p[-1]/r[-1] - tfp[-1]
+        drp1_r = (r[-1]*ur[-1]+D)*(pn1-p[-2])/(2*r[-1]*dr)
+        drp0_r = ur[-1]*p[-1]/r[-1] - tfp[-1]
 
         # update interior derivatives
         out[:self.N] = tfp
@@ -511,7 +499,7 @@ def get_ana(p,t,option='i',scenario=1):
     p_fn = p.control_fn
     
     r = p.r
-    u = p.u(r)
+    u = self.uval*p.u(r)
 
     if scenario == 1:
 
@@ -812,15 +800,15 @@ def main():
     #eps=0.8874, d_f=0.4221, dp=6.6712, uval=0.0951, imax=100.0000, D=0.0037 diffusion default
 
     #eps=0.9994, d_f=0.0001, dp=7.0515, uval=0.1600, imax=100.0000, D=0.0400; diffusion fix D, u
-    pars = {'eps':0.8874,
-            'df':0.4221,
-            'dp':6.6712,
-            'uval':0.0951,
+    pars = {'eps':0.88,
+            'df':0,
+            'dp':0,
+            'uval':2,
             #'fsource':0.0627,
             #'uvalf':0,
-            'D':0.0037,
+            'D':0.00,
             'T':1500,'dt':0.005,
-            'order':2,'N':200
+            'order':1,'N':200
             }
     
     p = PDEModel(**pars)
