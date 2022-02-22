@@ -11,7 +11,11 @@ mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['text.usetex'] = True
 mpl.rcParams['pgf.texsystem'] = 'pdflatex'
 mpl.rcParams['text.latex.preamble'] = r'\usepackage{amsmath} \usepackage{siunitx}'
-                  
+
+fsizetick = 13
+fsizelabel = 13
+fsizetitle = 13
+
 
 import pde
 
@@ -79,18 +83,19 @@ def data_figure():
     for i in range(2):
         for j in range(2):
             axs[i,j].legend()
-            axs[i,j].set_xlabel(r'Radius ($\si{\um}$)')
+            axs[i,j].set_xlabel(r'Radius ($\si{\um}$)',fontsize=fsizelabel)
+            axs[i,j].tick_params(axis='both',labelsize=fsizetick)
 
 
-    axs[0,0].set_title('A. Representative',loc='left')
-    axs[0,1].set_title('B. Average',loc='left')
-    axs[1,0].set_title('C. Representative (Normalized)',loc='left')
-    axs[1,1].set_title('D. Average (Normalized)',loc='left')
+    axs[0,0].set_title('A. Representative',loc='left',size=fsizetitle)
+    axs[0,1].set_title('B. Average',loc='left',size=fsizetitle)
+    axs[1,0].set_title('C. Representative (Normalized)',loc='left',size=fsizetitle)
+    axs[1,1].set_title(r'\textbf{D. Average (Normalized)}',loc='left',size=fsizetitle)
     
-    axs[0,0].set_ylabel('Intensity')
-    axs[0,1].set_ylabel('Intensity')
-    axs[1,0].set_ylabel('Norm. Intensity')
-    axs[1,1].set_ylabel('Norm. Intensity')
+    axs[0,0].set_ylabel('Intensity',fontsize=fsizelabel)
+    axs[0,1].set_ylabel('Intensity',fontsize=fsizelabel)
+    axs[1,0].set_ylabel('Norm. Intensity',fontsize=fsizelabel)
+    axs[1,1].set_ylabel('Norm. Intensity',fontsize=fsizelabel)
 
     plt.tight_layout()
 
