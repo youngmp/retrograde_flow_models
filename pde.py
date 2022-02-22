@@ -31,6 +31,7 @@ let's try no-flux at the origin? before doubling up on the domain.
 
 
 import os
+import time
 
 import pandas as pd
 import numpy as np
@@ -39,6 +40,7 @@ from scipy.optimize import least_squares as lsq
 from scipy.integrate import solve_ivp
 from scipy.interpolate import interp1d
 
+#import matplotlib.pyplot as plt
 
 class Data:
     """
@@ -125,14 +127,19 @@ class Data:
         data_raw = pd.read_excel(fname,engine = 'openpyxl',header=[0,1,2])
 
         # get set of primary headers (to remove duplicates)
-        list_hours = set()
+        list_hours = []
         for col in data_raw.columns:
-            list_hours.add(col[0])
+            list_hours.append(col[0])
+
+        list_hours = list(dict.fromkeys(list_hours))
+
+        assert(list_hours[0] == 'control')
 
         # collect data in dict
         data_avg = {} # for average data
         data_rep = {} # for rep. data
 
+        counter = 0
         for hour in list_hours:
 
             # get column names
@@ -144,15 +151,19 @@ class Data:
             rep_data = data_raw[hour]['rep']
             rep_data.dropna(subset=['radius'],inplace=True)
             x1 = rep_data['radius']; y1 = rep_data['intensity']
-
+                
             mask = (x1>=L0)&(x1<=L)
+            
+            if counter == 0:
+                n1 = np.sum(y1[mask][:-1]*np.diff(x1[mask]))
+
             if normed:
-                n = np.sum(y1[mask]*np.diff(x1[mask],prepend=0))
+                pass
             else:
-                n = 1
+                n1 = 1
                 
             z1 = np.zeros((len(x1[mask]),2))
-            z1[:,0] = x1[mask]; z1[:,1] = y1[mask]/n
+            z1[:,0] = x1[mask]; z1[:,1] = y1[mask]/n1
             data_rep[hour] = z1
 
             # save avg data
@@ -163,14 +174,19 @@ class Data:
             x2 = avg_data['radius']; y2 = avg_data['intensity']
             mask = (x2>=L0)&(x2<=L)
 
+            if counter == 0:
+                n2 = np.sum(y2[mask][:-1]*np.diff(x2[mask]))
+
             if normed:
-                n = np.sum(y2[mask]*np.diff(x2[mask],prepend=0))
+                pass
             else:
-                n = 1
+                n2 = 1
             
             z2 = np.zeros((len(x2[mask]),2))
-            z2[:,0] = x2[mask]; z2[:,1] = y2[mask]/n
+            z2[:,0] = x2[mask]; z2[:,1] = y2[mask]/n2
             data_avg[hour] = z2
+
+            counter += 1
 
         return data_avg, data_rep
 
@@ -219,10 +235,11 @@ class PDEModel(Data):
         
         #if (type(self.uval) is float) or (type(self.uval) is int):
         #    self.u = self._u_constant
-        #elif callable(self.uval):
-        #    self.u = self.uval
-
-        self.u = self._u_constant
+        
+        if not(callable(u)):
+            self.u = self._u_constant
+        else:
+            self.u = u
 
         self.order = order
 
@@ -240,6 +257,9 @@ class PDEModel(Data):
         self.N = N
         
         self.r, self.dr = np.linspace(self.L0,self.L,N,retstep=True)
+        
+        self.ur = self.uval*self.u(self.r)
+        
         self.dp = dp
         self.df = df
 
@@ -259,7 +279,7 @@ class PDEModel(Data):
         needed to be compatible with user-defined velocities
         """
         
-        return 1
+        return np.ones(len(r))
 
     
     def _fd1(self,t,y,scenario='default'):
@@ -272,26 +292,38 @@ class PDEModel(Data):
 
         r = self.r
         dr = self.dr
-        u = self.u
+        #u = self.u
+        ur = self.ur
         f = y[:self.N]
         p = y[self.N:]
-
-        ur = self.uval*u(r)
 
         out = self.du
 
         drp = (r[1:]*ur[1:]*p[1:]-r[:-1]*ur[:-1]*p[:-1])/(r[:-1]*dr)
 
-        if (scenario == 'default') or (scenario == 0)\
-           or (scenario == 1) or (scenario == 2)\
-           or (scenario == -2) or (scenario == -3):
-            tfp = self.dp*p[:-1] - self.df*f[:-1]
-        elif scenario == 4:
+        
+        if scenario == '4a':
             tfp = -self.dp*(1-p[:-1]/self.imax)
+            
+
+            if False:
+                #print(np.amax(tfp),np.amax(p[:-1]),np.amax(f[:-1]))
+                #time.sleep(1)
+                fig = plt.figure()
+                ax = fig.add_subplot(111)
+                ax.plot(self.r,p)
+                ax.plot(self.r,f)
+                plt.show()
+                
         elif scenario == '1r':
             tfp = 0
+        elif scenario == '2r':
+            tfp = 0
+        elif scenario == '3r':
+            tfp = 0
         else:
-            raise ValueError('Unrecognized or unimplemented scenario',scenario)
+            tfp = self.dp*p[:-1] - self.df*f[:-1]
+            #raise ValueError('Unrecognized or unimplemented scenario',scenario)
 
         out[:self.N-1] = tfp
         out[self.N:-1] = drp - tfp
@@ -308,14 +340,10 @@ class PDEModel(Data):
         """
 
         r = self.r;dr = self.dr;u = self.u;D = self.D
-        f = y[:self.N];p = y[self.N:]
-
-        ur = self.uval*u(r)
-
-        out = self.du
-
+        f = y[:self.N];p = y[self.N:];ur = self.ur
+        
         tfp = self.dp*p - self.df*f
-
+        
         # interior derivatives
         drp2_i = D*(p[2:] - 2*p[1:-1] + p[:-2])/dr**2
         drp1_i = (r[1:-1]*ur[1:-1]+D)*(p[2:]-p[:-2])/(2*r[1:-1]*dr)
@@ -334,6 +362,8 @@ class PDEModel(Data):
         drp0_r = ur[-1]*p[-1]/r[-1] - tfp[-1]
 
         # update interior derivatives
+        
+        out = self.du
         out[:self.N] = tfp
         out[self.N+1:-1] = drp2_i + drp1_i + drp0_i - tfp[1:-1]
 
@@ -417,8 +447,8 @@ def parsets(scenario='default',method=''):
         if method == 'annealing':
             pars = {'eps':0,
                     'df':0,
-                    'dp':0.38812839,
-                    'uval':2,
+                    'dp':0.01744031,
+                    'uval':0.08362923,
                     'T':1500,'dt':0.01}
 
     return pars
@@ -782,7 +812,7 @@ def main():
     
     from matplotlib.gridspec import GridSpec
 
-    scenario = 'default'
+    scenario = 2#'default'
     method = 'annealing'
     np.random.seed(0)
 
@@ -800,18 +830,83 @@ def main():
     #eps=0.8874, d_f=0.4221, dp=6.6712, uval=0.0951, imax=100.0000, D=0.0037 diffusion default
 
     #eps=0.9994, d_f=0.0001, dp=7.0515, uval=0.1600, imax=100.0000, D=0.0400; diffusion fix D, u
-    pars = {'eps':0.88,
+    #eps=0.6613, d_f=0.1242, dp=4.2809, uval=0.9822
+    #eps=0.0165, d_f=0.0000, dp=0.0562, uval=0.5028
+
+    #eps=0.0000, d_f=0.0000, dp=0.3749, uval=1.7155
+    pars = {'eps':0.0018,
             'df':0,
-            'dp':0,
-            'uval':2,
-            #'fsource':0.0627,
-            #'uvalf':0,
-            'D':0.00,
-            'T':1500,'dt':0.005,
-            'order':1,'N':200
+            'dp':.0231,
+            'uval':.19,
+            'D':1.5069,
+            'T':1500,'dt':0.01,
+            'N':100,'order':2,
             }
+
     
+    #eps=0.0000, d_f=0.0000, dp=0.3749, uval=1.7155
+    # s2
+    #eps=0.5166, d_f=0.0000, dp=1.4881, uval=0.2277
+    pars = {'eps':0.5166,
+            'df':0,
+            'dp':.0147,
+            'uval':.0906,
+            'D':1.5069,
+            'T':1500,'dt':0.01,
+            'N':100,'order':1,
+            }
+
+    """
+    # s 1
+    #0.68191961 0.0247814
+    pars = {'eps':0.68191961,
+            'df':0,
+            'dp':.0,
+            'uval':0.0247814,
+            'D':1.5069,
+            'T':1500,'dt':0.01,
+            'N':100,'order':1,
+            }
+    """
+    
+
+    #6.97334980e-01 6.62888969e+00 7.54621025e-07
+    # s0
+    """
+    pars = {'eps':6.97334980e-01,
+            'df':6.62888969e+00,
+            'dp':.0147,
+            'uval':7.54621025e-07,
+            'D':1.5069,
+            'T':1500,'dt':0.01,
+            'N':100,'order':1,
+            }
+    """
+
+    """
+    #5.11321584e-01 1.50062660e-05 6.76539309e+00 6.46158787e-01
+    # s-1
+    pars = {'eps':5.11321584e-01,
+            'df':1.50062660e-05,
+            'dp':6.76539309e+00,
+            'uval':6.46158787e-01,
+            'D':1.5069,
+            'T':1500,'dt':0.01,
+            'N':100,'order':1,
+            }
+    """
+
     p = PDEModel(**pars)
+
+    if False:
+        data_avg,_ = p._build_data_dict(L0=p.L0,L=p.L,normed=False)
+        
+        x = data_avg['24h'][:,0];y = data_avg['24h'][:,1]
+        pars_ss_unnormed = p._load_gaussian_pars(p.data_dir,data_avg,'24h',
+                                                 normed=False,n_gauss=15)
+
+        fn_24h = CallableGaussian(pars_ss_unnormed)
+        p.u = interp1d(p.r,1/(p.r*fn_24h(p.r)))
 
     # get numerical solution
     p._run_euler(scenario)
