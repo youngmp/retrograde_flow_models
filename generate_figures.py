@@ -35,8 +35,7 @@ def data_figure():
     d = pde.Data()
 
     # load unnormed data
-    data_avg_raw, data_rep_raw = d._build_data_dict(L0=d.L0,L=d.L,normed=False)
-
+    #data =  d._build_data_dict(L0=d.L0,L=d.L,normed=True)
     
     #list_hours = ['control','0.5h', '1h','2h','4h','8.5h','24h']
     list_hours = ['control','0.5h', '1h','2h','24h']
@@ -61,13 +60,13 @@ def data_figure():
             color = color
 
         # raw, rep
-        x = data_rep_raw[hour][:,0]
-        y = data_rep_raw[hour][:,1]
+        x = d.data_rep_raw[hour][:,0]
+        y = d.data_rep_raw[hour][:,1]
         axs[0,0].plot(x,y,label=label,color=color)
 
         # raw, avg
-        x = data_avg_raw[hour][:,0]
-        y = data_avg_raw[hour][:,1]
+        x = d.data_avg_raw[hour][:,0]
+        y = d.data_avg_raw[hour][:,1]
         axs[0,1].plot(x,y,label=label,color=color)
         
         # normed, rep
@@ -109,15 +108,24 @@ def gaussian_fit():
 
     import matplotlib.pyplot as plt
     
-    fig = plt.figure(figsize=(6,3))
+    fig = plt.figure(figsize=(4,3))
     ax = fig.add_subplot(111)
-    
-    ax.plot(x_data,g_approx(x_data,pars),label='Approx.')
-    ax.plot(x_data,y_data,label='Data')
-    ax.set_title(t)
 
-    ax.set_xlabel('r')
-    ax.set_ylabel('Norm. Intensity')
+
+    d = pde.Data(recompute=False,normed=True)
+    x_data = d.data_avg['control'][:,0]
+    y_data = d.data_avg['control'][:,1]
+    
+    
+    ax.plot(x_data,y_data,label='Data',lw=2)
+    ax.plot(x_data,d.control_fn(x_data),label='Approx.',lw=2)
+    #ax.set_title(t)
+
+    ax.set_xlabel(r'$r$',fontsize=fsizelabel)
+    ax.set_ylabel(r'Norm. Intensity $\tilde I_0(r)$',fontsize=fsizelabel)
+    ax.tick_params(axis='both',labelsize=fsizetick)
+
+    ax.set_xlim(x_data[0],x_data[-1])
     ax.legend()
 
     plt.tight_layout()
@@ -143,8 +151,9 @@ def generate_figure(function, args, filenames, title="", title_pos=(0.5,0.95)):
 def main():
 
     figures = [
-        (data_figure, [], ['f_data.png']),
-        (data_figure, [], ['f_data_test_plot.png'])
+        #(data_figure, [], ['f_data.png']),
+        #(data_figure, [], ['f_data_test_plot.png']),
+        (gaussian_fit, [], ['f_gaussian_fit.png'])
         ]
 
     # multiprocessing code from Kendrick Shaw
