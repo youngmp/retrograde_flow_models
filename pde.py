@@ -32,6 +32,7 @@ let's try no-flux at the origin? before doubling up on the domain.
 
 import os
 import time
+import copy
 
 import pandas as pd
 import numpy as np
@@ -42,6 +43,7 @@ from scipy.interpolate import interp1d
 
 #import matplotlib.pyplot as plt
 
+
 class Data:
     """
     class for loading/saving/manipulating data for
@@ -51,33 +53,45 @@ class Data:
     def __init__(self,recompute=False,
                  data_dir='./data/',
                  L0=10,
-                 L=30):
+                 L=30,normed=True):
 
         self.L = L
         self.L0 = L0
         self.recompute = recompute
         self.data_dir = data_dir
+        self.normed = normed
                 
         if not(os.path.isdir(self.data_dir)):
             print('created data directory at',self.data_dir)
             os.mkdir(self.data_dir)
 
         
-        data_avg, data_rep = self._build_data_dict(L0=self.L0,L=self.L)
+        data = self._build_data_dict(L0=self.L0,L=self.L,
+                                      normed=self.normed)
 
-        self.data_avg_fns = self._build_data_fns(data_avg)
-
+        data_avg, data_rep, data_avg_raw, data_rep_raw = data
+        
         self.data_avg = data_avg
         self.data_rep = data_rep
+        self.data_avg_raw = data_avg_raw
+        self.data_rep_raw = data_rep_raw
+
+
+        # interp1d functions -- linear interp on bounded domain
+        self.data_avg_fns = self._build_data_fns(data_avg)
+
 
         # generate functions
         print('data keys',data_avg.keys())
 
         pars_control = self._load_gaussian_pars(self.data_dir,data_avg,'control',
-                                                normed=True,n_gauss=7)
+                                                normed=self.normed,n_gauss=11,
+                                                recompute=self.recompute)
         pars_steadys = self._load_gaussian_pars(self.data_dir,data_avg,'24h',
-                                                normed=True,n_gauss=7)
-        
+                                                normed=self.normed,n_gauss=6,
+                                                recompute=self.recompute)
+
+        # gaussian interp fns. -- gaussian interp on R
         self.control_fn = CallableGaussian(pars_control)
         self.steadys_fn = CallableGaussian(pars_steadys)
         #p.steadys_fn = steadys_fn
@@ -95,8 +109,31 @@ class Data:
             plt.show()
         """
 
-    @staticmethod
-    def _load_gaussian_pars(data_dir,data,time,normed,n_gauss=6,recompute=False):
+    def _get_gaussian_res(self,x_data,y_data,time,n_gauss=3):
+        """
+        x_data: x values of data to be fitted with gaussians
+        y_data: y values of data to be fitted with gaussians
+        time: string of time. 'control', '1h', etc.
+        see keys() of data.
+        n_gauss: number of gaussians to use
+        """
+
+        #par_init = [1,0,1,1,18,1,1,25,1]
+        #par_init = [1,0,1,1,10,1,1,15,1,1,20,1]
+        #par_init = [1,0,1,1,5,1,1,10,1,1,15,1,1,20,1]
+        par_init = np.zeros(3*n_gauss)
+        for i in range(int(len(par_init)/3)):
+            par_init[3*i] = 100 # magnitude
+            par_init[3*i+1] = i*35/int(len(par_init)/3) # shift
+            par_init[3*i+2] = 5 # width
+
+        res = lsq(cost_fn,par_init,args=(x_data,y_data))
+
+        # from least squares above
+        pars = res.x
+        return pars
+
+    def _load_gaussian_pars(self,data_dir,data,time,normed,n_gauss=6,recompute=False):
         """
         time: str. time of data
         """
@@ -109,8 +146,8 @@ class Data:
             # fit gaussian.
             x_data = data[time][:,0]
             y_data = data[time][:,1]
-            pars = get_gaussian_res(x_data,y_data,time,
-                                    n_gauss=n_gauss)
+            pars = self._get_gaussian_res(x_data,y_data,time,
+                                          n_gauss=n_gauss)
 
             np.savetxt(fname,pars)
 
@@ -118,6 +155,7 @@ class Data:
 
         else:
             return np.loadtxt(fname)
+
         
     @staticmethod
     def _build_data_dict(fname='patrons20180327dynamiqueNZ_reformatted.xlsx',
@@ -138,8 +176,9 @@ class Data:
         # collect data in dict
         data_avg = {} # for average data
         data_rep = {} # for rep. data
+        data_avg_raw = {}
+        data_rep_raw = {}
 
-        counter = 0
         for hour in list_hours:
 
             # get column names
@@ -152,19 +191,23 @@ class Data:
             rep_data.dropna(subset=['radius'],inplace=True)
             x1 = rep_data['radius']; y1 = rep_data['intensity']
                 
-            mask = (x1>=L0)&(x1<=L)
-            
-            if counter == 0:
-                n1 = np.sum(y1[mask][:-1]*np.diff(x1[mask]))
+            mask = (x1>=L0)&(x1<=L)            
 
             if normed:
-                pass
+                dr1 = np.diff(x1[mask])
+                r1 = x1[mask][:-1]
+                i1 = y1[mask][:-1]
+                n1 = np.sum(i1*2*np.pi*r1*dr1)
             else:
                 n1 = 1
                 
             z1 = np.zeros((len(x1[mask]),2))
-            z1[:,0] = x1[mask]; z1[:,1] = y1[mask]/n1
+            z1[:,0] = x1[mask]; z1[:,1] = y1[mask]
+            data_rep_raw[hour] = copy.deepcopy(z1)
+            #print(z1[:,1][0])
+            z1[:,1] /= n1
             data_rep[hour] = z1
+            #print(z1[:,1][0])
 
             # save avg data
             avg_cell_number = cols[0][0]
@@ -174,21 +217,23 @@ class Data:
             x2 = avg_data['radius']; y2 = avg_data['intensity']
             mask = (x2>=L0)&(x2<=L)
 
-            if counter == 0:
-                n2 = np.sum(y2[mask][:-1]*np.diff(x2[mask]))
-
             if normed:
-                pass
+                dr2 = np.diff(x2[mask])
+                r2 = x2[mask][:-1]
+                i2 = y2[mask][:-1]
+                n2 = np.sum(i2*2*np.pi*r2*dr2)
             else:
                 n2 = 1
             
             z2 = np.zeros((len(x2[mask]),2))
-            z2[:,0] = x2[mask]; z2[:,1] = y2[mask]/n2
+            z2[:,0] = x2[mask]; z2[:,1] = y2[mask]
+            data_avg_raw[hour] = copy.deepcopy(z2)
+            z2[:,1] /= n2
             data_avg[hour] = z2
 
-            counter += 1
+            
 
-        return data_avg, data_rep
+        return data_avg, data_rep, data_avg_raw, data_rep_raw
 
     @staticmethod
     def _build_data_fns(data):
@@ -213,8 +258,8 @@ class PDEModel(Data):
     class for holding and moving parameters
     """
 
-    def __init__(self,u=None,N=100,eps=0,
-                 df=1,dp=1,uval=0.16,
+    def __init__(self,N=100,eps=0,
+                 df=1,dp=1,uval=None,
                  T=300,dt=0.001,psource=0,
                  imax=100,order=1,D=1):
         """
@@ -233,14 +278,6 @@ class PDEModel(Data):
 
         self.uval = uval
         
-        #if (type(self.uval) is float) or (type(self.uval) is int):
-        #    self.u = self._u_constant
-        
-        if not(callable(u)):
-            self.u = self._u_constant
-        else:
-            self.u = u
-
         self.order = order
 
         if order == 1:
@@ -257,8 +294,6 @@ class PDEModel(Data):
         self.N = N
         
         self.r, self.dr = np.linspace(self.L0,self.L,N,retstep=True)
-        
-        self.ur = self.uval*self.u(self.r)
         
         self.dp = dp
         self.df = df
@@ -298,13 +333,30 @@ class PDEModel(Data):
         p = y[self.N:]
 
         out = self.du
+        
 
         drp = (r[1:]*ur[1:]*p[1:]-r[:-1]*ur[:-1]*p[:-1])/(r[:-1]*dr)
 
         
+        if False:
+            #print(np.amax(tfp),np.amax(p[:-1]),np.amax(f[:-1]))
+            #time.sleep(1)
+            import matplotlib.pyplot as plt
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            for i in range(len(self.rs)):
+                u = getattr(self,'us'+str(i))
+                ax.scatter(self.rs[i],u,color='k')
+            ax.plot(self.r,p)
+            ax.plot(self.r,f)
+            plt.show()
+            plt.close()
+            time.sleep(2)
+            
+
+        
         if scenario == '4a':
             tfp = -self.dp*(1-p[:-1]/self.imax)
-            
 
             if False:
                 #print(np.amax(tfp),np.amax(p[:-1]),np.amax(f[:-1]))
@@ -314,7 +366,8 @@ class PDEModel(Data):
                 ax.plot(self.r,p)
                 ax.plot(self.r,f)
                 plt.show()
-                
+             
+               
         elif scenario == '1r':
             tfp = 0
         elif scenario == '2r':
@@ -381,7 +434,17 @@ class PDEModel(Data):
         t: time array
         y0: initial condition
         """
+        
+        if self.uval >= 0:
+            self.u = self._u_constant
+            self.ur = self.uval*self.u(self.r)
+        else:
+            self.ur = self.u(self.r)
 
+            
+
+            #print(self.ur)
+        
         y0 = np.zeros(2*self.N)
 
         y0[:self.N] = self.control_fn(self.r)*self.eps
@@ -396,13 +459,82 @@ class PDEModel(Data):
         for i in range(TN-1):
             y[-1,i] = self.psource
             y[:,i+1] = y[:,i] + self.dt*self.rhs(t[i],y[:,i],scenario=scenario)
-            
+
+
+        if False:
+            import matplotlib.pyplot as plt
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            ax.plot(self.r,self.ur)
+            plt.show()
+            plt.close()
+            time.sleep(2)
+
 
         self.t = t
         self.y = y
         self.y0 = y0
 
 
+    def _s2_vel(self):
+        """
+        take a look at velocity profile (see page 230 in personal notebook)
+        """
+        
+        import matplotlib.pyplot as plt
+
+        r = self.r[1:]
+        F = self.steadys_fn(r)
+        #F = self.data_avg_fns['24h'](r)[1:]
+        dr = self.dr
+        dF = np.diff(F)/dr
+        #dF = np.diff(F1)/dr
+
+        print(len(r[1:]),len(F[1:]),len(dF))
+        mu = np.exp(np.cumsum(r[1:]+F[1:]/dF)*dr)
+
+        u = np.cumsum(mu*(r[1:]*F[1:]-.0145)/dF)*dr/mu
+        
+        #mu = 
+        #mu = np.exp(np.cumsum((r[1:]*dF+F[1:])/dF)*dr)
+        #print(mu)
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(u)
+        #ax.plot(F2)
+        plt.show()
+
+        return mu
+
+    def u(self,r):
+        """
+        spatially-dependent u
+
+        r: array of domain
+        us: array-like of u values
+        xs: corresponding array-like of r values
+        """
+
+        out = np.zeros_like(r)
+        if self.Nvel == 1:
+            out[:] = getattr(self,'us'+str(0))
+        for i in range(self.Nvel-1):
+            us1 = getattr(self,'us'+str(i))
+            us2 = getattr(self,'us'+str(i+1))
+
+            rs1 = self.rs[i]
+            rs2 = self.rs[i+1]
+            
+            mask = (rs1<=r)&(r<=rs2)
+            m = (us2-us1)/(rs2-rs1)
+
+            
+            out[mask] = m*(r[mask]-rs1) + us1
+            
+        return out
+
+    
 class CallableGaussian(object):
     """
     create gaussian object to initialize with different parameters
@@ -414,41 +546,42 @@ class CallableGaussian(object):
         self.pars = pars
 
     def __call__(self,x):
-        return g_approx(x,self.pars)
+        return g_approx(x,self.pars)/100000
 
 def parsets(scenario='default',method=''):
+       
     
     if scenario == 'default':
         if method == 'annealing':
-            pars = {'eps':0.00000000e+00,
-                    'df':4.80607607e-04,
-                    'dp':4.28388798e-01,
-                    'uval':1.79645389e+00,
+            pars = {'eps':3.87011903e-05,
+                    'df':4.79557732e-03,
+                    'dp':5.40722009e+00,
+                    'uval':1.81417393e+00,
                     'T':1500,'dt':0.01
             }
     
     elif scenario == 0:
         if method == 'annealing':
-            pars = {'eps':6.79309767e-03,
-                    'df':6.65433710e+01,
+            pars = {'eps':1,
+                    'df':0,
                     'dp':0,
-                    'uval':5.65823966e-03,
+                    'uval':1.75861129,
                     'T':1500,'dt':0.01}
             
     elif scenario == 1:
         if method == 'annealing':
-            pars = {'eps':0.18585833,
+            pars = {'eps':1,
                     'df':0,
                     'dp':0,
-                    'uval':0.0062434,
+                    'uval':1.25095189,
                     'T':1500,'dt':0.01}
 
     elif scenario == 2:
         if method == 'annealing':
             pars = {'eps':0,
                     'df':0,
-                    'dp':0.01744031,
-                    'uval':0.08362923,
+                    'dp':0.05601278,
+                    'uval':0.11115834,
                     'T':1500,'dt':0.01}
 
     return pars
@@ -629,10 +762,12 @@ def plot_sim(p):
     axs[1][1].plot(p.r,psol[:,-1],label='Final P')
     #axs[1,1].plot(p.r,steadys_fn(p.r)/2,label='Final/2')
 
-    axs[2][0].plot(p.r,p.control_fn(p.r),label='Initial (data)')
+    data_ctrl = p.data_avg_fns['control'](p.r)
+    data_ss = p.data_avg_fns['24h'](p.r)
+    axs[2][0].plot(p.r,data_ctrl,label='Initial (data)')
     axs[2][0].plot(p.r,I[:,0],label='Initial F+P (PDE)')
 
-    axs[2][1].plot(p.r,p.steadys_fn(p.r),label='Final (data)')
+    axs[2][1].plot(p.r,data_ss,label='Final (data)')
     axs[2][1].plot(p.r,I[:,-1],label='Final F+P (PDE)')
 
     axs = add_plot_sim_labels(axs)
@@ -776,34 +911,23 @@ def cost_fn(x,data_x,data_y):
 
     r = data_x
     g = g_approx(r,x)
+
+    if False:
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(100000*data_y)
+        plt.show()
+        #time.sleep(10)
     
-    err =  np.linalg.norm(g-data_y)
+    err =  np.linalg.norm(g-100000*data_y)
 
     return err
 
-def get_gaussian_res(x_data,y_data,time,n_gauss=3):
-    """
-    x_data: x values of data to be fitted with gaussians
-    y_data: y values of data to be fitted with gaussians
-    time: string of time. 'control', '1h', etc.
-    see keys() of data.
-    n_gauss: number of gaussians to use
-    """
-    
-    #par_init = [1,0,1,1,18,1,1,25,1]
-    #par_init = [1,0,1,1,10,1,1,15,1,1,20,1]
-    #par_init = [1,0,1,1,5,1,1,10,1,1,15,1,1,20,1]
-    par_init = np.zeros(3*n_gauss)
-    for i in range(int(len(par_init)/3)):
-        par_init[3*i] = .1 # magnitude
-        par_init[3*i+1] = i*35/int(len(par_init)/3) # shift
-        par_init[3*i+2] = 5 # width
-        
-    res = lsq(cost_fn,par_init,args=(x_data,y_data))
 
-    # from least squares above
-    pars = res.x
-    return pars
+    
+    
+    
 
 
 def main():
@@ -812,101 +936,30 @@ def main():
     
     from matplotlib.gridspec import GridSpec
 
-    scenario = 2#'default'
+
+
+    scenario = 'default'
     method = 'annealing'
-    np.random.seed(0)
+    np.random.seed(3)
 
     pars = parsets(scenario,method)
-    #uval=, imax=133.1764
-    #eps=, d_f=0.0000, dp=0.0000, uval=, imax=
-    #eps=0.9067, d_f=0.1768, dp=4.8743, uval=0.1600, imax=100.0000, D=0.0100
 
-    #eps=, d_f=, dp=, uval=, imax=100.0000, D=0.2117
-    #ps=, d_f=, dp=, uval=, imax=100.0000, D=0.0400
-    #err=0.6189, eps=0.8226, d_f=0.0017, dp=7.4196, uval=0.1600, imax=100.0000, D=0.0400
-    #0.4272, eps=0.1676, d_f=0.5134, dp=7.1638, uval=0.0751, imax=100.0000, D=0.0037
-    #eps=0.8278, d_f=3.2512, dp=3.6793, uval=0.5342, imax=100.0000, fsource=0.0627, uvalf=0.4949
-    #eps=0.0700, d_f=0.4221, dp=5.6531, uval=0.0951, imax=100.0000, D=0.0037; diffusion default
-    #eps=0.8874, d_f=0.4221, dp=6.6712, uval=0.0951, imax=100.0000, D=0.0037 diffusion default
-
-    #eps=0.9994, d_f=0.0001, dp=7.0515, uval=0.1600, imax=100.0000, D=0.0400; diffusion fix D, u
-    #eps=0.6613, d_f=0.1242, dp=4.2809, uval=0.9822
-    #eps=0.0165, d_f=0.0000, dp=0.0562, uval=0.5028
-
-    #eps=0.0000, d_f=0.0000, dp=0.3749, uval=1.7155
-    pars = {'eps':0.0018,
-            'df':0,
-            'dp':.0231,
-            'uval':.19,
-            'D':1.5069,
-            'T':1500,'dt':0.01,
-            'N':100,'order':2,
-            }
-
+    #0.17872688 0.01506442 []
+    us = [0.00,0.33,0.64,0.91,1.06,1.20,1.50,1.92,2.50,3.01,3.42,3.91,4.48,5.00,5.00,5.00,3.72,2.65,0.95,2.66]
+    #us = [0., 0.01882217, 0.02953583, 0.04190114, 0.07288419, 0.09748083, 0.074263, 0.99176485, 0.04466288, 0.]
     
-    #eps=0.0000, d_f=0.0000, dp=0.3749, uval=1.7155
-    # s2
-    #eps=0.5166, d_f=0.0000, dp=1.4881, uval=0.2277
-    pars = {'eps':0.5166,
-            'df':0,
-            'dp':.0147,
-            'uval':.0906,
-            'D':1.5069,
-            'T':1500,'dt':0.01,
-            'N':100,'order':1,
-            }
+    #pars = {'eps':0.17872688,'df':0,'dp':0.01506442,'uval':-69,'T':1500}
+    pars = {'eps':0.1173,
+            'df':0,'dp':0.7035,'uval':-69,'T':1500}
 
-    """
-    # s 1
-    #0.68191961 0.0247814
-    pars = {'eps':0.68191961,
-            'df':0,
-            'dp':.0,
-            'uval':0.0247814,
-            'D':1.5069,
-            'T':1500,'dt':0.01,
-            'N':100,'order':1,
-            }
-    """
-    
-
-    #6.97334980e-01 6.62888969e+00 7.54621025e-07
-    # s0
-    """
-    pars = {'eps':6.97334980e-01,
-            'df':6.62888969e+00,
-            'dp':.0147,
-            'uval':7.54621025e-07,
-            'D':1.5069,
-            'T':1500,'dt':0.01,
-            'N':100,'order':1,
-            }
-    """
-
-    """
-    #5.11321584e-01 1.50062660e-05 6.76539309e+00 6.46158787e-01
-    # s-1
-    pars = {'eps':5.11321584e-01,
-            'df':1.50062660e-05,
-            'dp':6.76539309e+00,
-            'uval':6.46158787e-01,
-            'D':1.5069,
-            'T':1500,'dt':0.01,
-            'N':100,'order':1,
-            }
-    """
 
     p = PDEModel(**pars)
+    p.rs = np.linspace(p.L0,p.L,len(us))
+    p.Nvel = len(p.rs)
+    
+    for i in range(len(us)):
+        setattr(p,'us'+str(i),us[i])
 
-    if False:
-        data_avg,_ = p._build_data_dict(L0=p.L0,L=p.L,normed=False)
-        
-        x = data_avg['24h'][:,0];y = data_avg['24h'][:,1]
-        pars_ss_unnormed = p._load_gaussian_pars(p.data_dir,data_avg,'24h',
-                                                 normed=False,n_gauss=15)
-
-        fn_24h = CallableGaussian(pars_ss_unnormed)
-        p.u = interp1d(p.r,1/(p.r*fn_24h(p.r)))
 
     # get numerical solution
     p._run_euler(scenario)
@@ -917,7 +970,7 @@ def main():
         plot_sim(p)
         plot_sim_intermediate(p)
         #plot_ana(p)
-    
+
     plt.show()
 
 if __name__ == "__main__":
