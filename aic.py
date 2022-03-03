@@ -30,7 +30,7 @@ fname_err_list = []
 model_names = []
 # compile fnames
 for m in scenario_numbers:
-    for order in [1,2]:
+    for order in [1]:
         fname_pre = p.data_dir+'scenario'+str(m)+'_residuals'
         fname_pre += '_order='+str(order)
         fname_pre += '_ss'
