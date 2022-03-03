@@ -13,7 +13,11 @@ steady-state is roughly 2 hours based on radius range [10,25].
 then compare I[-1,:] to I[int(TN/2),:]
 """
 
+
 import pde
+
+import warnings
+#warnings.filterwarnings('error')
 import os
 import argparse
 
@@ -22,8 +26,10 @@ from scipy.optimize import least_squares
 from scipy.optimize import basinhopping, dual_annealing
 from scipy.interpolate import interp1d
 
+np.seterr(all='warn')
+
 def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
-            scenario=None):
+            scenario=None,uconst=True):
     """
     function for use in least squares.
     x is combination or subset of eps,df,dp.
@@ -36,14 +42,37 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
     # update parameter values
     #eps,d_f,d_p = x
     for i,val in enumerate(x):
+        #print(par_names[i],val)
         setattr(p,par_names[i],val)
 
     TN = int(p.T/p.dt)
 
-    
     p._run_euler(scenario)
     y = p.y
+    """
+    y = None
+    with np.errstate(over='raise',under='raise'):
+        try:
+            p._run_euler(scenario)
+            y = p.y
+        except FloatingPointError:
+            pass
+            #y = np.ones((2*p.N,TN))
 
+    if y is None:
+        y = np.ones((2*p.N,TN))
+    """
+
+    if False:
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(y)
+        plt.show()
+        plt.close()
+        time.sleep(2)
+
+    
     # get solution
     fsol = y[:p.N,:]
     psol = y[p.N:,:]
@@ -70,11 +99,12 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
             
             data = p.data_avg[hour][:,1]
             err += np.linalg.norm(data-I_cut)**2
-            
+
+    err *= 1e5
     
     if ss_condition:
-        if np.linalg.norm(I[:,int(1200/p.dt)]-I[:,int(1440/p.dt)])**2 > 1e-10:
-            err = 1000
+        if 1e5*np.linalg.norm(I[:,int(1200/p.dt)]-I[:,int(1440/p.dt)])**2 > 1e-10:
+            err = 1e5
 
     stdout = [err,p.eps,p.df,p.dp,p.uval]
     s1 = 'err={:.4f}, eps={:.4f}, '\
@@ -92,6 +122,14 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
         stdout.append(p.D)
         s1 += ', D={:.4f}'
 
+    if not(uconst):
+        s1 += ', us='
+        for i in range(len(p.rs)):
+            #print('us'+str(i),getattr(p,'us'+str(i)))
+            stdout.append(getattr(p,'us'+str(i)))
+            
+            s1 += '{:.2f},'
+        s1 = s1[:-1]
     
     print(s1.format(*stdout))
     return err
@@ -101,7 +139,8 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
                        init=[.001,1,1],
                        parfix={},ss_condition=False,
                        psource=False,
-                       scenario=None):
+                       scenario=None,
+                       uconst=True):
     
     """
     fit sim to data
@@ -122,14 +161,16 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
         setattr(p,key,parfix[key])
     
     args = (p,par_names,ss_condition,psource,
-            scenario)
+            scenario,uconst)
 
-    minimizer_kwargs = {"method": "Powell",
-                        'bounds':bounds,
-                        'args':args}
+    #minimizer_kwargs = {"method": "Powell",
+    #                    'bounds':bounds,
+    #                    'args':args}
     
     #res = basinhopping(cost_fn,init,minimizer_kwargs=minimizer_kwargs)
-    res = dual_annealing(cost_fn,bounds=bounds,args=args)
+    res = dual_annealing(cost_fn,bounds=bounds,args=args,
+                         visit=2.9,restart_temp_ratio=1e-05,
+                         initial_temp=1e5)
 
     return res
     
@@ -146,13 +187,21 @@ def main():
                         help='If true, suppress all print statements',default=False)
     parser.add_argument('-s','--scenario',dest='scenario',
                         help='Choose scenario. see code for scenarios',
-                        default='-1',type=str)
+                         default='-1',type=str)
+
+    parser.add_argument('-n','--nvel',dest='Nvel',
+                        help='choose number of velocities for nonuniform vel',
+                        default=1,type=int)
 
     parser.add_argument('--steady-state-condition',dest='ss_condition',
                         action='store_true',
                         help='Choose whether or not to force steady-state condition',
                         default=False)
 
+    parser.add_argument('--u-nonconstant',dest='u_nonconstant',
+                        action='store_true',
+                        help='Set flag to use non-constant velocity estimate',
+                        default=False)
 
     parser.add_argument('-o','--order',dest='order',
                         help='Choose whether or not to force steady-state condition',
@@ -169,7 +218,6 @@ def main():
 
     args = parser.parse_args()
     print(args)
-    
 
     order = args.order
 
@@ -181,9 +229,7 @@ def main():
         dt = 0.02
 
     # 1440 minutes in 24 h
-    p = pde.PDEModel(T=1500,dt=dt,order=order,
-                     N=N)
-        
+    p = pde.PDEModel(T=1500,dt=dt,order=order,N=N)
 
     if args.scenario == '-3':
         # uval = 0.16, search only eps full exchange
@@ -261,106 +307,29 @@ def main():
         #print(p.N)
         
         p.dt = 0.01
+
+    if args.u_nonconstant:
+
+        umax = 10
+        Nvel = args.Nvel
+        fname_pre += '_Nvel='+str(Nvel)
+        fname_pre += 'umax='+str(umax)
+
+        p.uval = -69
+        p.Nvel = Nvel
+        p.rs = np.linspace(p.L0,p.L,Nvel)
         
-    """
-    elif args.scenario == '1r':
-        # spatially dependent u
-
-        import matplotlib.pyplot as plt
-        data_avg,_ = p._build_data_dict(L0=p.L0,L=p.L,normed=False)
-        #data_avg_fns = p._build_data_fns(data_avg)
-        x = data_avg['24h'][:,0];y = data_avg['24h'][:,1]
-
-        pars_ss_unnormed = p._load_gaussian_pars(p.data_dir,data_avg,'24h',
-                                                 normed=False,n_gauss=15)
-
-        fn_24h = pde.CallableGaussian(pars_ss_unnormed)
         
-        #fn_24h = interp1d(x,y,fill_value=(y[0],y[-1]),bounds_error=False,
-        #                  kind='cubic')
+        if 'uval' in par_names:
+            assert(par_names[-1] == 'uval')
+            par_names = par_names[:-1]
+            bounds = bounds[:-1]
+            init = init[:-1]
 
-        p.u = interp1d(p.r,1/(p.r*fn_24h(p.r)))
-
-        if False:
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.plot(p.r,p.u(p.r))
-            #ax.plot(p.r,fn_24h(p.r))
-            #ax.plot(x,y)
-            plt.show()
-
-        fname_pre = p.data_dir+'scenario_1r_residuals'
-        par_names = ['uval']
-        bounds = [(0,5)]
-        init = [1]
-        parfix = {'eps':0,'dp':0,'df':0}
-
-
-    elif args.scenario == '2r':
-        # spatially dependent u
-
-        import matplotlib.pyplot as plt
-        data_avg,_ = p._build_data_dict(L0=p.L0,L=p.L,normed=False)
-        #data_avg_fns = p._build_data_fns(data_avg)
-        x = data_avg['24h'][:,0];y = data_avg['24h'][:,1]
-
-        pars_ss_unnormed = p._load_gaussian_pars(p.data_dir,data_avg,'24h',
-                                                 normed=False,n_gauss=15)
-
-        fn_24h = pde.CallableGaussian(pars_ss_unnormed)
-        
-        #fn_24h = interp1d(x,y,fill_value=(y[0],y[-1]),bounds_error=False,
-        #                  kind='cubic')
-
-        p.u = interp1d(p.r,1/(p.r*fn_24h(p.r)))
-
-        if False:
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.plot(p.r,p.u(p.r))
-            #ax.plot(p.r,fn_24h(p.r))
-            #ax.plot(x,y)
-            plt.show()
-
-        fname_pre = p.data_dir+'scenario_2r_residuals'
-        par_names = ['eps','dp','uval']
-        bounds = [(0,1),(0,10),(0,2)]
-        init = [0.1,1,.15]
-        parfix = {'df':0}
-
-
-    elif args.scenario == '3r':
-        # spatially dependent u
-
-        import matplotlib.pyplot as plt
-        data_avg,_ = p._build_data_dict(L0=p.L0,L=p.L,normed=False)
-        #data_avg_fns = p._build_data_fns(data_avg)
-        x = data_avg['24h'][:,0];y = data_avg['24h'][:,1]
-
-        pars_ss_unnormed = p._load_gaussian_pars(p.data_dir,data_avg,'24h',
-                                                 normed=False,n_gauss=15)
-
-        fn_24h = pde.CallableGaussian(pars_ss_unnormed)
-        
-        #fn_24h = interp1d(x,y,fill_value=(y[0],y[-1]),bounds_error=False,
-        #                  kind='cubic')
-
-        p.u = interp1d(p.r,1/(p.r*fn_24h(p.r)))
-
-        if False:
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.plot(p.r,p.u(p.r))
-            #ax.plot(p.r,fn_24h(p.r))
-            #ax.plot(x,y)
-            plt.show()
-
-        fname_pre = p.data_dir+'scenario_3r_residuals'
-        par_names = ['eps','dp','df','uval']
-        bounds = [(0,1),(0,10),(0,10),(0,5)]
-        init = [0.1,1,1,.15]
-        parfix = {'D':1}
-    """
+        for i in range(Nvel):
+            par_names.append('us'+str(i))
+            bounds.append((0,umax))
+            init.append(1)
     
     fname_pre += '_order='+str(args.order)
     
@@ -386,7 +355,8 @@ def main():
                                  parfix=parfix,
                                  ss_condition=args.ss_condition,
                                  psource=args.psource,
-                                 scenario=args.scenario)
+                                 scenario=args.scenario,
+                                 uconst=not(args.u_nonconstant))
         
         np.savetxt(fname,res.x)
         np.savetxt(fname_err,[res.fun])
