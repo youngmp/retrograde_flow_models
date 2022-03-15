@@ -9,13 +9,14 @@ import matplotlib as mpl
 #mpl.rcParams.update(pgf_with_latex)
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['text.usetex'] = True
+mpl.rcParams['text.latex.preview'] = True
 mpl.rcParams['pgf.texsystem'] = 'pdflatex'
 mpl.rcParams['text.latex.preamble'] = r'\usepackage{amsmath} \usepackage{siunitx}'
 
 fsizetick = 13
 fsizelabel = 13
 fsizetitle = 13
-
+#tight_layout_pad =  0
 
 import pde
 
@@ -96,6 +97,7 @@ def data_figure():
     axs[1,0].set_ylabel('Norm. Intensity',fontsize=fsizelabel)
     axs[1,1].set_ylabel('Norm. Intensity',fontsize=fsizelabel)
 
+    #plt.tight_layout(pad=tight_layout_pad)
     plt.tight_layout()
 
     return fig
@@ -132,6 +134,122 @@ def gaussian_fit():
 
     return fig
 
+def solution_schematic():
+
+    import matplotlib.pyplot as plt
+
+    fig = plt.figure(figsize=(8,5))
+    
+    d = pde.Data(recompute=False,normed=True)
+    #p = PDEModel()
+    L0=d.L0; L=d.L
+    
+    nrows=2;ncols=3
+    
+    fig,axs = plt.subplots(nrows=nrows,ncols=ncols,figsize=(8,5))
+    
+
+    r = np.linspace(L0,L)
+    m = 1/(L0-L)
+
+    # initial
+    f1 = 1 + m*(r-L0)
+    p1 = 1 + m*(r-L0)
+
+    axs[0,0].plot(r,f1,color='gray',ls='--')
+    axs[1,0].plot(r,p1,color='gray',ls='--')
+
+    # intermediate
+    f2 = f1 + f1**2/5
+    p2 = 1 + m*(r-L0+8)
+    print(len(p2),len(r))
+    
+    axs[0,1].plot(r,f2,color='tab:blue',lw=2,label='Current Solution')
+    axs[1,1].plot(r[r<=L-8],p2[r<=L-8],color='tab:blue',lw=2)
+    axs[1,1].plot([L-8,L],[0,0],color='tab:blue',lw=2)
+
+    axs[0,1].plot(r,f1,color='gray',ls='--',label='Initial Solution')
+    axs[1,1].plot(r,p1,color='gray',ls='--')
+    
+    # steady-state
+    f3 = f2 + f1**2/2
+    p3 = np.zeros(len(r))
+    axs[0,2].plot(r,f3,color='tab:blue',lw=2)
+    axs[1,2].plot(r,p3,color='tab:blue',lw=2)
+
+    axs[0,2].plot(r,f1,color='gray',ls='--')
+    axs[1,2].plot(r,p1,color='gray',ls='--')    
+
+    axs[0,0].text((L+L0)/2,2.7,'Initial ($t=0$)',ha='center',size=15)
+    axs[0,1].text((L+L0)/2,2.7,'$t>0$',ha='center',size=15)
+    axs[0,2].text((L+L0)/2,2.7,r'Steady-State ($t \rightarrow \infty$)',ha='center',size=15)
+
+    # arrow from P to F, vice-versa.
+    #axs[2,1].set_clip_on(False)
+    a1 = axs[0,1].arrow(19.75,-1.75,0,1,width=.1,ec='k',fc='k',
+                        head_width=.8,head_length=.5,
+                        **{'shape':'right'})
+    a1.set_clip_on(False)
+    
+    a2 = axs[0,1].arrow(20.25,-.25,0,-1,width=.1,ec='k',fc='k',
+                        head_width=.8,head_length=.5,
+                        **{'shape':'right'})
+    a2.set_clip_on(False)
+
+    axs[0,1].text(18.5,-1.1,r'$d_p$',size=fsizelabel,ha='center')
+    axs[0,1].text(21.5,-1.1,r'$d_f$',size=fsizelabel,ha='center')
+
+    # advection label
+    arrow_str = 'simple, head_width=.7, tail_width=.15, head_length=1'
+    axs[1,1].annotate('',(15,.4),(21,.4),ha='left',
+                      arrowprops=dict(arrowstyle=arrow_str,
+                                      fc='k',
+                                      ec='k'))
+
+    axs[1,1].annotate('Advection',(15.3,.55),(15.3,.55),
+                      bbox=dict(boxstyle='round',fc='w',alpha=.7))
+    
+    #axs[3,1].arrow(25,.5,-3,0,width=.05,ec='k',fc='k',
+    #               head_width=.5,head_length=2)
+    
+    # labels
+    axs[0,0].set_title('A',loc='left',size=fsizetitle)
+    axs[0,1].set_title('B',loc='left',size=fsizetitle)
+    axs[0,2].set_title('C',loc='left',size=fsizetitle)
+    
+    axs[1,0].set_title('D',loc='left',size=fsizetitle)
+    axs[1,1].set_title('E',loc='left',size=fsizetitle)
+    axs[1,2].set_title('F',loc='left',size=fsizetitle)
+
+    
+    axs[0,0].set_ylabel('Immobile ($F$)',fontsize=fsizelabel)
+    axs[1,0].set_ylabel('Mobile ($P$)',fontsize=fsizelabel)
+    
+    
+    
+    for i in range(ncols):
+        
+        axs[0,i].set_ylim(0,2)
+        axs[1,i].set_ylim(-.1,1.1)
+
+    for i in range(nrows):
+        for j in range(ncols):
+            # remove y axis label
+            axs[i,j].tick_params(axis='both',labelsize=fsizetick)
+            axs[i,j].tick_params(axis='y',which='both',left=False,labelleft=False)
+
+            # x axis label
+            axs[i,j].set_xticks([L0,L])
+            axs[i,j].set_xticklabels([r'$L_0$',r'$L$'])
+
+            # set axis limit
+            axs[i,j].set_xlim(L0,L)
+            
+    axs[0,1].legend()
+            
+    plt.tight_layout()
+    fig.subplots_adjust(hspace=1,top=.85)
+    return fig
 
 def generate_figure(function, args, filenames, title="", title_pos=(0.5,0.95)):
     """
@@ -151,9 +269,9 @@ def generate_figure(function, args, filenames, title="", title_pos=(0.5,0.95)):
 def main():
 
     figures = [
-        #(data_figure, [], ['f_data.png']),
-        #(data_figure, [], ['f_data_test_plot.png']),
-        (gaussian_fit, [], ['f_gaussian_fit.png'])
+        (data_figure, [], ['f_data.png','f_data.pdf']),
+        (gaussian_fit, [], ['f_gaussian_fit.png','f_gaussian_fit.pdf']),
+        (solution_schematic, [], ['f_solution_schematic.png','f_solution_schematic.pdf'])
         ]
 
     # multiprocessing code from Kendrick Shaw
