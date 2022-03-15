@@ -200,7 +200,7 @@ class Data:
                 n1 = np.sum(i1*2*np.pi*r1*dr1)
             else:
                 n1 = 1
-                
+
             z1 = np.zeros((len(x1[mask]),2))
             z1[:,0] = x1[mask]; z1[:,1] = y1[mask]
             data_rep_raw[hour] = copy.deepcopy(z1)
@@ -259,9 +259,13 @@ class PDEModel(Data):
     """
 
     def __init__(self,N=100,eps=0,
-                 df=1,dp=1,uval=None,
+                 df=1,dp=1,
                  T=300,dt=0.001,psource=0,
-                 imax=100,order=1,D=1):
+                 imax=100,order=1,D=1,
+                 interp_o=1,
+                 Nvel=1,
+                 u_nonconstant=False):
+        
         """
         uval: scale for velocity.
         N: domain mesh size
@@ -271,14 +275,18 @@ class PDEModel(Data):
         psource: Dirichlet right boundary for mobile P
         order: 1st or 2nd order PDE (advection or advection + diffusion)
         D: diffusion constant
+        interp_o: kind for linear interpolation. linear, quadratic, etc.
+        Nvel: number of velocity points to use in nonconstant discrete velocity
+        u_nonconstant: if true, use spatial velocity from PDE
         """
         super().__init__()
 
         #self.data_dir = data_dir
 
-        self.uval = uval
-        
+        self.Nvel = Nvel
         self.order = order
+        self.interp_o = interp_o
+        self.u_nonconstant = u_nonconstant
 
         if order == 1:
             self.rhs = self._fd1
@@ -333,10 +341,8 @@ class PDEModel(Data):
         p = y[self.N:]
 
         out = self.du
-        
 
         drp = (r[1:]*ur[1:]*p[1:]-r[:-1]*ur[:-1]*p[:-1])/(r[:-1]*dr)
-
         
         if False:
             #print(np.amax(tfp),np.amax(p[:-1]),np.amax(f[:-1]))
@@ -353,8 +359,6 @@ class PDEModel(Data):
             plt.close()
             time.sleep(2)
             
-
-        
         if scenario == '4a':
             tfp = -self.dp*(1-p[:-1]/self.imax)
 
@@ -366,7 +370,6 @@ class PDEModel(Data):
                 ax.plot(self.r,p)
                 ax.plot(self.r,f)
                 plt.show()
-             
                
         elif scenario == '1r':
             tfp = 0
@@ -380,6 +383,9 @@ class PDEModel(Data):
 
         out[:self.N-1] = tfp
         out[self.N:-1] = drp - tfp
+
+        out[self.N-1] = self.dp*p[-1] - self.df*f[-1]
+        out[-1] = (-r[-1]*ur[-1]*p[-1])/(r[-1]*dr)
 
         return out
 
@@ -435,29 +441,54 @@ class PDEModel(Data):
         y0: initial condition
         """
         
-        if self.uval >= 0:
-            self.u = self._u_constant
-            self.ur = self.uval*self.u(self.r)
+        if self.Nvel == 1:
+            if self.u_nonconstant:
+                self.ur = self._s2_vel()
+            else:
+                self.u = self._u_constant
+                self.ur = self.us0*self.u(self.r)
         else:
-            self.ur = self.u(self.r)
+            us = []
+            for i in range(self.Nvel):
+                us1 = getattr(self,'us'+str(i))
+                us.append(us1)
+                
+            if self.interp_o == 1:
+                kind = 'linear'
 
+            elif self.interp_o == 2:
+                kind = 'quadratic'
+
+            self.rs = np.linspace(self.L0,self.L,len(us))
+            fn = interp1d(self.rs,us,kind=kind)
+            self.ur = fn(self.r)
             
-
-            #print(self.ur)
         
         y0 = np.zeros(2*self.N)
 
         y0[:self.N] = self.control_fn(self.r)*self.eps
         y0[self.N:] = self.control_fn(self.r)*(1-self.eps)
 
+
+        if False:
+            import matplotlib.pyplot as plt
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            ax.plot(self.r,y0[:self.N])
+            ax.plot(self.r,y0[self.N:])
+            #ax.plot(self.r,self.control_fn(self.r))
+            ax.set_title('just before run euler)')
+            plt.show()
+
         TN = int(self.T/self.dt)
         t = np.linspace(0,self.T,TN)
         y = np.zeros((2*self.N,TN))
 
         y[:,0] = y0
-
+        
+        
         for i in range(TN-1):
-            y[-1,i] = self.psource
+            #if i >= y[-1,i] = self.psource
             y[:,i+1] = y[:,i] + self.dt*self.rhs(t[i],y[:,i],scenario=scenario)
 
 
@@ -483,29 +514,23 @@ class PDEModel(Data):
         
         import matplotlib.pyplot as plt
 
-        r = self.r[1:]
-        F = self.steadys_fn(r)
-        #F = self.data_avg_fns['24h'](r)[1:]
+        r = self.r
+        #F = self.steadys_fn(r)
+        F = self.data_avg_fns['24h'](r)
         dr = self.dr
-        dF = np.diff(F)/dr
-        #dF = np.diff(F1)/dr
 
-        print(len(r[1:]),len(F[1:]),len(dF))
-        mu = np.exp(np.cumsum(r[1:]+F[1:]/dF)*dr)
-
-        u = np.cumsum(mu*(r[1:]*F[1:]-.0145)/dF)*dr/mu
+        mu = r*F
         
-        #mu = 
-        #mu = np.exp(np.cumsum((r[1:]*dF+F[1:])/dF)*dr)
-        #print(mu)
+        c = 2*np.sum(mu)*dr/(self.L**2 - self.L0**2)
+        
+        u = np.cumsum(r*(F-c))*dr/mu
+        
 
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.plot(u)
-        #ax.plot(F2)
-        plt.show()
+        # shift back 1 to include 0 value
+        u = np.append([0],u)
+        u = u[:-1]
 
-        return mu
+        return self.dp*u
 
     def u(self,r):
         """
@@ -519,16 +544,16 @@ class PDEModel(Data):
         out = np.zeros_like(r)
         if self.Nvel == 1:
             out[:] = getattr(self,'us'+str(0))
+
         for i in range(self.Nvel-1):
             us1 = getattr(self,'us'+str(i))
             us2 = getattr(self,'us'+str(i+1))
 
             rs1 = self.rs[i]
             rs2 = self.rs[i+1]
-            
+
             mask = (rs1<=r)&(r<=rs2)
             m = (us2-us1)/(rs2-rs1)
-
             
             out[mask] = m*(r[mask]-rs1) + us1
             
@@ -599,10 +624,11 @@ def get_1d_interp(data,kind='linear'):
     x = data[:,0]
     y = data[:,1]
     #y = y[:-1]/np.sum(y[:-1]*np.diff(x)) # normal
-    #y = np.append(y,y[-1])    
+    #y = np.append(y,y[-1])
+
     fn = interp1d(x,y,kind=kind,
                   bounds_error=False,
-                  fill_value=0)
+                  fill_value='extrapolate')
 
     return fn
 
@@ -734,6 +760,17 @@ def plot_sim(p):
     psol = p.y[p.N:,:]
 
     I = fsol + psol
+
+    if False:
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.set_title('in plot_sim')
+        ax.plot(p.r,p.y[:p.N,0])
+        ax.plot(p.r,p.y[p.N:,0])
+        #ax.plot(p.r,p.control_fn(p.r))
+        plt.show()
+
     
     nrows = 3
     ncols = 2
@@ -748,10 +785,10 @@ def plot_sim(p):
         for j in range(ncols):
             axs[i].append(fig.add_subplot(gs[i,j]))
     
-    axs[0][0].imshow(fsol[::-1,:],aspect='auto',
+    axs[0][0].imshow(fsol[::-1,::100],aspect='auto',
                     extent=(p.t[0],p.t[-1],p.r[0],p.r[-1]))
 
-    axs[0][1].imshow(psol[::-1,:],aspect='auto',
+    axs[0][1].imshow(psol[::-1,::100],aspect='auto',
                     extent=(p.t[0],p.t[-1],p.r[0],p.r[-1]))
 
     axs[1][0].plot(p.r,p.y0[:p.N],label='Initial F')
@@ -764,10 +801,10 @@ def plot_sim(p):
 
     data_ctrl = p.data_avg_fns['control'](p.r)
     data_ss = p.data_avg_fns['24h'](p.r)
-    axs[2][0].plot(p.r,data_ctrl,label='Initial (data)')
+    axs[2][0].plot(p.r[1:-2],data_ctrl[1:-2],label='Initial (data)')
     axs[2][0].plot(p.r,I[:,0],label='Initial F+P (PDE)')
 
-    axs[2][1].plot(p.r,data_ss,label='Final (data)')
+    axs[2][1].plot(p.r[1:-1],data_ss[1:-1],label='Final (data)')
     axs[2][1].plot(p.r,I[:,-1],label='Final F+P (PDE)')
 
     axs = add_plot_sim_labels(axs)
@@ -809,11 +846,11 @@ def plot_sim_intermediate(p):
             idx = int(minute/p.dt)
 
         data = p.data_avg_fns[hour](p.r)
-        axs[0,i].plot(I[:,idx],label='PDE')
-        axs[0,i].plot(data,label='Data')
+        axs[0,i].plot(p.r,I[:,idx],label='PDE')
+        axs[0,i].plot(p.r[1:-1],data[1:-1],label='Data')
         
-        axs[1,i].plot(F[:,idx])
-        axs[2,i].plot(P[:,idx])
+        axs[1,i].plot(p.r,F[:,idx])
+        axs[2,i].plot(p.r,P[:,idx])
 
         axs[0,i].set_title('I '+str(hour))
         axs[1,i].set_title('F '+str(hour))
@@ -925,11 +962,6 @@ def cost_fn(x,data_x,data_y):
     return err
 
 
-    
-    
-    
-
-
 def main():
 
     import matplotlib.pyplot as plt
@@ -943,32 +975,103 @@ def main():
     np.random.seed(3)
 
     pars = parsets(scenario,method)
+        
+    #us = [0.00,0.05,0.09,0.13,0.15,0.17,0.21,0.27,0.36,0.45,0.55,0.72,0.64,1.00,1.00,1.00,0.93,0.61,0.07,0.42]
+    #pars = {'eps':0.2453,'df':0,'dp':0.0895,'uval':-69,'T':1500}
 
-    #0.17872688 0.01506442 []
-    us = [0.00,0.33,0.64,0.91,1.06,1.20,1.50,1.92,2.50,3.01,3.42,3.91,4.48,5.00,5.00,5.00,3.72,2.65,0.95,2.66]
-    #us = [0., 0.01882217, 0.02953583, 0.04190114, 0.07288419, 0.09748083, 0.074263, 0.99176485, 0.04466288, 0.]
+    # n5 umax 1
+    #us = [0.05066241, 0.2695232,  0.57624002, 1., 0.06706248]
+    #pars = {'eps':0,'df':0,'dp':0.14370955,'uval':-69,'T':10}
     
-    #pars = {'eps':0.17872688,'df':0,'dp':0.01506442,'uval':-69,'T':1500}
-    pars = {'eps':0.1173,
-            'df':0,'dp':0.7035,'uval':-69,'T':1500}
+    #pars = {'eps':.2502,'df':0,'dp':.0766,'T':1500,'dt':.01,'N':100,'Nvel':10,'u_nonconstant':False,'interp_o':2}
+    
+    #us = [0., 0.08, 0.14, 0.2, 0.35, 0.51, 0.78, 1, 0.84, 0.55]
+    #for i in range(len(us)):
+    #    setattr(p,'us'+str(i),us[i])
 
+    pars = {'eps':.2502,'df':0,'dp':.0766,'T':1500,'dt':.01,'N':100,'Nvel':1,'u_nonconstant':True}
 
     p = PDEModel(**pars)
-    p.rs = np.linspace(p.L0,p.L,len(us))
-    p.Nvel = len(p.rs)
-    
-    for i in range(len(us)):
-        setattr(p,'us'+str(i),us[i])
 
+    if False:
+        ur = p._s2_vel()
+        #mu = 
+        #mu = np.exp(np.cumsum((r[1:]*dF+F[1:])/dF)*dr)
+        #print(mu)
+
+        fig, axs = plt.subplots(nrows=1,ncols=1,figsize=(5,5))
+
+        axs.plot(p.r,ur)
+
+        """
+        # check out derivatives as a function of c
+        cs = np.linspace(-.1,1.2,10)
+        for c_val in cs:
+            up = 1 - c_val/F[1:] + (1/mu)*u
+            zero_crossings = np.where(np.diff(np.sign(up)))[0]
+            rs_zero = r[1:][zero_crossings]
+            
+            if len(rs_zero) > 0:
+                
+                print(c_val,rs_zero)
+                axs[1].scatter(c_val*np.ones(len(rs_zero)),rs_zero,
+                               s=10,color='tab:red')
+        #axs[1].scatter(c,)
+        axs[1].set_xlabel('Value of c')
+        axs[1].set_ylabel('r')
+        axs[1].set_xlim(cs[0],cs[-1])
+        axs[1].set_title('Zero derivatives of u(r)')
+        """
+        
+        axs.set_xlabel('r')
+        #axs.set_title('u(r) with c='+str(c))        
+
+        plt.tight_layout()
+        plt.show()
+
+    
+
+    #time.sleep(10)
+    #p.rs = np.linspace(p.L0,p.L,len(us))
+    #p.Nvel = len(p.rs)
+    
+    #for i in range(len(us)):
+    #    setattr(p,'us'+str(i),us[i])
 
     # get numerical solution
     p._run_euler(scenario)
+
+
+    
+    if True:
+        
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(p.r,p.ur)
+        ax.scatter(p.rs,us)
+        ax.set_xlabel('r')
+        ax.set_ylabel('velocity')
+        ax.set_title('u(r)')
+
+        
+
+
+    if False:
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.set_title('just after p._run_euler')
+        ax.plot(p.r,p.y[:p.N,0])
+        ax.plot(p.r,p.y[p.N:,0])
+        #ax.plot(p.r,p.control_fn(p.r))
+
 
     # plot solution
     if True:
         
         plot_sim(p)
         plot_sim_intermediate(p)
+        
         #plot_ana(p)
 
     plt.show()
