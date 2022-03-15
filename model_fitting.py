@@ -98,17 +98,18 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
             I_cut = I_fn(p.data_avg[hour][:,0])
             
             data = p.data_avg[hour][:,1]
-            err += np.linalg.norm(data-I_cut)**2
+            err += np.linalg.norm(data[1:-1]-I_cut[1:-1])**2
 
+            
     err *= 1e5
     
     if ss_condition:
         if 1e5*np.linalg.norm(I[:,int(1200/p.dt)]-I[:,int(1440/p.dt)])**2 > 1e-10:
             err = 1e5
 
-    stdout = [err,p.eps,p.df,p.dp,p.uval]
+    stdout = [err,p.eps,p.df,p.dp]
     s1 = 'err={:.4f}, eps={:.4f}, '\
-        +'d_f={:.4f}, dp={:.4f}, uval={:.4f}'
+        +'d_f={:.4f}, dp={:.4f}'
 
     if scenario == '4a':
         stdout.append(p.imax)
@@ -118,13 +119,9 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
         stdout.append(p.psource)
         s1 += ', psource={:.4f}'
 
-    if p.order == 2:
-        stdout.append(p.D)
-        s1 += ', D={:.4f}'
-
-    if not(uconst):
+    if not(p.u_nonconstant):
         s1 += ', us='
-        for i in range(len(p.rs)):
+        for i in range(p.Nvel):
             #print('us'+str(i),getattr(p,'us'+str(i)))
             stdout.append(getattr(p,'us'+str(i)))
             
@@ -154,6 +151,7 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
 
     d_class = pde.Data()
 
+    print(par_names,bounds)
     assert(len(par_names) == len(bounds))
     assert(len(init) == len(bounds))
 
@@ -169,8 +167,8 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
     
     #res = basinhopping(cost_fn,init,minimizer_kwargs=minimizer_kwargs)
     res = dual_annealing(cost_fn,bounds=bounds,args=args,
-                         visit=2.9,restart_temp_ratio=1e-05,
-                         initial_temp=1e5)
+                         visit=2.7,restart_temp_ratio=5e-06,
+                         initial_temp=5.3e4)
 
     return res
     
@@ -203,15 +201,18 @@ def main():
                         help='Set flag to use non-constant velocity estimate',
                         default=False)
 
-    parser.add_argument('-o','--order',dest='order',
-                        help='Choose whether or not to force steady-state condition',
-                        type=int,
-                        default=1)
+    parser.add_argument('-m','--umax',dest='umax',
+                        help='set max velocity for spatial velocity',
+                        default=1,type=float)
 
     parser.add_argument('--psource',dest='psource',
                         action='store_true',
                         help='Include source for P in search',
                         default=False)
+
+    parser.add_argument('--interp-o',dest='interp_o',
+                        help='set order for function interpolation',
+                        default=1,type=int)
 
     parser.add_argument('-r','--recompute',dest='recompute',action='store_true',
                         help='If true, recompute optimization data')
@@ -219,26 +220,23 @@ def main():
     args = parser.parse_args()
     print(args)
 
-    order = args.order
-
-    if order == 2:
-        N = 50
-        dt = 0.01
-    else:
-        N = 50
-        dt = 0.02
-
-    # 1440 minutes in 24 h
-    p = pde.PDEModel(T=1500,dt=dt,order=order,N=N)
-
+    # 1440 minutes in 24 h.
+    # note Nvel takes precedence over u_nonconstant
+    p = pde.PDEModel(T=1500,dt=0.02,order=1,N=50,
+                     u_nonconstant=args.u_nonconstant,
+                     Nvel=args.Nvel)
+    
     if args.scenario == '-3':
         # uval = 0.16, search only eps full exchange
         fname_pre = p.data_dir+'scenario-3_residuals'
-
+        
         par_names = ['eps','df','dp']
         bounds = [(0,1),(0,10),(0,10)]
         init = [0.1,1,1]
-        parfix = {'uval':0.16}
+        parfix = {'us0':0.16}
+
+        
+        
 
     if args.scenario == '-2':
         # uval = 0.16, search only eps, no exchange
@@ -247,15 +245,16 @@ def main():
         par_names = ['eps']
         bounds = [(0,1)]
         init = [0.1]
-        parfix = {'uval':0.16,'df':0,'dp':0}
+        parfix = {'us0':0.16,'df':0,'dp':0}
+
+        
     
     if args.scenario == '-1':
         # original model fitting eps, df, dp
         fname_pre = p.data_dir+'scenario-1_residuals'
-
-        par_names = ['eps','df','dp','uval']
-        bounds = [(0,1),(0,1),(0,10),(0,2)]
-        init = [0.1,0,1,.15]
+        par_names = ['eps','df','dp']
+        bounds = [(0,1),(0,2),(0,2)]
+        init = [0.1,0,1]
         parfix = {}
 
     if args.scenario == '0':
@@ -263,8 +262,8 @@ def main():
         # dp = 0
         fname_pre = p.data_dir+'scenario0_residuals'
 
-        par_names=['eps','df','uval']
-        bounds = [(0,1),(0,10),(0,2)]
+        par_names=['eps','df']
+        bounds = [(0,1),(0,10)]
         init = [0.001,1,0.16]
         parfix = {'dp':0}
 
@@ -273,9 +272,9 @@ def main():
         # df = dp = 0
         fname_pre = p.data_dir+'scenario1_residuals'
 
-        par_names=['eps','uval']
-        bounds = [(0,1),(0,2)]
-        init = [0.001,0.16]
+        par_names=['eps']
+        bounds = [(0,1)]
+        init = [0.001]
         parfix = {'df':0,'dp':0}
 
     elif args.scenario == '2':
@@ -283,9 +282,9 @@ def main():
         # df = 0
         fname_pre = p.data_dir+'scenario2_residuals'
         
-        par_names=['eps','dp','uval']
-        bounds = [(0,1),(0,10),(0,.3)]
-        init = [0,1,0.16]
+        par_names=['eps','dp']
+        bounds = [(0,1),(0,1)]
+        init = [0,1]
         parfix = {'df':0}
 
     elif args.scenario == '3':
@@ -294,44 +293,29 @@ def main():
     elif args.scenario == '4a':
         fname_pre = p.data_dir+'scenario4_residuals'
 
-        par_names=['eps','dp','uval']
-        bounds = [(0,1),(0,10),(0,2)]
-        init = [0.001,1,0.16]
+        par_names=['eps','dp']
+        bounds = [(0,1),(0,10)]
+        init = [0.001,1]
         parfix = {'df':0,'imax':1}
         p.dt = 0.01
-    
-    if order == 2:
-        par_names.append('D')
-        bounds.append((0,3))
-        init.append(1)
-        #print(p.N)
+
         
-        p.dt = 0.01
+    if (args.Nvel >= 1) and not(args.u_nonconstant):
+        # u_nonconstant is for the function u(r).
+        # if nVel > 1 u is technically nonconstant but it
+        # uses the pointwise estimation of u.
 
-    if args.u_nonconstant:
+        fname_pre += 'umax='+str(args.umax)
+        fname_pre += '_Nvel='+str(args.Nvel)
+        fname_pre += 'interp_o='+str(args.interp_o)
 
-        umax = 10
-        Nvel = args.Nvel
-        fname_pre += '_Nvel='+str(Nvel)
-        fname_pre += 'umax='+str(umax)
+        p.interp_o = args.interp_o
+        p.rs = np.linspace(p.L0,p.L,args.Nvel)
 
-        p.uval = -69
-        p.Nvel = Nvel
-        p.rs = np.linspace(p.L0,p.L,Nvel)
-        
-        
-        if 'uval' in par_names:
-            assert(par_names[-1] == 'uval')
-            par_names = par_names[:-1]
-            bounds = bounds[:-1]
-            init = init[:-1]
-
-        for i in range(Nvel):
+        for i in range(args.Nvel):
             par_names.append('us'+str(i))
-            bounds.append((0,umax))
-            init.append(1)
-    
-    fname_pre += '_order='+str(args.order)
+            bounds.append((0,args.umax))
+            init.append(.1)
     
     if args.psource:
         par_names.append('psource')
@@ -341,6 +325,9 @@ def main():
 
     if args.ss_condition:
         fname_pre += '_ss'
+
+    
+    
 
     fname = fname_pre + '.txt'
     fname_err = fname_pre+'_err.txt'
