@@ -231,8 +231,6 @@ class Data:
             z2[:,1] /= n2
             data_avg[hour] = z2
 
-            
-
         return data_avg, data_rep, data_avg_raw, data_rep_raw
 
     @staticmethod
@@ -260,8 +258,9 @@ class PDEModel(Data):
 
     def __init__(self,N=100,eps=0,
                  df=1,dp=1,
+                 dp1=None,dp2=None,
                  T=300,dt=0.001,psource=0,
-                 imax=100,order=1,D=1,
+                 imax=1,order=1,D=1,
                  interp_o=1,
                  Nvel=1,
                  u_nonconstant=False):
@@ -270,15 +269,20 @@ class PDEModel(Data):
         uval: scale for velocity.
         N: domain mesh size
         L: domain radius in um
+
         T: total time
         dt: time step
         psource: Dirichlet right boundary for mobile P
+
         order: 1st or 2nd order PDE (advection or advection + diffusion)
         D: diffusion constant
         interp_o: kind for linear interpolation. linear, quadratic, etc.
+
         Nvel: number of velocity points to use in nonconstant discrete velocity
         u_nonconstant: if true, use spatial velocity from PDE
+        dp1 and dp2 are parameters for trapping via bundling.
         """
+        
         super().__init__()
 
         #self.data_dir = data_dir
@@ -305,6 +309,9 @@ class PDEModel(Data):
         
         self.dp = dp
         self.df = df
+
+        self.dp1 = dp1
+        self.dp2 = dp2
 
         self.T = T
         self.dt = dt
@@ -358,33 +365,25 @@ class PDEModel(Data):
             plt.show()
             plt.close()
             time.sleep(2)
+                           
+        if scenario[:-1] == 'model2':
+            tfp = self.dp1*p[:-1]*f[:-1] + self.dp2*p[:-1]**2
+            out[self.N-1] = self.dp1*p[-1]*f[-1] + self.dp2*p[-1]**2
+        elif scenario[:-1] == 'model3':
+            tfp = 0*r[:-1]
+            pr = (p[1:]-p[:-1])/dr
+            drp = self.ur[1:]*(p[1:]/r[1:]*(1-p[1:]/self.imax) + pr*(1-2*p[1:]/self.imax))
             
-        if scenario == '4a':
-            tfp = -self.dp*(1-p[:-1]/self.imax)
-
-            if False:
-                #print(np.amax(tfp),np.amax(p[:-1]),np.amax(f[:-1]))
-                #time.sleep(1)
-                fig = plt.figure()
-                ax = fig.add_subplot(111)
-                ax.plot(self.r,p)
-                ax.plot(self.r,f)
-                plt.show()
-               
-        elif scenario == '1r':
-            tfp = 0
-        elif scenario == '2r':
-            tfp = 0
-        elif scenario == '3r':
-            tfp = 0
+            out[self.N-1] = 0
         else:
             tfp = self.dp*p[:-1] - self.df*f[:-1]
+            out[self.N-1] = self.dp*p[-1] - self.df*f[-1]
             #raise ValueError('Unrecognized or unimplemented scenario',scenario)
 
         out[:self.N-1] = tfp
         out[self.N:-1] = drp - tfp
 
-        out[self.N-1] = self.dp*p[-1] - self.df*f[-1]
+        
         out[-1] = (-r[-1]*ur[-1]*p[-1])/(r[-1]*dr)
 
         return out
@@ -969,12 +968,13 @@ def main():
     from matplotlib.gridspec import GridSpec
 
 
-
-    scenario = 'default'
+    #scenario = 'default'
+    #scenario = 'model2a'
+    scenario = '2'
     method = 'annealing'
     np.random.seed(3)
 
-    pars = parsets(scenario,method)
+    #pars = parsets(scenario,method)
         
     #us = [0.00,0.05,0.09,0.13,0.15,0.17,0.21,0.27,0.36,0.45,0.55,0.72,0.64,1.00,1.00,1.00,0.93,0.61,0.07,0.42]
     #pars = {'eps':0.2453,'df':0,'dp':0.0895,'uval':-69,'T':1500}
@@ -989,10 +989,16 @@ def main():
     #for i in range(len(us)):
     #    setattr(p,'us'+str(i),us[i])
 
-    pars = {'eps':.2502,'df':0,'dp':.0766,'T':1500,'dt':.01,'N':100,'Nvel':1,'u_nonconstant':True}
+    #0.40490838 
+    pars = {'eps':0.40490838,'df':0,'dp':0.00776154,'T':1500,'dt':.01,'N':100,'Nvel':1,'u_nonconstant':True}
+    #pars = {'eps':0.0020,'dp1':1.9939,'dp2':1.8193,'Nvel':1,'T':1500}
 
     p = PDEModel(**pars)
 
+    us = [0.01]
+    for i in range(len(us)):
+        setattr(p,'us'+str(i),us[i])
+        
     if False:
         ur = p._s2_vel()
         #mu = 
@@ -1043,7 +1049,7 @@ def main():
 
 
     
-    if True:
+    if False:
         
         fig = plt.figure()
         ax = fig.add_subplot(111)
