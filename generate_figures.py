@@ -11,7 +11,7 @@ mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['text.usetex'] = True
 mpl.rcParams['text.latex.preview'] = True
 mpl.rcParams['pgf.texsystem'] = 'pdflatex'
-mpl.rcParams['text.latex.preamble'] = r'\usepackage{amsmath} \usepackage{siunitx}'
+mpl.rcParams['text.latex.preamble'] = r'\usepackage{amsmath} \usepackage{siunitx} \usepackage{enumitem} \usepackage{xcolor}'
 
 fsizetick = 13
 fsizelabel = 13
@@ -134,122 +134,300 @@ def gaussian_fit():
 
     return fig
 
+
 def solution_schematic():
 
     import matplotlib.pyplot as plt
+    
+    pars = {'eps':.3,'df':0,'dp':.01,'T':1500,'dt':.01,'N':100,'Nvel':1,'u_nonconstant':True}
 
-    fig = plt.figure(figsize=(8,5))
-    
-    d = pde.Data(recompute=False,normed=True)
+    p = pde.PDEModel(**pars)
+    p._run_euler('2')
+        
     #p = PDEModel()
-    L0=d.L0; L=d.L
+    L0=p.L0; L=p.L
     
-    nrows=2;ncols=3
+    nrows=5;ncols=2
     
-    fig,axs = plt.subplots(nrows=nrows,ncols=ncols,figsize=(8,5))
-    
+    fig,axs = plt.subplots(nrows=nrows,ncols=ncols,figsize=(8,8),sharey='col')
 
     r = np.linspace(L0,L)
     m = 1/(L0-L)
 
     # initial
-    f1 = 1 + m*(r-L0)
-    p1 = 1 + m*(r-L0)
+    f1 = p.y[:p.N,0]
+    p1 = p.y[p.N:,0]
 
-    axs[0,0].plot(r,f1,color='gray',ls='--')
-    axs[1,0].plot(r,p1,color='gray',ls='--')
+    #axs[2,0].plot(p.r,f1,color='gray',ls='--')
+    #axs[2,1].plot(p.r,p1,color='gray',ls='--')
+    
+    axs[2,0].plot(p.r,f1,color='tab:blue',lw=2)
+    axs[2,1].plot(p.r,p1,color='tab:orange',lw=2)
 
     # intermediate
-    f2 = f1 + f1**2/5
-    p2 = 1 + m*(r-L0+8)
-    print(len(p2),len(r))
-    
-    axs[0,1].plot(r,f2,color='tab:blue',lw=2,label='Current Solution')
-    axs[1,1].plot(r[r<=L-8],p2[r<=L-8],color='tab:blue',lw=2)
-    axs[1,1].plot([L-8,L],[0,0],color='tab:blue',lw=2)
+    f2 = p.y[:p.N,int(2*60/p.dt)]
+    p2 = p.y[p.N:,int(2*60/p.dt)]
+    #print(len(p2),len(r))
 
-    axs[0,1].plot(r,f1,color='gray',ls='--',label='Initial Solution')
-    axs[1,1].plot(r,p1,color='gray',ls='--')
+    axs[3,0].plot(p.r,p.y[:p.N,int(1.2*60/p.dt)],color='tab:blue',lw=2,alpha=.2)
+    axs[3,0].plot(p.r,p.y[:p.N,int(1.6*60/p.dt)],color='tab:blue',lw=2,alpha=.5)
+    axs[3,0].plot(p.r,f2,color='tab:blue',lw=2)
+
+    axs[3,1].plot(p.r,p.y[p.N:,int(1.6*60/p.dt)],color='tab:orange',lw=2,alpha=.2)
+    axs[3,1].plot(p.r,p.y[p.N:,int(1.8*60/p.dt)],color='tab:orange',lw=2,alpha=.5)
+    axs[3,1].plot(p.r,p2,color='tab:orange',lw=2)
+    
+
+    #axs[3,0].plot(p.r,f1,color='gray',ls='--',label='Initial Solution')
+    #axs[3,1].plot(p.r,p1,color='gray',ls='--')
     
     # steady-state
-    f3 = f2 + f1**2/2
-    p3 = np.zeros(len(r))
-    axs[0,2].plot(r,f3,color='tab:blue',lw=2)
-    axs[1,2].plot(r,p3,color='tab:blue',lw=2)
+    f3 = p.y[:p.N,-1]
+    p3 = p.y[p.N:,-1]
 
-    axs[0,2].plot(r,f1,color='gray',ls='--')
-    axs[1,2].plot(r,p1,color='gray',ls='--')    
+    axs[4,0].plot(p.r,f3,color='tab:blue',lw=2)
+    axs[4,1].plot(p.r,p3,color='tab:orange',lw=2)
+    
+    #axs[2,0].text((L+L0)/2,2.7,'Initial',ha='center',size=15)
+    axs[3,0].text((L+L0)/2,2.7,'',ha='center',size=15)
 
-    axs[0,0].text((L+L0)/2,2.7,'Initial ($t=0$)',ha='center',size=15)
-    axs[0,1].text((L+L0)/2,2.7,'$t>0$',ha='center',size=15)
-    axs[0,2].text((L+L0)/2,2.7,r'Steady-State ($t \rightarrow \infty$)',ha='center',size=15)
+    plt.text(.12,.94,"A.",transform=fig.transFigure,size=fsizetitle)
+    plt.text(.12,.83,"B.",transform=fig.transFigure,size=fsizetitle)
+    
+    axs[2,0].set_title(r'C. Initial ($t=0$)',loc='left',size=fsizetitle)
+    axs[3,0].set_title(r'D. $t>0$',loc='left',size=fsizetitle)
+    axs[4,0].set_title(r'E. Steady-State ($t\rightarrow \infty$)',loc='left',size=fsizetitle)
+    
+    axs[2,1].set_title(r'F. Initial ($t=0$)',loc='left',size=fsizetitle)
+    axs[3,1].set_title(r'G. $t>0$',loc='left',size=fsizetitle)
+    axs[4,1].set_title(r'H. Steady-State  ($t\rightarrow \infty$)',loc='left',size=fsizetitle)
+    
+    axs[2,0].set_ylabel('$F$',fontsize=fsizelabel)
+    axs[3,0].set_ylabel('$F$',fontsize=fsizelabel)
+    axs[4,0].set_ylabel('$F$',fontsize=fsizelabel)
+    
+    axs[2,1].set_ylabel('$P$',fontsize=fsizelabel)
+    axs[3,1].set_ylabel('$P$',fontsize=fsizelabel)
+    axs[4,1].set_ylabel('$P$',fontsize=fsizelabel)
+    
 
-    # arrow from P to F, vice-versa.
-    #axs[2,1].set_clip_on(False)
-    a1 = axs[0,1].arrow(19.75,-1.75,0,1,width=.1,ec='k',fc='k',
-                        head_width=.8,head_length=.5,
-                        **{'shape':'right'})
-    a1.set_clip_on(False)
+    for i in range(2):
+        for j in range(2):
+            #axs[j,i].set_xticks([])
+            #axs[j,i].set_yticks([])
+            axs[j,i].axis('off')
     
-    a2 = axs[0,1].arrow(20.25,-.25,0,-1,width=.1,ec='k',fc='k',
-                        head_width=.8,head_length=.5,
-                        **{'shape':'right'})
-    a2.set_clip_on(False)
-
-    axs[0,1].text(18.5,-1.1,r'$d_p$',size=fsizelabel,ha='center')
-    axs[0,1].text(21.5,-1.1,r'$d_f$',size=fsizelabel,ha='center')
-
-    # advection label
-    arrow_str = 'simple, head_width=.7, tail_width=.15, head_length=1'
-    axs[1,1].annotate('',(15,.4),(21,.4),ha='left',
-                      arrowprops=dict(arrowstyle=arrow_str,
-                                      fc='k',
-                                      ec='k'))
-
-    axs[1,1].annotate('Advection',(15.3,.55),(15.3,.55),
-                      bbox=dict(boxstyle='round',fc='w',alpha=.7))
-    
-    #axs[3,1].arrow(25,.5,-3,0,width=.05,ec='k',fc='k',
-    #               head_width=.5,head_length=2)
-    
-    # labels
-    axs[0,0].set_title('A',loc='left',size=fsizetitle)
-    axs[0,1].set_title('B',loc='left',size=fsizetitle)
-    axs[0,2].set_title('C',loc='left',size=fsizetitle)
-    
-    axs[1,0].set_title('D',loc='left',size=fsizetitle)
-    axs[1,1].set_title('E',loc='left',size=fsizetitle)
-    axs[1,2].set_title('F',loc='left',size=fsizetitle)
-
-    
-    axs[0,0].set_ylabel('Immobile ($F$)',fontsize=fsizelabel)
-    axs[1,0].set_ylabel('Mobile ($P$)',fontsize=fsizelabel)
-    
-    
-    
-    for i in range(ncols):
+    for i in range(2,ncols):
         
-        axs[0,i].set_ylim(0,2)
-        axs[1,i].set_ylim(-.1,1.1)
+        axs[i,0].set_ylim(0,2)
+        axs[i,1].set_ylim(-.1,1.1)
 
-    for i in range(nrows):
+    for i in range(2,nrows):
         for j in range(ncols):
             # remove y axis label
             axs[i,j].tick_params(axis='both',labelsize=fsizetick)
-            axs[i,j].tick_params(axis='y',which='both',left=False,labelleft=False)
+            #axs[i,j].tick_params(axis='y',which='both',left=False,labelleft=False)
 
             # x axis label
             axs[i,j].set_xticks([L0,L])
+            #axs[i,j].set_xticklabels([r'$L_0$ (Nuclear Envelope)',r'$L$ (Cell Membrane)'])
             axs[i,j].set_xticklabels([r'$L_0$',r'$L$'])
 
             # set axis limit
             axs[i,j].set_xlim(L0,L)
-            
-    axs[0,1].legend()
-            
-    plt.tight_layout()
-    fig.subplots_adjust(hspace=1,top=.85)
+            axs[i,j].ticklabel_format(axis='y',style='scientific',scilimits=(0,0))
+            #ticklabel_format(axis='y',style='scientific',scilimits=(0,0))
+            #axs[i,j].get_yaxis().get_offset_text().set_position((0,0))
+    
+    fig.subplots_adjust(top=1,right=.95,left=.12,bottom=0.05,hspace=.8,wspace=1)
+
+    #fig.canvas.draw()
+    
+    ## absolute coordinate stuff.
+
+    #x0 = (axs[3,0].get_position().x1 + axs[3,0].get_position().x0)
+    x0 = axs[3,0].get_position().x1-.05
+    y0 = 0.7
+    w = (axs[3,1].get_position().x0 - axs[3,0].get_position().x1)+.1
+    h = axs[3,0].get_position().y1 - axs[3,0].get_position().y0
+    
+    ax_i0 = fig.add_axes([x0,y0,w,h])
+    #ax_i0.yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+    
+    # initial data
+
+    ax_i0.set_title(r'Initial Data $\tilde I_0(r) = F(r,0)+P(r,0)$',size=fsizetitle)
+    ax_i0.plot(p.r,p.data_avg_fns['control'](p.r),lw=2,color='k')
+    ax_i0.ticklabel_format(axis='y',style='scientific',scilimits=(0,0))
+
+    #bbox=dict(boxstyle="round",fc='tab:blue',alpha=0.4)
+    ax_i0.annotate(r'$F(r,0) = \varepsilon\tilde I_0(r)$',xy=(.1,-.6),xycoords='axes fraction',size=15,ha='right',bbox=dict(boxstyle="round",fc='tab:blue',alpha=0.4))
+    ax_i0.annotate(r'',xy=(.15, -1), xycoords='axes fraction', xytext=(0.5,-.1), arrowprops=dict(arrowstyle="simple,head_width=1,head_length=1", color='tab:blue'))
+
+    ax_i0.annotate(r'$P(r,0) = (1-\varepsilon)\tilde I_0(r)$',xy=(.9,-.6),xycoords='axes fraction',size=15,ha='left',bbox=dict(boxstyle="round",fc='tab:orange',alpha=0.4))
+    ax_i0.annotate(r'',xy=(.85, -1), xycoords='axes fraction', xytext=(.5,-.1), arrowprops=dict(arrowstyle="simple,head_width=1,head_length=1", color='tab:orange'))
+
+
+    ax_i0.set_xticks([L0,L])
+    ax_i0.set_xticklabels([r'$L_0$ (Nuclear Envelope)',r'$L$ (Cell Membrane)'])    
+    
+    
+    # F to P and vice-versa diagram
+    c1 = (axs[3,0].get_position().x0+axs[3,0].get_position().x1)/2
+    c2 = (axs[3,1].get_position().x0+axs[3,1].get_position().x1)/2
+    plt.text(c1, .9, "$F$: Immobile Material", ha="center", va="center", size=15,
+             transform=fig.transFigure,bbox=dict(boxstyle="round",fc='tab:blue',alpha=0.4))
+
+    plt.text(c2, .9, "$P$: Material Subject to\n Retrograde Flow", ha="center", va="center", size=15,transform=fig.transFigure,bbox=dict(boxstyle="round",fc='tab:orange',alpha=0.4))
+
+    width = .005
+    head_width = 0.02
+    head_length = 0.05
+    
+    b1 = axs[3,0].get_position().x1
+    b2 = axs[3,1].get_position().x0
+    a2 = plt.arrow(b1+.033,.905,.2,0,width=width,ec='k',fc='k',transform=fig.transFigure,
+                   head_width=head_width,head_length=head_length,length_includes_head=True,**{'shape':'right'})
+    a2.set_clip_on(False)
+    
+    a3 = plt.arrow(b2-.043,.895,-.2,0,width=width,ec='k',fc='k',transform=fig.transFigure,
+                   head_width=head_width,head_length=head_length,length_includes_head=True,**{'shape':'right'})
+    a3.set_clip_on(False)
+
+    x = (axs[3,1].get_position().x0 + axs[3,0].get_position().x1)/2
+    
+    plt.text(x,.87,r'$d_p$',size=fsizelabel,ha='center',transform=fig.transFigure)
+    plt.text(x,.92,r'$d_f$',size=fsizelabel,ha='center',transform=fig.transFigure)
+
+    
+    # arrow from P to F in plots, vice-versa.
+    x = axs[3,0].get_position().x1
+    y = (axs[3,0].get_position().y0+axs[3,1].get_position().y1)/2
+    dx = axs[3,1].get_position().x0 - axs[3,0].get_position().x1
+    
+    a1 = plt.arrow(x+.02,y+.005,dx*.6,0,width=width,ec='k',fc='k',
+                   head_width=head_width,head_length=head_length,transform=fig.transFigure,
+                   length_includes_head=True,
+                   **{'shape':'right'})
+    a1.set_clip_on(False)
+    
+    x = axs[3,1].get_position().x0
+    dx = axs[3,1].get_position().x0 - axs[3,0].get_position().x1
+
+    a1 = plt.arrow(x-.09,y-.005,-dx*.6,0,width=width,ec='k',fc='k',
+                   head_width=head_width,head_length=head_length,transform=fig.transFigure,
+                   length_includes_head=True,
+                   **{'shape':'right'})
+    a1.set_clip_on(False)
+
+    x = (axs[3,1].get_position().x0 + axs[3,0].get_position().x1)/2
+
+    plt.text(x-.03,y+.02,r'$d_f$',size=fsizelabel,ha='center',transform=fig.transFigure)
+    plt.text(x-.03,y-.03,r'$d_p$',size=fsizelabel,ha='center',transform=fig.transFigure)
+
+    plt.text(x-.03,y+.05,r'(Trapping)',size=fsizelabel,ha='center',transform=fig.transFigure)
+    
+
+    # advection label
+    arrow_str = 'simple, head_width=.7, tail_width=.15, head_length=1'
+    axs[3,1].annotate('',(.2,.4),(.4,.4),ha='left',
+                      va='center',
+                      xycoords='axes fraction',
+                      arrowprops=dict(arrowstyle=arrow_str,
+                                      fc='k',
+                                      ec='k'))
+    
+    advection_label = (r'Advection:\begin{itemize}[noitemsep,topsep=0pt,labelsep=.1em,label={}]'
+                       r'\setlength{\itemindent}{-1.5em}'
+                       r'\item $u$ constant'
+                       r'\item $u(r)$ space-dependent'
+                       r'\item $u(I)$ conc.-dependent'
+                       r'\end{itemize}')
+    
+    axs[3,1].annotate(advection_label,(.4,.5),(.4,.5),xycoords='axes fraction',va='center')
+
+    curly_str = (r'$'
+                 r'\begin{cases}'
+                 r'\phantom{1}\\'
+                 r'\phantom{1}\\'
+                 r'\phantom{1}\\'
+                 r'\end{cases}'
+                 r'$')
+    #curly_str = (r'\begin{equation}'
+    #             r'test'
+    #            r'\end{equation}')
+    axs[3,1].annotate(curly_str,(.4,.4),(.4,.4),xycoords='axes fraction',size=10,va='center')
+    
+
+    
+    
+    # time arrow
+    plt.annotate(r'',xy=(.05,.05), xycoords='figure fraction', xytext=(.05, .56), arrowprops=dict(arrowstyle="simple,head_width=1,head_length=1", color='k'))
+    
+    plt.text(.034,.25,'Time',ha='center',transform=fig.transFigure,size=20,rotation=90)
+
+
+    # update scientific notation
+    fig.canvas.draw()
+
+    offset = ax_i0.get_yaxis().get_offset_text().get_text()
+    #offset = ax_i0.yaxis.get_major_formatter().get_offset()
+    
+    
+    print(offset)
+    
+    ax_i0.yaxis.offsetText.set_visible(False)
+    ax_i0.yaxis.set_label_text(r"$\tilde I_0$" + " (" + offset+")",size=fsizelabel)
+    ax_i0.tick_params(axis='both',labelsize=fsizetick)
+
+
+    
+    for i in range(2,nrows):
+        for j in range(ncols):
+            # remove y axis label
+
+            offset = axs[i,j].get_yaxis().get_offset_text().get_text()
+
+            axs[i,j].yaxis.offsetText.set_visible(False)
+            ylabel = axs[i,j].yaxis.get_label().get_text()
+            #print(ylabel.__dict__)
+            axs[i,j].yaxis.set_label_text(ylabel + " (" + offset+")")
+
+            axs[i,j].tick_params(axis='both',labelsize=fsizetick)
+            #axs[i,j].tick_params(axis='y',which='both',left=False,labelleft=False)
+
+
+
     return fig
+
+def u_nonconstant():
+
+    import matplotlib.pyplot as plt
+
+    nrows=2;ncols=2
+    fig,axs = plt.subplots(nrows=nrows,ncols=ncols,figsize=(6,4))
+
+    pars = {'eps':.3,'df':0,'dp':.01,'T':1500,'dt':.01,'N':100,'Nvel':1,'u_nonconstant':True}
+
+    p = pde.PDEModel(**pars)
+
+    axs[0,0].plot(p.r,p._s2_vel())
+
+    axs[0,0].set_xticks([p.L0,p.L])
+    axs[0,0].set_xticklabels([r'$L_0$',r'$L$'],
+                             size=fsizetick)
+
+    axs[0,0].set_title(r'A. Analytic $u(r)$',loc='left')
+    axs[0,1].set_title(r'B. Optimized $u(r)$',loc='left')
+    
+    axs[1,0].set_title(r'C. $u(P)$',loc='left')
+    axs[1,1].set_title(r'D. ?',loc='left')
+
+    plt.tight_layout()
+
+    return fig
+    
+    
 
 def generate_figure(function, args, filenames, title="", title_pos=(0.5,0.95)):
     """
@@ -269,9 +447,10 @@ def generate_figure(function, args, filenames, title="", title_pos=(0.5,0.95)):
 def main():
 
     figures = [
-        (data_figure, [], ['f_data.png','f_data.pdf']),
-        (gaussian_fit, [], ['f_gaussian_fit.png','f_gaussian_fit.pdf']),
-        (solution_schematic, [], ['f_solution_schematic.png','f_solution_schematic.pdf'])
+        #(data_figure, [], ['f_data.png','f_data.pdf']),
+        #(gaussian_fit, [], ['f_gaussian_fit.png','f_gaussian_fit.pdf']),
+        #(solution_schematic, [], ['f_solution_schematic.png','f_solution_schematic.pdf']),
+        (u_nonconstant, [], ['f_u_nonconstant.png','f_u_nonconstant.pdf'])
         ]
 
     # multiprocessing code from Kendrick Shaw
