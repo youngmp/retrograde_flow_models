@@ -349,42 +349,28 @@ class PDEModel(Data):
 
         out = self.du
 
-        drp = (r[1:]*ur[1:]*p[1:]-r[:-1]*ur[:-1]*p[:-1])/(r[:-1]*dr)
         
-        if False:
-            #print(np.amax(tfp),np.amax(p[:-1]),np.amax(f[:-1]))
-            #time.sleep(1)
-            import matplotlib.pyplot as plt
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            for i in range(len(self.rs)):
-                u = getattr(self,'us'+str(i))
-                ax.scatter(self.rs[i],u,color='k')
-            ax.plot(self.r,p)
-            ax.plot(self.r,f)
-            plt.show()
-            plt.close()
-            time.sleep(2)
-                           
-        if scenario[:-1] == 'model2':
-            tfp = self.dp1*p[:-1]*f[:-1] + self.dp2*p[:-1]**2
-            out[self.N-1] = self.dp1*p[-1]*f[-1] + self.dp2*p[-1]**2
-        elif scenario[:-1] == 'model3':
-            tfp = 0*r[:-1]
-            pr = (p[1:]-p[:-1])/dr
-            drp = self.ur[1:]*(p[1:]/r[1:]*(1-p[1:]/self.imax) + pr*(1-2*p[1:]/self.imax))
-            
-            out[self.N-1] = 0
-        else:
+
+        if scenario[:-1] == 't1' or scenario[:-1] == 'jamming':
             tfp = self.dp*p[:-1] - self.df*f[:-1]
             out[self.N-1] = self.dp*p[-1] - self.df*f[-1]
-            #raise ValueError('Unrecognized or unimplemented scenario',scenario)
+
+        elif scenario[:-1] == 't2':
+            tfp = self.dp1*p[:-1]*f[:-1] + self.dp2*p[:-1]**2 - self.df*f[:-1]
+            out[self.N-1] = self.dp1*p[-1]*f[-1] + self.dp2*p[-1]**2 - self.df*f[-1]
+
+        else:
+            raise ValueError('Invalid Scenario', scenario)
+
+        if scenario[:-1] == 'jamming':
+            pr = (p[1:]-p[:-1])/dr
+            drp = self.ur[1:]*(p[1:]/r[1:]*(1-p[1:]/self.imax) + pr*(1-2*p[1:]/self.imax))
+        else:
+            drp = (r[1:]*ur[1:]*p[1:]-r[:-1]*ur[:-1]*p[:-1])/(r[:-1]*dr)
+            out[-1] = (-r[-1]*ur[-1]*p[-1])/(r[-1]*dr)
 
         out[:self.N-1] = tfp
         out[self.N:-1] = drp - tfp
-
-        
-        out[-1] = (-r[-1]*ur[-1]*p[-1])/(r[-1]*dr)
 
         return out
 
@@ -515,21 +501,26 @@ class PDEModel(Data):
 
         r = self.r
         #F = self.steadys_fn(r)
-        F = self.data_avg_fns['24h'](r)
+        f_last = self.data_avg_fns['24h'](r)
+        p0 = self.data_avg_fns['control'](r)*(1-self.eps)
+        f0 = self.data_avg_fns['control'](r)*self.eps
+
+        fhat = f0-f_last
+        
         dr = self.dr
 
-        mu = r*F
+        mu = r*fhat
         
-        c = 2*np.sum(mu)*dr/(self.L**2 - self.L0**2)
+        #c = 2*np.sum(mu)*dr/(self.L**2 - self.L0**2)
         
-        u = np.cumsum(r*(F-c))*dr/mu
+        #u = np.cumsum(r*(F-c))*dr/mu
+        u = self.dp*np.cumsum(mu*(1+p0/fhat))*dr/mu
         
-
         # shift back 1 to include 0 value
         u = np.append([0],u)
         u = u[:-1]
 
-        return self.dp*u
+        return u
 
     def u(self,r):
         """
@@ -970,7 +961,7 @@ def main():
 
     #scenario = 'default'
     #scenario = 'model2a'
-    scenario = '2'
+    scenario = 't1e'
     method = 'annealing'
     np.random.seed(3)
 
@@ -990,7 +981,7 @@ def main():
     #    setattr(p,'us'+str(i),us[i])
 
     #0.40490838 
-    pars = {'eps':0.40490838,'df':0,'dp':0.00776154,'T':1500,'dt':.01,'N':100,'Nvel':1,'u_nonconstant':True}
+    pars = {'eps':0.1,'df':0,'dp':0.00776154,'T':1500,'dt':.01,'N':100,'Nvel':1,'u_nonconstant':True}
     #pars = {'eps':0.0020,'dp1':1.9939,'dp2':1.8193,'Nvel':1,'T':1500}
 
     p = PDEModel(**pars)
