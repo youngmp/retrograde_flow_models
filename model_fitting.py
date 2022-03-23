@@ -49,19 +49,6 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
 
     p._run_euler(scenario)
     y = p.y
-    """
-    y = None
-    with np.errstate(over='raise',under='raise'):
-        try:
-            p._run_euler(scenario)
-            y = p.y
-        except FloatingPointError:
-            pass
-            #y = np.ones((2*p.N,TN))
-
-    if y is None:
-        y = np.ones((2*p.N,TN))
-    """
 
     if False:
         import matplotlib.pyplot as plt
@@ -71,14 +58,12 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
         plt.show()
         plt.close()
         time.sleep(2)
-
     
     # get solution
     fsol = y[:p.N,:]
     psol = y[p.N:,:]
 
     I = fsol + psol
-
         
     #'2h', '4h', '30min', '1h', '24h', 'control', '8h30'
     err = 0
@@ -99,7 +84,6 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
             
             data = p.data_avg[hour][:,1]
             err += np.linalg.norm(data[1:-1]-I_cut[1:-1])**2
-
             
     err *= 1e5
     
@@ -111,13 +95,17 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
     s1 = 'err={:.4f}, eps={:.4f}, '\
         +'d_f={:.4f}, dp={:.4f}'
 
-    if scenario == '4a':
-        stdout.append(p.imax)
-        s1 += ', imax={:.4f}'
-
     if psource:
         stdout.append(p.psource)
         s1 += ', psource={:.4f}'
+
+    if scenario[:-1] == 'model2':
+        stdout.append(p.dp1);stdout.append(p.dp2)
+        s1 += ', dp1={:.4f}, dp2={:.4f}'
+
+    if scenario[:-1] == 'model3':
+        stdout.append(p.imax)
+        s1 += ', imax={:.4f}'
 
     if not(p.u_nonconstant):
         s1 += ', us='
@@ -287,17 +275,39 @@ def main():
         init = [0,1]
         parfix = {'df':0}
 
-    elif args.scenario == '3':
-        pass
-    
-    elif args.scenario == '4a':
-        fname_pre = p.data_dir+'scenario4_residuals'
+    elif args.scenario == 'model2a':
+        fname_pre = p.data_dir+'model2a_residuals'
+        par_names = ['eps','dp1','dp2']
+        bounds = [(0,1),(0,2),(0,2)]
+        init = [0,1,1]
+        parfix = {}
 
-        par_names=['eps','dp']
-        bounds = [(0,1),(0,10)]
-        init = [0.001,1]
-        parfix = {'df':0,'imax':1}
-        p.dt = 0.01
+
+    elif args.scenario == 'model2b':
+        fname_pre = p.data_dir+'model2_bresiduals'
+        par_names = ['eps','dp2']
+        bounds = [(0,1),(0,2)]
+        init = [0,1]
+        parfix = {'dp1':0}
+
+
+    elif args.scenario == 'model2c':
+        fname_pre = p.data_dir+'model2c_residuals'
+        par_names = ['eps','dp1']
+        bounds = [(0,1),(0,2)]
+        init = [0,1]
+        parfix = {'dp2':0}
+
+
+    elif args.scenario == 'model3a':
+        fname_pre = p.data_dir+'model3a_residuals'
+        par_names = ['eps','imax']
+        bounds = [(0,1),(0,1)]
+        init = [0,1]
+        parfix = {}
+
+    else:
+        raise ValueError('invalid scenario choice')
 
         
     if (args.Nvel >= 1) and not(args.u_nonconstant):
@@ -325,8 +335,6 @@ def main():
 
     if args.ss_condition:
         fname_pre += '_ss'
-
-    
     
 
     fname = fname_pre + '.txt'
