@@ -214,14 +214,15 @@ def main():
                      u_nonconstant=args.u_nonconstant,
                      Nvel=args.Nvel)
     
+    print(args.scenario, args.scenario == 't1b')
     if args.scenario == 't1a':
         # original model fitting eps, df, dp
         par_names = ['eps','df','dp','us0']
         bounds = [(0,1),(0,5),(0,5),(0,2)]
         init = [0.1,0,1,0.16]
         parfix = {}
-
-    if args.scenario == 't1b':
+    
+    elif args.scenario == 't1b':
         # purely reversible trapping
         # dp = 0
         fname_pre = p.data_dir+args.scenario+'_residuals'
@@ -246,7 +247,7 @@ def main():
         init = [0,1,0.16]
         parfix = {'df':0}
 
-    elif ags.scenario == 't1e':
+    elif args.scenario == 't1e':
         par_names=['eps','dp','us0']
         bounds = [(0,1),(0,5),(0,2)]
         init = [0,1,0.16]
@@ -255,7 +256,7 @@ def main():
     elif args.scenario == 't2a':
         par_names = ['eps','dp1','dp2','df','us0']
         bounds = [(0,1),(0,5),(0,5),(0,5),(0,2)]
-        init = [0,1,1,0.16]
+        init = [0,1,1,1,0.16]
         parfix = {}
 
     elif args.scenario == 't2b':
@@ -308,8 +309,10 @@ def main():
     fname_pre = p.data_dir+args.scenario+'_residuals'
     fname_pre += '_umax='+str(args.umax)
     
-    
-    if (args.Nvel > 1) and not(args.u_nonconstant):
+
+    if (args.Nvel > 1) and args.u_nonconstant:
+        raise ValueError('Incompatible flags. can only have Nvel > 1 OR u_nonconstant, but not both.')
+    elif args.Nvel > 1:
         # u_nonconstant is for the function u(r).
         # if nVel > 1 u is technically nonconstant but it
         # uses the pointwise estimation of u.
@@ -324,8 +327,7 @@ def main():
             par_names.append('us'+str(i))
             bounds.append((0,args.umax))
             init.append(.1)
-    else:
-        raise ValueError('Incompatible flags. can only have Nvel > 1 OR u_nonconstant, but not both.')
+    
     
     if args.psource:
         par_names.append('psource')
