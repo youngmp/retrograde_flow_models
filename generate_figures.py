@@ -400,79 +400,33 @@ def solution_schematic():
 
     return fig
 
-def velocity():
+def u_nonconstant():
 
     import matplotlib.pyplot as plt
-    from matplotlib.gridspec import GridSpec
-
-
-    fig = plt.figure(figsize=(6,4))
-    gs = GridSpec(2, 2,hspace=0.6,wspace=.8)
-    #gs = GridSpec(2, 2)
-    #gs.update()
-
-    ax1 = fig.add_subplot(gs[:,0])
-    ax2 = fig.add_subplot(gs[0,1])
-    ax3 = fig.add_subplot(gs[1,1])
-
-    axs = [ax1,ax2,ax3]
 
     nrows=2;ncols=2
-    #fig,axs = plt.subplots(nrows=nrows,ncols=ncols,figsize=(6,4))
+    fig,axs = plt.subplots(nrows=nrows,ncols=ncols,figsize=(6,4))
 
-    pars = {'eps':1,'df':0,'dp':.01,'T':60,'dt':.01,'N':100,'Nvel':1,'u_nonconstant':False,
-            'us0':0.2}
+    pars = {'eps':.3,'df':0,'dp':.01,'T':1500,'dt':.01,'N':100,'Nvel':1,'u_nonconstant':True}
 
     p = pde.PDEModel(**pars)
-    p._run_euler('2')
-    I = p.y[:p.N,-1] + p.y[p.N:,-1]
-    imax = np.amax(I)
 
-    print(imax)
+    axs[0,0].plot(p.r,p._s2_vel())
 
-    axs[0].plot(p.r,p._s2_vel(),lw=2)
-    axs[1].plot(p.r,I,lw=2)
-    axs[2].plot(p.r,p.us0*(1-I/imax),lw=2)
+    axs[0,0].set_xticks([p.L0,p.L])
+    axs[0,0].set_xticklabels([r'$L_0$',r'$L$'],
+                             size=fsizetick)
 
-    for i in range(3):
-        axs[i].set_xticks([p.L0,p.L])
-        axs[i].set_xticklabels([r'$L_0$',r'$L$'])
-        axs[i].tick_params(axis='both',labelsize=fsizetick)
-
-    axs[0].set_ylabel(r'$u(r)$',size=fsizelabel)
-    axs[1].set_ylabel(r'$I(r,t)$',size=fsizelabel)
-    axs[2].set_ylabel(r'$u(I(r,t))$',size=fsizelabel)
+    axs[0,0].set_title(r'A. Analytic $u(r)$',loc='left')
+    axs[0,1].set_title(r'B. Optimized $u(r)$',loc='left')
     
-    axs[0].set_title(r'A. Spatially-Dependent',loc='left',size=fsizetitle)
-    axs[1].set_title(r'B. Jamming Velocity',loc='left',size=fsizetitle)
-    axs[2].set_title(r'',loc='left',size=fsizetitle)
+    axs[1,0].set_title(r'C. $u(P)$',loc='left')
+    axs[1,1].set_title(r'D. ?',loc='left')
 
-    # center left plot
-    left = axs[0].get_position().x0
-    bottom = (axs[2].get_position().y1+axs[2].get_position().y0)/1.6
-    width = (axs[0].get_position().x1 - axs[0].get_position().x0)
-    height = ((axs[1].get_position().y1+axs[1].get_position().y0)/2 - bottom)*.9
-
-    print([left,bottom,width,height])
-    axs[0].set_position([left,bottom,width,height])
-
-
-    # arrow betwen right plots
-
-    x_start = (axs[1].get_position().x0+axs[1].get_position().x1)/2
-    y_start = (axs[1].get_position().y0)-.05
-    
-    plt.annotate(r'',xytext=(x_start, y_start), xy=(x_start,y_start-.1),
-                 ha='center', xycoords='figure fraction',arrowprops=dict(arrowstyle="simple,tail_width=1.4,head_width=2.3,head_length=1", color='tab:blue'))
-    
-
-    #print(y2,y1)
-    
-    #axs[1].set_title(r'D. ?',loc='left')
-
-    #plt.tight_layout()
+    plt.tight_layout()
 
     return fig
+    
     
 
 def generate_figure(function, args, filenames, title="", title_pos=(0.5,0.95)):
@@ -496,7 +450,7 @@ def main():
         #(data_figure, [], ['f_data.png','f_data.pdf']),
         #(gaussian_fit, [], ['f_gaussian_fit.png','f_gaussian_fit.pdf']),
         #(solution_schematic, [], ['f_solution_schematic.png','f_solution_schematic.pdf']),
-        (velocity, [], ['f_velocity.png','f_velocity.pdf'])
+        (u_nonconstant, [], ['f_u_nonconstant.png','f_u_nonconstant.pdf'])
         ]
 
     # multiprocessing code from Kendrick Shaw

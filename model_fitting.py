@@ -182,7 +182,7 @@ def main():
     parser.add_argument('--steady-state-condition',dest='ss_condition',
                         action='store_true',
                         help='Choose whether or not to force steady-state condition',
-                        default=True)
+                        default=False)
 
     parser.add_argument('--u-nonconstant',dest='u_nonconstant',
                         action='store_true',
@@ -223,6 +223,8 @@ def main():
         init = [0.1,1,1]
         parfix = {'us0':0.16}
 
+        
+        
 
     if args.scenario == '-2':
         # uval = 0.16, search only eps, no exchange
@@ -232,6 +234,8 @@ def main():
         bounds = [(0,1)]
         init = [0.1]
         parfix = {'us0':0.16,'df':0,'dp':0}
+
+        
     
     if args.scenario == '-1':
         # original model fitting eps, df, dp
