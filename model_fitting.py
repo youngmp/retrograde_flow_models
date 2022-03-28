@@ -176,7 +176,7 @@ def main():
                          default='-1',type=str)
 
     parser.add_argument('-n','--nvel',dest='Nvel',
-                        help='choose number of velocities for nonuniform vel (different front non-constant velocity function!)',
+                        help='choose number of velocities for nonuniform vel',
                         default=1,type=int)
 
     parser.add_argument('--steady-state-condition',dest='ss_condition',
@@ -214,118 +214,114 @@ def main():
                      u_nonconstant=args.u_nonconstant,
                      Nvel=args.Nvel)
     
-    if args.scenario == 't1a':
+    if args.scenario == '-3':
+        # uval = 0.16, search only eps full exchange
+        fname_pre = p.data_dir+'scenario-3_residuals'
+        
+        par_names = ['eps','df','dp']
+        bounds = [(0,1),(0,10),(0,10)]
+        init = [0.1,1,1]
+        parfix = {'us0':0.16}
+
+
+    if args.scenario == '-2':
+        # uval = 0.16, search only eps, no exchange
+        fname_pre = p.data_dir+'scenario-2_residuals'
+
+        par_names = ['eps']
+        bounds = [(0,1)]
+        init = [0.1]
+        parfix = {'us0':0.16,'df':0,'dp':0}
+    
+    if args.scenario == '-1':
         # original model fitting eps, df, dp
-        par_names = ['eps','df','dp','us0']
-        bounds = [(0,1),(0,5),(0,5),(0,2)]
-        init = [0.1,0,1,0.16]
+        fname_pre = p.data_dir+'scenario-1_residuals'
+        par_names = ['eps','df','dp']
+        bounds = [(0,1),(0,2),(0,2)]
+        init = [0.1,0,1]
         parfix = {}
 
-    if args.scenario == 't1b':
+    if args.scenario == '0':
         # purely reversible trapping
         # dp = 0
-        fname_pre = p.data_dir+args.scenario+'_residuals'
-        par_names=['eps','df','us0']
-        bounds = [(0,1),(0,5),(0,2)]
+        fname_pre = p.data_dir+'scenario0_residuals'
+
+        par_names=['eps','df']
+        bounds = [(0,1),(0,10)]
         init = [0.001,1,0.16]
         parfix = {'dp':0}
 
-    elif args.scenario == 't1c':
+    elif args.scenario == '1':
         # non-dynamical trapping, pure transport
         # df = dp = 0
-        par_names=['eps','us0']
-        bounds = [(0,1),(0,2)]
-        init = [0.001,0.16]
+        fname_pre = p.data_dir+'scenario1_residuals'
+
+        par_names=['eps']
+        bounds = [(0,1)]
+        init = [0.001]
         parfix = {'df':0,'dp':0}
 
-    elif args.scenario == 't1d':
+    elif args.scenario == '2':
         # irreversible trapping
         # df = 0
-        par_names=['eps','dp','us0']
-        bounds = [(0,1),(0,5),(0,2)]
-        init = [0,1,0.16]
-        parfix = {'df':0}
-
-    elif ags.scenario == 't1e':
-        par_names=['eps','dp','us0']
-        bounds = [(0,1),(0,5),(0,2)]
-        init = [0,1,0.16]
-        parfix = {'df':0}
-
-    elif args.scenario == 't2a':
-        par_names = ['eps','dp1','dp2','df','us0']
-        bounds = [(0,1),(0,5),(0,5),(0,5),(0,2)]
-        init = [0,1,1,0.16]
-        parfix = {}
-
-    elif args.scenario == 't2b':
-        par_names = ['eps','df','us0']
-        bounds = [(0,1),(0,5),(0,2)]
-        init = [0,1,0.16]
-        parfix = {'dp1':0,'dp2':0}
-
-
-    elif args.scenario == 't2c':
-        par_names = ['eps','us0']
-        bounds = [(0,1),(0,2)]
-        init = [0,0.16]
-        parfix = {'dp1':0,'dp2':0,'df':0}
-
-    elif args.scenario == 't2d':
+        fname_pre = p.data_dir+'scenario2_residuals'
         
-        par_names = ['eps','dp1','dp2','us0']
-        bounds = [(0,1),(0,5),(0,5),(0,2)]
-        init = [0,1,1,0.16]
+        par_names=['eps','dp']
+        bounds = [(0,1),(0,1)]
+        init = [0,1]
         parfix = {'df':0}
 
-    elif args.scenario == 'jamminga':
-        par_names = ['eps','imax','umax','dp','df']
-        bounds = [(0,1),(0,1),(0,2),(0,2),(0,2)]
-        init = [0,1,0.2,1,1]
+    elif args.scenario == 'model2a':
+        fname_pre = p.data_dir+'model2a_residuals'
+        par_names = ['eps','dp1','dp2']
+        bounds = [(0,1),(0,2),(0,2)]
+        init = [0,1,1]
         parfix = {}
 
-    elif args.scenario == 'jammingb':
-        par_names = ['eps','imax','umax','df']
-        bounds = [(0,1),(0,1),(0,2),(0,2),(0,2)]
-        init = [0,1,0.2,1]
-        parfix = {'dp':0}
 
-    elif args.scenario == 'jammingc':
-        par_names = ['eps','imax','umax']
-        bounds = [(0,1),(0,1),(0,2)]
-        init = [0,1,0.2]
-        parfix = {'dp':0,'df':0}
+    elif args.scenario == 'model2b':
+        fname_pre = p.data_dir+'model2_bresiduals'
+        par_names = ['eps','dp2']
+        bounds = [(0,1),(0,2)]
+        init = [0,1]
+        parfix = {'dp1':0}
 
-    elif args.scenario == 'jammingd':
-        par_names = ['eps','imax','umax','dp']
-        bounds = [(0,1),(0,1),(0,2),(0,2)]
-        init = [0,1,0.2,1]
-        parfix = {'df':0}
+
+    elif args.scenario == 'model2c':
+        fname_pre = p.data_dir+'model2c_residuals'
+        par_names = ['eps','dp1']
+        bounds = [(0,1),(0,2)]
+        init = [0,1]
+        parfix = {'dp2':0}
+
+
+    elif args.scenario == 'model3a':
+        fname_pre = p.data_dir+'model3a_residuals'
+        par_names = ['eps','imax']
+        bounds = [(0,1),(0,1)]
+        init = [0,1]
+        parfix = {}
 
     else:
         raise ValueError('invalid scenario choice')
 
-    fname_pre = p.data_dir+args.scenario+'_residuals'
-    fname_pre += '_umax='+str(args.umax)
-    
-    
-    if (args.Nvel > 1) and not(args.u_nonconstant):
+        
+    if (args.Nvel >= 1) and not(args.u_nonconstant):
         # u_nonconstant is for the function u(r).
         # if nVel > 1 u is technically nonconstant but it
         # uses the pointwise estimation of u.
-        
+
+        fname_pre += 'umax='+str(args.umax)
         fname_pre += '_Nvel='+str(args.Nvel)
         fname_pre += 'interp_o='+str(args.interp_o)
 
         p.interp_o = args.interp_o
         p.rs = np.linspace(p.L0,p.L,args.Nvel)
 
-        for i in range(1,args.Nvel):
+        for i in range(args.Nvel):
             par_names.append('us'+str(i))
             bounds.append((0,args.umax))
             init.append(.1)
-    else:
-        raise ValueError('Incompatible flags. can only have Nvel > 1 OR u_nonconstant, but not both.')
     
     if args.psource:
         par_names.append('psource')
