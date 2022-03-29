@@ -85,7 +85,8 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
             data = p.data_avg[hour][:,1]
             err += np.linalg.norm(data[1:-1]-I_cut[1:-1])**2
             
-    err *= 1e5
+    #err *= 1e5
+    err = np.log(err)
     
     if ss_condition:
         if 1e5*np.linalg.norm(I[:,int(1200/p.dt)]-I[:,int(1440/p.dt)])**2 > 1e-10:
@@ -125,7 +126,7 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
                        parfix={},ss_condition=False,
                        psource=False,
                        scenario=None,
-                       uconst=True):
+                       uconst=True,seed=0):
     
     """
     fit sim to data
@@ -155,8 +156,10 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
     
     #res = basinhopping(cost_fn,init,minimizer_kwargs=minimizer_kwargs)
     res = dual_annealing(cost_fn,bounds=bounds,args=args,
-                         visit=2.7,restart_temp_ratio=5e-06,
-                         initial_temp=5.3e4)
+                         visit=2.8,restart_temp_ratio=2e-06,
+                         initial_temp=5.3e4,accept=-10,seed=seed)
+    # defaults: initial_temp=5230, restart_temp_ratio=2e-05, visit=2.62, accept=-5.0.
+    
 
     return res
     
@@ -171,6 +174,7 @@ def main():
 
     parser.add_argument('-q','--quiet',dest='quiet',action='store_true',
                         help='If true, suppress all print statements',default=False)
+    
     parser.add_argument('-s','--scenario',dest='scenario',
                         help='Choose scenario. see code for scenarios',
                          default='-1',type=str)
@@ -178,6 +182,10 @@ def main():
     parser.add_argument('-n','--nvel',dest='Nvel',
                         help='choose number of velocities for nonuniform vel (different front non-constant velocity function!)',
                         default=1,type=int)
+
+    parser.add_argument('--seed',dest='seed',
+                        help='choose seed for dual annealing',
+                        default=0,type=int)
 
     parser.add_argument('--steady-state-condition',dest='ss_condition',
                         action='store_true',
@@ -306,6 +314,7 @@ def main():
 
     fname_pre = p.data_dir+args.scenario+'_residuals'
     fname_pre += '_umax='+str(args.umax)
+    fname_pre += '_seed='+str(args.seed)
     
 
     if (args.Nvel > 1) and args.u_nonconstant:
@@ -351,7 +360,8 @@ def main():
                                  ss_condition=args.ss_condition,
                                  psource=args.psource,
                                  scenario=args.scenario,
-                                 uconst=not(args.u_nonconstant))
+                                 uconst=not(args.u_nonconstant),
+                                 seed=args.seed)
         
         np.savetxt(fname,res.x)
         np.savetxt(fname_err,[res.fun])
