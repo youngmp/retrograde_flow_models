@@ -84,17 +84,19 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
             
             data = p.data_avg[hour][:,1]
             err += np.linalg.norm(data[1:-1]-I_cut[1:-1])**2
-            
-    #err *= 1e5
-    err2 = err
-    err = np.log10(err2)
+
+    #err_log = np.log10(err)
+    err_old = err*1e5
+    err_new = np.log10(err)
+    #err2 = err
+    
     
     if ss_condition:
         if 1e5*np.linalg.norm(I[:,int(1200/p.dt)]-I[:,int(1440/p.dt)])**2 > 1e-10:
-            err = 1e5
+            err_new = 1e5
 
-    stdout = [1e5*err2,err,p.eps,p.df,p.dp]
-    s1 = 'err={:.4f}, err_log={:.4f}, eps={:.4f}, '\
+    stdout = [err_old,err_new,p.eps,p.df,p.dp]
+    s1 = 'err_old={:.4f}, err_new(log)={:.4f}, eps={:.4f}, '\
         +'d_f={:.4f}, dp={:.4f}'
 
     if psource:
@@ -119,7 +121,7 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
         s1 = s1[:-1]
     
     print(s1.format(*stdout))
-    return err
+    return err_new
 
 def get_data_residuals(p,par_names=['eps','df','dp'],
                        bounds=[(0,1),(0,100),(0,100)],
@@ -258,7 +260,7 @@ def main():
 
     elif args.scenario == 't1e':
         par_names=['eps','dp','us0']
-        bounds = [(0,.1),(0,5),(0,2)]
+        bounds = [(0,.1),(0,1),(0,2)]
         init = [0,1,0.16]
         parfix = {'df':0}
 
