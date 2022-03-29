@@ -347,9 +347,7 @@ class PDEModel(Data):
         f = y[:self.N]
         p = y[self.N:]
 
-        out = self.du
-
-        
+        out = self.du        
 
         if scenario[:-1] == 't1' or scenario[:-1] == 'jamming':
             tfp = self.dp*p[:-1] - self.df*f[:-1]
@@ -980,8 +978,9 @@ def main():
     #for i in range(len(us)):
     #    setattr(p,'us'+str(i),us[i])
 
-    #0.40490838 
-    pars = {'eps':0.1,'df':0,'dp':0.00776154,'T':1500,'dt':.01,'N':100,'Nvel':1,'u_nonconstant':True}
+    #0.40490838
+    #=0.0268, d_f=0.0000, dp=0.0328
+    pars = {'eps':0.0268,'df':0,'dp':0.0328,'T':1500,'dt':.01,'N':100,'Nvel':1,'u_nonconstant':True}
     #pars = {'eps':0.0020,'dp1':1.9939,'dp2':1.8193,'Nvel':1,'T':1500}
 
     p = PDEModel(**pars)
