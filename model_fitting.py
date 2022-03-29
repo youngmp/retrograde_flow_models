@@ -86,14 +86,15 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
             err += np.linalg.norm(data[1:-1]-I_cut[1:-1])**2
             
     #err *= 1e5
-    err = np.log(err)
+    err2 = err
+    err = np.log10(err2)
     
     if ss_condition:
         if 1e5*np.linalg.norm(I[:,int(1200/p.dt)]-I[:,int(1440/p.dt)])**2 > 1e-10:
             err = 1e5
 
-    stdout = [err,p.eps,p.df,p.dp]
-    s1 = 'err={:.4f}, eps={:.4f}, '\
+    stdout = [1e5*err2,err,p.eps,p.df,p.dp]
+    s1 = 'err={:.4f}, err_log={:.4f}, eps={:.4f}, '\
         +'d_f={:.4f}, dp={:.4f}'
 
     if psource:
