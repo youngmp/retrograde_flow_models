@@ -99,11 +99,11 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
         stdout.append(p.psource)
         s1 += ', psource={:.4f}'
 
-    if scenario[:-1] == 'model2':
+    if scenario[:-1] == 't2':
         stdout.append(p.dp1);stdout.append(p.dp2)
         s1 += ', dp1={:.4f}, dp2={:.4f}'
 
-    if scenario[:-1] == 'model3':
+    if scenario[:-1] == 'jamming':
         stdout.append(p.imax)
         s1 += ', imax={:.4f}'
 
@@ -249,7 +249,7 @@ def main():
 
     elif args.scenario == 't1e':
         par_names=['eps','dp','us0']
-        bounds = [(0,1),(0,5),(0,2)]
+        bounds = [(0,.1),(0,5),(0,2)]
         init = [0,1,0.16]
         parfix = {'df':0}
 
@@ -265,40 +265,38 @@ def main():
         init = [0,1,0.16]
         parfix = {'dp1':0,'dp2':0}
 
-
     elif args.scenario == 't2c':
         par_names = ['eps','us0']
         bounds = [(0,1),(0,2)]
         init = [0,0.16]
         parfix = {'dp1':0,'dp2':0,'df':0}
 
-    elif args.scenario == 't2d':
-        
+    elif args.scenario == 't2d':        
         par_names = ['eps','dp1','dp2','us0']
         bounds = [(0,1),(0,5),(0,5),(0,2)]
         init = [0,1,1,0.16]
         parfix = {'df':0}
 
     elif args.scenario == 'jamminga':
-        par_names = ['eps','imax','umax','dp','df']
+        par_names = ['eps','imax','us0','dp','df']
         bounds = [(0,1),(0,1),(0,2),(0,2),(0,2)]
         init = [0,1,0.2,1,1]
         parfix = {}
 
     elif args.scenario == 'jammingb':
-        par_names = ['eps','imax','umax','df']
-        bounds = [(0,1),(0,1),(0,2),(0,2),(0,2)]
+        par_names = ['eps','imax','us0','df']
+        bounds = [(0,1),(0,1),(0,2),(0,2)]
         init = [0,1,0.2,1]
         parfix = {'dp':0}
 
     elif args.scenario == 'jammingc':
-        par_names = ['eps','imax','umax']
+        par_names = ['eps','imax','us0']
         bounds = [(0,1),(0,1),(0,2)]
         init = [0,1,0.2]
         parfix = {'dp':0,'df':0}
 
     elif args.scenario == 'jammingd':
-        par_names = ['eps','imax','umax','dp']
+        par_names = ['eps','imax','us0','dp']
         bounds = [(0,1),(0,1),(0,2),(0,2)]
         init = [0,1,0.2,1]
         parfix = {'df':0}
