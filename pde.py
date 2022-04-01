@@ -262,7 +262,7 @@ class PDEModel(Data):
                  T=300,dt=0.001,psource=0,
                  imax=1,order=1,D=1,
                  interp_o=1,
-                 Nvel=1,
+                 Nvel=1,us0=0.16,
                  u_nonconstant=False):
         
         """
