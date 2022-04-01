@@ -53,7 +53,7 @@ class Data:
     def __init__(self,recompute=False,
                  data_dir='./data/',
                  L0=10,
-                 L=30,normed=True):
+                 L=29.5,normed=True):
 
         self.L = L
         self.L0 = L0
@@ -291,6 +291,7 @@ class PDEModel(Data):
         self.order = order
         self.interp_o = interp_o
         self.u_nonconstant = u_nonconstant
+        self.us0 = us0
 
         if order == 1:
             self.rhs = self._fd1
