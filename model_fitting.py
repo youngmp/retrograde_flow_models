@@ -219,7 +219,15 @@ def main():
 
     # 1440 minutes in 24 h.
     # note Nvel takes precedence over u_nonconstant
-    p = pde.PDEModel(T=1500,dt=0.02,order=1,N=50,
+
+    if args.scenario[:-1] == 'jamming':
+        N = 100
+        dt = 0.01
+    else:
+        N = 50
+        dt = 0.02
+        
+    p = pde.PDEModel(T=1500,dt=dt,order=1,N=N,
                      u_nonconstant=args.u_nonconstant,
                      Nvel=args.Nvel)
     
@@ -316,10 +324,6 @@ def main():
     fname_pre = p.data_dir+args.scenario+'_residuals'
     fname_pre += '_umax='+str(args.umax)
     fname_pre += '_seed='+str(args.seed)
-
-    if args.scenario[:-1] == 'jamming':        
-        p.N = 100
-        p.dt = 0.01
 
     if (args.Nvel > 1) and args.u_nonconstant:
         raise ValueError('Incompatible flags. can only have Nvel > 1 OR u_nonconstant, but not both.')
