@@ -90,7 +90,6 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
     err_new = np.log10(err)
     #err2 = err
     
-    
     if ss_condition:
         if 1e5*np.linalg.norm(I[:,int(1200/p.dt)]-I[:,int(1440/p.dt)])**2 > 1e-10:
             err_new = 1e5
@@ -162,7 +161,6 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
                          visit=2.8,restart_temp_ratio=2e-06,
                          initial_temp=5.3e4,accept=-5,seed=seed)
     # defaults: initial_temp=5230, restart_temp_ratio=2e-05, visit=2.62, accept=-5.0.
-    
 
     return res
     
@@ -259,9 +257,9 @@ def main():
         parfix = {'df':0}
 
     elif args.scenario == 't1e':
-        par_names=['eps','dp','us0']
-        bounds = [(0,.1),(0,1),(0,2)]
-        init = [0,1,0.16]
+        par_names=['eps','dp']
+        bounds = [(0,.1),(0,1)]
+        init = [0,1]
         parfix = {'df':0}
 
     elif args.scenario == 't2a':
@@ -318,7 +316,10 @@ def main():
     fname_pre = p.data_dir+args.scenario+'_residuals'
     fname_pre += '_umax='+str(args.umax)
     fname_pre += '_seed='+str(args.seed)
-    
+
+    if args.scenario[:-1] == 'jamming':        
+        p.N = 100
+        p.dt = 0.01
 
     if (args.Nvel > 1) and args.u_nonconstant:
         raise ValueError('Incompatible flags. can only have Nvel > 1 OR u_nonconstant, but not both.')
