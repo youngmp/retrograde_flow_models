@@ -3,9 +3,6 @@ import matplotlib as mpl
 #mpl.rc('text',usetex=True)
 #mpl.rc('font',family='serif', serif=['Computer Modern Roman'])
 
-#pgf_with_latex = {"pgf.preamble":"\n".join([r'\usepackage{siunitx}',
-#                                            r'\userpackage{fontenc}'])}
-
 #mpl.rcParams.update(pgf_with_latex)
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['text.usetex'] = True
@@ -424,12 +421,13 @@ def u_nonconstant():
             'us0':0.2}
 
     p = pde.PDEModel(**pars)
-    p._run_euler('2')
+    p._run_euler('t1d')
     I = p.y[:p.N,-1] + p.y[p.N:,-1]
     imax = np.amax(I)
 
     print(imax)
 
+    p.eps = 0
     axs[0].plot(p.r,p._s2_vel(),lw=2)
     axs[1].plot(p.r,I,lw=2)
     axs[2].plot(p.r,p.us0*(1-I/imax),lw=2)
@@ -473,7 +471,251 @@ def u_nonconstant():
     #plt.tight_layout()
 
     return fig    
+
+def load_pars(model,seed):
+    """
+    load residuals found from annealing
+    use zero seed for now
+    """
     
+    fname = 'data/'+model+'_residuals_umax=1_seed='+str(seed)+'_ss.txt'
+    res = np.loadtxt(fname)
+
+    pars = {'T':1500,'dt':0.01,'order':1,'N':100}
+    
+    scenario = model[-1]
+    
+    if model[:-1] == 't1':
+        pars.update({'eps':0,'dp':0,'df':0,'us0':0})
+
+        if scenario == 'a':
+            par_names = ['eps','dp','df','us0']
+            
+        elif scenario == 'b':
+            par_names = ['eps','df','us0']
+
+        elif scenario == 'c':
+            par_names = ['eps','us0']
+
+        elif scenario == 'd':
+            par_names = ['eps','dp','us0']
+
+        elif scenario == 'e':
+            par_names = ['eps','dp','us0']; pars['u_nonconstant']=True
+        
+    elif model[:-1] == 't2':
+        pars.update({'eps':0,'dp1':0,'dp2':0,'df':0,'us0':0})
+
+        if scenario == 'a':
+            par_names = ['eps','dp1','dp2','df','us0']
+
+        elif scenario == 'b':
+            par_names = ['eps','df','us0']
+
+        elif scenario == 'c':
+            par_names = ['eps','us0']
+
+        elif scenario == 'd':
+            par_names = ['eps','dp1','dp2','us0']
+
+    elif model[:-1] == 'jamming':
+        pars.update({'eps':0,'imax':0,'us0':0,'dp':0,'df':0})
+        pars['dt']=0.02
+        pars['N']=50
+
+        if scenario == 'a':
+            par_names = ['eps','imax','us0','dp','df']
+
+        elif scenario == 'b':
+            par_names = ['eps','imax','us0','df']
+
+        elif scenario == 'c':
+            par_names = ['eps','imax','us0']
+
+        elif scenario == 'd':
+            par_names = ['eps','imax','us0','dp']
+            
+    for i,key in enumerate(par_names):
+        pars[key] = res[i]
+        print(i,key,res[i],model,seed)
+
+    print('pars from load_pars',pars,model)
+    return pars
+
+def lowest_error_seed(model='t1e'):
+    """
+    given a model, search over all seeds to find seed with lowest error
+    for now, seeds go from 0 to 9.
+    return min err and seed
+    """
+    
+    err = 10
+    min_seed = 10
+    
+    for i in range(10):
+        fname = 'data/'+model+'_residuals_umax=1_seed='+str(i)+'_ss.txt'
+        err_model = np.loadtxt(fname)[0]
+
+        if err_model < err:
+            err = err_model
+            min_seed = i
+
+    return err, min_seed
+    
+
+def solution(model='t1e'):
+    """
+    plot simulation data
+    including intermediate comparisons
+    """
+
+    import matplotlib.pyplot as plt
+
+    err, seed = lowest_error_seed(model)
+    
+    pars = load_pars(model,seed)
+    #print('starting pars',pars)
+    
+    p = pde.PDEModel(**pars)
+    p._run_euler(model)
+    I = p.y[:p.N,-1] + p.y[p.N:,-1]
+    
+    F = p.y[:p.N,:]
+    P = p.y[p.N:,:]
+    #print(p.order)
+
+    I = F + P
+        
+    nrows = 3
+    ncols = 2
+
+    #fig = plt.figure()
+    #fig,axs = plt.subplots(nrows=3,ncols=5,figsize=(8,6))
+
+    fig,axs = plt.subplots(nrows=3,ncols=5,figsize=(8,6),
+                           gridspec_kw={'wspace':0.1,'hspace':0},
+                           sharey='row')
+    
+    # keys list sorted manually for now.
+    #keys_list = ['control', '0.5h', '1h', '2h', '4h', '8.5h', '24h']
+    keys_list = ['control', '2h', '4h','8.5h', '24h']
+
+    # plot best solution
+    for i,hour in enumerate(keys_list):
+
+        data = p.data_avg_fns[hour](p.r)
+        
+        if hour == 'control':
+            hour = '0h'
+            idx = 0
+        else:
+            time = float(hour[:-1])
+            minute = time*60
+            idx = int(minute/p.dt)
+            
+        axs[0,i].plot(p.r,I[:,idx],color='k')
+        axs[0,i].plot(p.r[1:-1],data[1:-1],label='Data',c='tab:green',dashes=(3,1))
+        
+        axs[1,i].plot(p.r,F[:,idx],color='tab:blue')
+        axs[2,i].plot(p.r,P[:,idx],color='tab:orange')
+
+        axs[0,i].set_title(r'\SI{'+hour[:-1]+r'}{h}',size=fsizetitle)
+        #axs[0,i].set_title('I '+str(hour))
+        #axs[1,i].set_title('F '+str(hour))
+        #axs[2,i].set_title('P '+str(hour))
+
+        #for j in range(3):
+        axs[-1,i].set_xticks([p.L0,p.L])
+        axs[-1,i].set_xticklabels([r'$L_0$',r'$L$'])
+
+        axs[0,i].set_xticks([])
+        axs[0,i].set_xticklabels([])
+
+        axs[1,i].set_xticks([])
+        axs[1,i].set_xticklabels([])
+        
+        axs[0,i].tick_params(axis='both',labelsize=fsizetick)
+        axs[1,i].tick_params(axis='both',labelsize=fsizetick)
+        axs[2,i].tick_params(axis='both',labelsize=fsizetick)
+
+    fn_labels = [r'$I$',r'$F$',r'$P$']
+    for i in range(3):
+        axs[i,0].set_ylabel(fn_labels[i],size=fsizelabel)
+        axs[i,0].ticklabel_format(axis='y',style='scientific',scilimits=(0,0))
+    
+    axs[0,0].legend()
+
+    # plot remaining seeds
+    for seed_idx in range(10):
+        if seed_idx not in [seed]:
+            pars = load_pars(model,seed_idx)
+            print(pars)
+            p2 = pde.PDEModel(**pars)
+            p2._run_euler(model)
+            I = p2.y[:p2.N,-1] + p2.y[p2.N:,-1]
+            
+            F = p2.y[:p2.N,:]
+            P = p2.y[p2.N:,:]
+
+            for i,hour in enumerate(keys_list):
+                #axs[0,i].plot(p.r,I[:,idx],color='k')
+                #axs[0,i].plot(p.r[1:-1],data[1:-1],label='Data',c='tab:green',dashes=(3,1))
+                        
+                if hour == 'control':
+                    hour = '0h'
+                    idx = 0
+                else:
+                    time = float(hour[:-1])
+                    minute = time*60
+                    idx = int(minute/p.dt)
+
+                axs[1,i].plot(p.r,F[:,idx],color='gray',zorder=-3,alpha=0.5)
+                axs[2,i].plot(p.r,P[:,idx],color='gray',zorder=-3,alpha=0.5)
+
+    
+    #print(p.order)
+
+
+    if model == 't1e':
+        fig.subplots_adjust(top=.95,right=.95,left=.1,bottom=0.4,hspace=.8,wspace=1)
+        
+    else:
+        fig.set_size_inches(8,4)
+        fig.subplots_adjust(top=.95,right=.95,left=.1,bottom=0.05,hspace=.8,wspace=1)
+
+    # move scientific notation to y axis label
+    fig.canvas.draw()
+
+    for i in range(3):
+        offset = axs[i,0].get_yaxis().get_offset_text().get_text()
+     
+        axs[i,0].yaxis.offsetText.set_visible(False)
+        axs[i,0].yaxis.set_label_text(fn_labels[i] + " (" + offset+")",size=fsizelabel)
+
+
+    if model == 't1e':
+        # subplot for velocity profile
+        x0 = (axs[2,1].get_position().x1 + axs[2,1].get_position().x0)/2
+        y0 = .07
+        w = (axs[2,3].get_position().x1 + axs[2,3].get_position().x0)/2-x0
+        h = .2
+
+        ax_u = fig.add_axes([x0,y0,w,h])
+        #ax_u.set_ylabel('test')
+
+        ax_u.plot(p.r,p._s2_vel(),lw=2)
+
+        ax_u.set_ylabel(r'$u(r)$',size=fsizelabel)
+        ax_u.set_xticks([p.L0,p.L])
+        ax_u.set_xticklabels([r'$L_0$',r'$L$'])
+        ax_u.tick_params(axis='both',labelsize=fsizetick)
+        ax_u.set_ylim(0,.1)
+
+        plt.text(.04,.96,"A.",transform=fig.transFigure,size=fsizetitle)
+        plt.text(.04,.3,"B.",transform=fig.transFigure,size=fsizetitle)
+
+    return fig
+
 
 def generate_figure(function, args, filenames, title="", title_pos=(0.5,0.95)):
     """
@@ -496,7 +738,20 @@ def main():
         #(data_figure, [], ['f_data.png','f_data.pdf']),
         #(gaussian_fit, [], ['f_gaussian_fit.png','f_gaussian_fit.pdf']),
         #(solution_schematic, [], ['f_solution_schematic.png','f_solution_schematic.pdf']),
-        (u_nonconstant, [], ['f_u_nonconstant.png','f_u_nonconstant.pdf'])
+        #(u_nonconstant, [], ['f_u_nonconstant.png','f_u_nonconstant.pdf']),
+        #(solution,['t1e'],['f_best_sol.png','f_best_sol.pdf']),
+        #(solution,['t1a'],['f_sol_t1a.png','f_sol_t1a.pdf']),
+        #(solution,['t1b'],['f_sol_t1a.png','f_sol_t1a.pdf']),
+        #(solution,['t1c'],['f_sol_t1c.png','f_sol_t1c.pdf']),
+        #(solution,['t1d'],['f_sol_t1d.png','f_sol_t1d.pdf']),
+        #(solution,['t2a'],['f_sol_t2a.png','f_sol_t2a.pdf']),
+        #(solution,['t2b'],['f_sol_t2b.png','f_sol_t2b.pdf']),
+        #(solution,['t2c'],['f_sol_t2c.png','f_sol_t2c.pdf']),
+        #(solution,['t2d'],['f_sol_t2d.png','f_sol_t2d.pdf']),
+        (solution,['jamminga'],['f_sol_ja.png','f_sol_ja.pdf']),
+        (solution,['jammingb'],['f_sol_jb.png','f_sol_jb.pdf']),
+        (solution,['jammingc'],['f_sol_jc.png','f_sol_jc.pdf']),
+        (solution,['jammingd'],['f_sol_jd.png','f_sol_jd.pdf']),
         ]
 
     # multiprocessing code from Kendrick Shaw
