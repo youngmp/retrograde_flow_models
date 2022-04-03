@@ -60,12 +60,11 @@ class Data:
         self.recompute = recompute
         self.data_dir = data_dir
         self.normed = normed
-                
+        
         if not(os.path.isdir(self.data_dir)):
             print('created data directory at',self.data_dir)
             os.mkdir(self.data_dir)
 
-        
         data = self._build_data_dict(L0=self.L0,L=self.L,
                                       normed=self.normed)
 
@@ -76,10 +75,8 @@ class Data:
         self.data_avg_raw = data_avg_raw
         self.data_rep_raw = data_rep_raw
 
-
         # interp1d functions -- linear interp on bounded domain
         self.data_avg_fns = self._build_data_fns(data_avg)
-
 
         # generate functions
         print('data keys',data_avg.keys())
