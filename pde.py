@@ -471,6 +471,7 @@ class PDEModel(Data):
         for i in range(TN-1):
             #if i >= y[-1,i] = self.psource
             y[:,i+1] = y[:,i] + self.dt*self.rhs(t[i],y[:,i],scenario=scenario)
+            y[-1] = y[-2]
 
 
         if False:
@@ -978,9 +979,11 @@ def main():
 
     #0.40490838
     #=0.0268, d_f=0.0000, dp=0.0328
-    pars = {'eps':0.0268,'df':0,'dp':0.0328,'T':1500,'dt':.01,'N':100,'Nvel':1,'u_nonconstant':True}
+    pars = {'eps':4.38157039e-01,'df':4.61276382e-08,'dp':2.82497642e+00,'us0':6.17405758e-01,
+            'T':1500,'dt':.02}
     #pars = {'eps':0.0020,'dp1':1.9939,'dp2':1.8193,'Nvel':1,'T':1500}
 
+       
     p = PDEModel(**pars)
 
     us = [0.01]
