@@ -481,7 +481,7 @@ def load_pars(model,seed):
     fname = 'data/'+model+'_residuals_umax=1_seed='+str(seed)+'_ss.txt'
     res = np.loadtxt(fname)
 
-    pars = {'T':1500,'dt':0.01,'order':1,'N':100}
+    pars = {'T':1500,'dt':0.02,'order':1,'N':50}
     
     scenario = model[-1]
     
@@ -574,7 +574,7 @@ def solution(model='t1e'):
     err, seed = lowest_error_seed(model)
     
     pars = load_pars(model,seed)
-    print(model,'starting pars',pars)
+    print(model,'starting pars',pars,'best seed =',seed)
     
     p = pde.PDEModel(**pars)
     p._run_euler(model)
@@ -609,11 +609,11 @@ def solution(model='t1e'):
             minute = time*60
             idx = int(minute/p.dt)
             
-        axs[0,i].plot(p.r,I[:,idx],color='k')
+        axs[0,i].plot(p.r[:-1],I[:-1,idx],color='k')
         axs[0,i].plot(p.r[1:-1],data[1:-1],label='Data',c='tab:green',dashes=(3,1))
         
-        axs[1,i].plot(p.r,F[:,idx],color='tab:blue')
-        axs[2,i].plot(p.r,P[:,idx],color='tab:orange')
+        axs[1,i].plot(p.r[:-1],F[:-1,idx],color='tab:blue')
+        axs[2,i].plot(p.r[:-1],P[:-1,idx],color='tab:orange')
 
         axs[0,i].set_title(r'\SI{'+hour[:-1]+r'}{h}',size=fsizetitle)
 
@@ -640,17 +640,18 @@ def solution(model='t1e'):
 
     # plot remaining seeds
     for seed_idx in range(10):
+        #print(model,seed_idx,seed)
         if seed_idx not in [seed]:
             
-            print(seed_idx,seed)
             pars = load_pars(model,seed_idx)
             
             p2 = pde.PDEModel(**pars)
             p2._run_euler(model)
-            I = p2.y[:p2.N,-1] + p2.y[p2.N:,-1]
-            
+                        
             F = p2.y[:p2.N,:]
             P = p2.y[p2.N:,:]
+
+            I = F + P
 
             for i,hour in enumerate(keys_list):
                         
@@ -662,8 +663,9 @@ def solution(model='t1e'):
                     minute = time*60
                     idx = int(minute/p.dt)
 
-                axs[1,i].plot(p.r,F[:,idx],color='gray',zorder=-3,alpha=0.25)
-                axs[2,i].plot(p.r,P[:,idx],color='gray',zorder=-3,alpha=0.25)
+                axs[0,i].plot(p.r[:-1],I[:-1,idx],color='gray',zorder=-3,alpha=0.25)
+                axs[1,i].plot(p.r[:-1],F[:-1,idx],color='gray',zorder=-3,alpha=0.25)
+                axs[2,i].plot(p.r[:-1],P[:-1,idx],color='gray',zorder=-3,alpha=0.25)
 
     if model == 't1e':
         fig.subplots_adjust(top=.95,right=.95,left=.1,bottom=0.4,hspace=.8,wspace=1)
@@ -726,21 +728,22 @@ def main():
         #(gaussian_fit, [], ['f_gaussian_fit.png','f_gaussian_fit.pdf']),
         #(solution_schematic, [], ['f_solution_schematic.png','f_solution_schematic.pdf']),
         #(u_nonconstant, [], ['f_u_nonconstant.png','f_u_nonconstant.pdf']),
-        #(solution,['t1e'],['f_best_sol.png','f_best_sol.pdf']),
-        (solution,['t1a'],['f_sol_t1a.png','f_sol_t1a.pdf']),
-        (solution,['t1b'],['f_sol_t1b.png','f_sol_t1b.pdf']),
+        
+        #(solution,['t1a'],['f_sol_t1a.png','f_sol_t1a.pdf']),
+        #(solution,['t1b'],['f_sol_t1b.png','f_sol_t1b.pdf']),
         #(solution,['t1c'],['f_sol_t1c.png','f_sol_t1c.pdf']),
         #(solution,['t1d'],['f_sol_t1d.png','f_sol_t1d.pdf']),
-        
-        (solution,['t2a'],['f_sol_t2a.png','f_sol_t2a.pdf']),
-        (solution,['t2b'],['f_sol_t2b.png','f_sol_t2b.pdf']),
-        (solution,['t2c'],['f_sol_t2c.png','f_sol_t2c.pdf']),
-        (solution,['t2d'],['f_sol_t2d.png','f_sol_t2d.pdf']),
-        
+        #(solution,['t1e'],['f_best_sol.png','f_best_sol.pdf','f_sol_t1e.png','f_sol_t1e.pdf']),
+       
+        #(solution,['t2a'],['f_sol_t2a.png','f_sol_t2a.pdf']),
+        #(solution,['t2b'],['f_sol_t2b.png','f_sol_t2b.pdf']),
+        #(solution,['t2c'],['f_sol_t2c.png','f_sol_t2c.pdf']),
+        #(solution,['t2d'],['f_sol_t2d.png','f_sol_t2d.pdf']),
+       
         #(solution,['jamminga'],['f_sol_ja.png','f_sol_ja.pdf']),
         #(solution,['jammingb'],['f_sol_jb.png','f_sol_jb.pdf']),
         #(solution,['jammingc'],['f_sol_jc.png','f_sol_jc.pdf']),
-        #(solution,['jammingd'],['f_sol_jd.png','f_sol_jd.pdf']),
+        (solution,['jammingd'],['f_sol_jd.png','f_sol_jd.pdf']),
         ]
 
     # multiprocessing code from Kendrick Shaw
