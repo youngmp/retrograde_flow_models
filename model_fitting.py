@@ -223,15 +223,8 @@ def main():
 
     # 1440 minutes in 24 h.
     # note Nvel takes precedence over u_nonconstant
-
-    if args.scenario[:-1] == 'jamming':
-        N = 100
-        dt = 0.01
-    else:
-        N = 50
-        dt = 0.02
-        
-    p = pde.PDEModel(T=1500,dt=dt,order=1,N=N,
+    
+    p = pde.PDEModel(T=1500,dt=.02,order=1,N=50,
                      u_nonconstant=args.u_nonconstant,
                      Nvel=args.Nvel)
     
