@@ -224,7 +224,7 @@ def main():
     # 1440 minutes in 24 h.
     # note Nvel takes precedence over u_nonconstant
     
-    p = pde.PDEModel(T=1500,dt=.02,order=1,N=50,
+    p = pde.PDEModel(T=1500,dt=.05,order=1,N=50,
                      u_nonconstant=args.u_nonconstant,
                      Nvel=args.Nvel)
     
