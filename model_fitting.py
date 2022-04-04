@@ -198,9 +198,13 @@ def main():
                         help='Set flag to use non-constant velocity estimate',
                         default=False)
 
-    parser.add_argument('-m','--umax',dest='umax',
+    parser.add_argument('--umax',dest='umax',
                         help='set max velocity for spatial velocity',
-                        default=1,type=float)
+                        default=2,type=float)
+
+    parser.add_argument('--dmax',dest='dmax',
+                        help='set max value for dp and df',
+                        default=5,type=float)
 
     parser.add_argument('--psource',dest='psource',
                         action='store_true',
@@ -235,7 +239,7 @@ def main():
     if args.scenario == 't1a':
         # original model fitting eps, df, dp
         par_names = ['eps','df','dp','us0']
-        bounds = [(0,1),(0,5),(0,5),(0,2)]
+        bounds = [(0,1),(0,args.dmax),(0,args.dmax),(0,args.umax)]
         init = [0.1,0,1,0.16]
         parfix = {}
     
@@ -244,7 +248,7 @@ def main():
         # dp = 0
         fname_pre = p.data_dir+args.scenario+'_residuals'
         par_names=['eps','df','us0']
-        bounds = [(0,1),(0,5),(0,2)]
+        bounds = [(0,1),(0,args.dmax),(0,args.umax)]
         init = [0.001,1,0.16]
         parfix = {'dp':0}
 
@@ -252,7 +256,7 @@ def main():
         # non-dynamical trapping, pure transport
         # df = dp = 0
         par_names=['eps','us0']
-        bounds = [(0,1),(0,2)]
+        bounds = [(0,1),(0,args.umax)]
         init = [0.001,0.16]
         parfix = {'df':0,'dp':0}
 
@@ -260,61 +264,61 @@ def main():
         # irreversible trapping
         # df = 0
         par_names=['eps','dp','us0']
-        bounds = [(0,1),(0,5),(0,2)]
+        bounds = [(0,1),(0,args.dmax),(0,args.umax)]
         init = [0,1,0.16]
         parfix = {'df':0}
 
     elif args.scenario == 't1e':
         par_names=['eps','dp']
-        bounds = [(0,.1),(0,1)]
+        bounds = [(0,.1),(0,args.dmax)]
         init = [0,1]
-        parfix = {'df':0}
+        parfix = {'df':0,'us0':0}
 
     elif args.scenario == 't2a':
         par_names = ['eps','dp1','dp2','df','us0']
-        bounds = [(0,1),(0,5),(0,5),(0,5),(0,2)]
+        bounds = [(0,1),(0,5),(0,5),(0,5),(0,args.umax)]
         init = [0,1,1,1,0.16]
         parfix = {}
 
     elif args.scenario == 't2b':
         par_names = ['eps','df','us0']
-        bounds = [(0,1),(0,5),(0,2)]
+        bounds = [(0,1),(0,args.dmax),(0,args.umax)]
         init = [0,1,0.16]
         parfix = {'dp1':0,'dp2':0}
 
     elif args.scenario == 't2c':
         par_names = ['eps','us0']
-        bounds = [(0,1),(0,2)]
+        bounds = [(0,1),(0,args.umax)]
         init = [0,0.16]
         parfix = {'dp1':0,'dp2':0,'df':0}
 
-    elif args.scenario == 't2d':        
+    elif args.scenario == 't2d':
         par_names = ['eps','dp1','dp2','us0']
-        bounds = [(0,1),(0,5),(0,5),(0,2)]
+        bounds = [(0,1),(0,args.dmax),(0,args.dmax),(0,args.umax)]
         init = [0,1,1,0.16]
         parfix = {'df':0}
 
     elif args.scenario == 'jamminga':
         par_names = ['eps','imax','us0','dp','df']
-        bounds = [(0,1),(0,1),(0,2),(0,2),(0,2)]
+        bounds = [(0,1),(0,1),(0,args.umax),(0,args.dmax),(0,args.dmax)]
         init = [0,1,0.2,1,1]
         parfix = {}
 
     elif args.scenario == 'jammingb':
         par_names = ['eps','imax','us0','df']
-        bounds = [(0,1),(0,1),(0,2),(0,2)]
+        bounds = [(0,1),(0,1),(0,args.umax),(0,args.dmax)]
         init = [0,1,0.2,1]
         parfix = {'dp':0}
 
     elif args.scenario == 'jammingc':
         par_names = ['eps','imax','us0']
-        bounds = [(0,1),(0,1),(0,2)]
+        bounds = [(0,1),(0,1),(0,args.umax)]
         init = [0,1,0.2]
         parfix = {'dp':0,'df':0}
 
     elif args.scenario == 'jammingd':
         par_names = ['eps','imax','us0','dp']
-        bounds = [(0,1),(0,1),(0,2),(0,2)]
+        bounds = [(0,1),(0,1),(0,args.umax),(0,args.dmax)]
         init = [0,1,0.2,1]
         parfix = {'df':0}
 
@@ -323,6 +327,7 @@ def main():
 
     fname_pre = p.data_dir+args.scenario+'_residuals'
     fname_pre += '_umax='+str(args.umax)
+    fname_pre += '_dmax='+str(args.dmax)
     fname_pre += '_seed='+str(args.seed)
 
     if (args.Nvel > 1) and args.u_nonconstant:
