@@ -450,17 +450,6 @@ class PDEModel(Data):
         y0[:self.N] = self.control_fn(self.r)*self.eps
         y0[self.N:] = self.control_fn(self.r)*(1-self.eps)
 
-
-        if False:
-            import matplotlib.pyplot as plt
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.plot(self.r,y0[:self.N])
-            ax.plot(self.r,y0[self.N:])
-            #ax.plot(self.r,self.control_fn(self.r))
-            ax.set_title('just before run euler)')
-            plt.show()
-
         TN = int(self.T/self.dt)
         t = np.linspace(0,self.T,TN)
         y = np.zeros((2*self.N,TN))
@@ -471,7 +460,8 @@ class PDEModel(Data):
         for i in range(TN-1):
             #if i >= y[-1,i] = self.psource
             y[:,i+1] = y[:,i] + self.dt*self.rhs(t[i],y[:,i],scenario=scenario)
-            y[-1] = y[-2]
+            y[-1,i+1] = 0
+            #y[-1] = y[-2]
 
 
         if False:
