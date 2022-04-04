@@ -79,7 +79,7 @@ class Data:
         self.data_avg_fns = self._build_data_fns(data_avg)
 
         # generate functions
-        print('data keys',data_avg.keys())
+        #print('data keys',data_avg.keys())
 
         pars_control = self._load_gaussian_pars(self.data_dir,data_avg,'control',
                                                 normed=self.normed,n_gauss=11,
