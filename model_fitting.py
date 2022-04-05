@@ -239,7 +239,7 @@ def main():
     elif args.scenario == 't1b':
         # purely reversible trapping
         # dp = 0
-        fname_pre = p.data_dir+args.scenario+'_residuals'
+        
         par_names=['eps','df','us0']
         bounds = [(0,1),(0,args.dmax),(0,args.umax)]
         init = [0.001,1,0.16]
