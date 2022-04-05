@@ -29,6 +29,7 @@ T(F,P) = d_p F - d_f F
 let's try no-flux at the origin? before doubling up on the domain.
 """
 
+import lib
 
 import os
 import time
@@ -51,14 +52,13 @@ class Data:
     """
 
     def __init__(self,recompute=False,
-                 data_dir='./data/',
                  L0=10,
                  L=29.5,normed=True):
 
         self.L = L
         self.L0 = L0
         self.recompute = recompute
-        self.data_dir = data_dir
+        self.data_dir = lib.data_dir()
         self.normed = normed
         
         if not(os.path.isdir(self.data_dir)):
@@ -345,7 +345,7 @@ class PDEModel(Data):
         f = y[:self.N]
         p = y[self.N:]
 
-        out = self.du        
+        out = self.du
 
         if scenario[:-1] == 't1' or scenario[:-1] == 'jamming':
             tfp = self.dp*p[:-1] - self.df*f[:-1]
@@ -948,7 +948,7 @@ def main():
 
     #scenario = 'default'
     #scenario = 'model2a'
-    scenario = 't1e'
+    scenario = 'jamminga'
     method = 'annealing'
     np.random.seed(3)
 
@@ -970,7 +970,7 @@ def main():
     #0.40490838
     #=0.0268, d_f=0.0000, dp=0.0328
     pars = {'eps':4.38157039e-01,'df':4.61276382e-08,'dp':2.82497642e+00,'us0':6.17405758e-01,
-            'T':1500,'dt':.03}
+            'T':1500,'dt':.02}
     #pars = {'eps':0.0020,'dp1':1.9939,'dp2':1.8193,'Nvel':1,'T':1500}
 
        
