@@ -472,14 +472,56 @@ def u_nonconstant():
 
     return fig    
 
+def get_parameter_fname(model,seed):
+    """
+    get file name for parameters
+    """
+    fname_pre = 'data/'+model+'_residuals'
+
+    if model == 't1a':
+        fname_pre+='_umax=3.0_dmax=5.0'
+    elif model == 't1b':
+        fname_pre+='_umax=2.0_dmax=20.0'
+    elif model == 't1c':
+        fname_pre+='_umax=1.0_dmax=5.0'
+        
+    elif model == 't1d':
+        fname_pre+='_umax=4.0_dmax=5.0'
+    elif model == 't1e':
+        fname_pre+='_umax=2_dmax=5'
+    elif model == 't2a':
+        fname_pre+='_umax=2.0_dmax=20.0'
+
+    elif model == 't2b':
+        fname_pre+='_umax=2.0_dmax=20.0'
+    elif model == 't2c':
+        fname_pre+='_umax=2.0_dmax=5.0'
+    elif model == 't2d':
+        fname_pre+='_umax=2.0_dmax=100.0'
+
+    elif model == 'jamminga':
+        fname_pre+='_umax=2.0_dmax=5.0'
+    elif model == 'jammingb':
+        fname_pre+='_umax=2.0_dmax=5.0'
+    elif model == 'jammingc':
+        fname_pre+='_umax=2.0_dmax=5.0'
+    elif model == 'jammingd':
+        fname_pre+='_umax=2.0_dmax=5.0'
+
+    fname = fname_pre + '_seed='+str(seed)+'_ss.txt'
+
+    return fname
+
 def load_pars(model,seed):
     """
     load residuals found from annealing
     use zero seed for now
     """
     
-    fname = 'data/'+model+'_residuals_umax=1_seed='+str(seed)+'_ss.txt'
-    res = np.loadtxt(fname)
+    fname_pre = 'data/'+model+'_residuals'
+
+    #_umax=1_seed='+str(seed)+'_ss.txt'
+    
 
     pars = {'T':1500,'dt':0.02,'order':1,'N':50}
     
@@ -489,10 +531,10 @@ def load_pars(model,seed):
         pars.update({'eps':0,'dp':0,'df':0,'us0':0})
 
         if scenario == 'a':
-            par_names = ['eps','df','dp','us0']
+            par_names=['eps','df','dp','us0']
             
         elif scenario == 'b':
-            par_names = ['eps','df','us0']
+            par_names=['eps','df','us0']
 
         elif scenario == 'c':
             par_names = ['eps','us0']
@@ -501,7 +543,7 @@ def load_pars(model,seed):
             par_names = ['eps','dp','us0']
 
         elif scenario == 'e':
-            par_names = ['eps','dp','us0']; pars['u_nonconstant']=True
+            par_names = ['eps','dp','us0'];pars['u_nonconstant']=True
         
     elif model[:-1] == 't2':
         pars.update({'eps':0,'dp1':0,'dp2':0,'df':0,'us0':0})
@@ -527,14 +569,18 @@ def load_pars(model,seed):
             par_names = ['eps','imax','us0','dp','df']
 
         elif scenario == 'b':
-            par_names = ['eps','imax','us0','df']
+            par_names = ['eps','imax','us0','df'];fname_pre+='_umax=2.0_dmax=5.0'
 
         elif scenario == 'c':
-            par_names = ['eps','imax','us0']
+            par_names = ['eps','imax','us0'];fname_pre+='_umax=2.0_dmax=5.0'
 
         elif scenario == 'd':
-            par_names = ['eps','imax','us0','dp']
-            
+            par_names = ['eps','imax','us0','dp'];fname_pre+='_umax=2.0_dmax=5.0'
+
+    
+    #fname = fname_pre+'seed='+str(seed)+'_ss.txt'
+    res = np.loadtxt(get_parameter_fname(model,seed))
+    
     for i,key in enumerate(par_names):
         pars[key] = res[i]
         #print(i,key,res[i],model,seed)
@@ -553,7 +599,8 @@ def lowest_error_seed(model='t1e'):
     min_seed = 10
     
     for i in range(10):
-        fname = 'data/'+model+'_residuals_umax=1_seed='+str(i)+'_ss.txt'
+        fname = get_parameter_fname(model,i)
+        #fname = 'data/'+model+'_residuals_umax=1_seed='+str(i)+'_ss.txt'
         err_model = np.loadtxt(fname)[0]
 
         if err_model < err:
@@ -740,9 +787,9 @@ def main():
         #(solution,['t2c'],['f_sol_t2c.png','f_sol_t2c.pdf']),
         #(solution,['t2d'],['f_sol_t2d.png','f_sol_t2d.pdf']),
        
-        #(solution,['jamminga'],['f_sol_ja.png','f_sol_ja.pdf']),
-        #(solution,['jammingb'],['f_sol_jb.png','f_sol_jb.pdf']),
-        #(solution,['jammingc'],['f_sol_jc.png','f_sol_jc.pdf']),
+        (solution,['jamminga'],['f_sol_ja.png','f_sol_ja.pdf']),
+        (solution,['jammingb'],['f_sol_jb.png','f_sol_jb.pdf']),
+        (solution,['jammingc'],['f_sol_jc.png','f_sol_jc.pdf']),
         (solution,['jammingd'],['f_sol_jd.png','f_sol_jd.pdf']),
         ]
 
