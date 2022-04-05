@@ -5,6 +5,9 @@ library functions
 
 import numpy as np
 
+def data_dir():
+    return 'data/'
+
 def get_parameter_fname(model,seed):
     """
     get file name for parameters
@@ -45,6 +48,27 @@ def get_parameter_fname(model,seed):
 
     return fname
 
+
+def lowest_error_seed(model='t1e'):
+    """
+    given a model, search over all seeds to find seed with lowest error
+    for now, seeds go from 0 to 9.
+    return min err and seed
+    """
+    
+    err = 10
+    min_seed = 10
+    
+    for i in range(10):
+        fname = get_parameter_fname(model,i)
+        #fname = 'data/'+model+'_residuals_umax=1_seed='+str(i)+'_ss.txt'
+        err_model = np.loadtxt(fname)[0]
+
+        if err_model < err:
+            err = err_model
+            min_seed = i
+
+    return err, min_seed
 
 
 def load_pars(model,seed):
