@@ -238,8 +238,7 @@ def main():
     
     elif args.scenario == 't1b':
         # purely reversible trapping
-        # dp = 0
-        
+        # dp = 0        
         par_names=['eps','df','us0']
         bounds = [(0,1),(0,args.dmax),(0,args.umax)]
         init = [0.001,1,0.16]
@@ -263,7 +262,7 @@ def main():
 
     elif args.scenario == 't1e':
         par_names=['eps','dp']
-        bounds = [(0,.1),(0,args.dmax)]
+        bounds = [(0,.05),(0,args.dmax)]
         init = [0,1]
         parfix = {'df':0,'us0':0}
 
