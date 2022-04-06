@@ -86,9 +86,9 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
             err += np.linalg.norm(data[1:-1]-I_cut[1:-1])**2
 
     #err_log = np.log10(err)
+    if np.isnan(err):
+        err = 1
     err_old = err*1e5
-    if np.isnan(err_old):
-        err_old = 1e5
     err_new = np.log10(err)
     #err2 = err
     
