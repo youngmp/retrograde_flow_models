@@ -77,6 +77,7 @@ class Data:
 
         # interp1d functions -- linear interp on bounded domain
         self.data_avg_fns = self._build_data_fns(data_avg)
+        self.data_rep_fns = self._build_data_fns(data_rep)
 
         # generate functions
         #print('data keys',data_avg.keys())
