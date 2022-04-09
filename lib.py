@@ -8,9 +8,10 @@ import numpy as np
 def data_dir():
     return 'data/'
 
-def get_parameter_fname(model,seed):
+def get_parameter_fname(model,seed,err=False):
     """
     get file name for parameters
+    err: return filename for error
     """
     fname_pre = 'data/'+model+'_residuals'
 
@@ -44,7 +45,10 @@ def get_parameter_fname(model,seed):
     elif model == 'jammingd':
         fname_pre+='_umax=2.0_dmax=5.0'
 
-    fname = fname_pre + '_seed='+str(seed)+'_ss.txt'
+    if err:
+        fname = fname_pre + '_seed='+str(seed)+'_ss_err.txt'
+    else:
+        fname = fname_pre + '_seed='+str(seed)+'_ss.txt'
 
     return fname
 
@@ -60,9 +64,9 @@ def lowest_error_seed(model='t1e'):
     min_seed = 10
     
     for i in range(10):
-        fname = get_parameter_fname(model,i)
-        #fname = 'data/'+model+'_residuals_umax=1_seed='+str(i)+'_ss.txt'
-        err_model = np.loadtxt(fname)[0]
+        fname = get_parameter_fname(model,i,err=True)
+        
+        err_model = np.loadtxt(fname)
 
         if err_model < err:
             err = err_model
@@ -102,7 +106,7 @@ def load_pars(model,seed):
             par_names = ['eps','dp','us0']
 
         elif scenario == 'e':
-            par_names = ['eps','dp','us0'];pars['u_nonconstant']=True
+            par_names = ['eps','dp'];pars['u_nonconstant']=True
         
     elif model[:-1] == 't2':
         pars.update({'eps':0,'dp1':0,'dp2':0,'df':0,'us0':0})
