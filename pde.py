@@ -198,14 +198,13 @@ class Data:
                 n1 = np.sum(i1*2*np.pi*r1*dr1)
             else:
                 n1 = 1
-
+                
             z1 = np.zeros((len(x1[mask]),2))
             z1[:,0] = x1[mask]; z1[:,1] = y1[mask]
             data_rep_raw[hour] = copy.deepcopy(z1)
-            #print(z1[:,1][0])
+
             z1[:,1] /= n1
             data_rep[hour] = z1
-            #print(z1[:,1][0])
 
             # save avg data
             avg_cell_number = cols[0][0]
@@ -232,7 +231,7 @@ class Data:
         return data_avg, data_rep, data_avg_raw, data_rep_raw
 
     @staticmethod
-    def _build_data_fns(data):
+    def _build_data_fns(data,fill_value='extrapolate'):
         """
         build 1d interpolation of data for use in cost function
         data is either data_avg or data_rep, the dicts constructed in 
@@ -243,7 +242,7 @@ class Data:
 
         for hour in data.keys():
 
-            fn = get_1d_interp(data[hour])
+            fn = get_1d_interp(data[hour],fill_value=fill_value)
 
             data_fn[hour] = fn
 
@@ -259,7 +258,7 @@ class PDEModel(Data):
                  dp1=None,dp2=None,
                  T=300,dt=0.001,psource=0,
                  imax=1,order=1,D=1,
-                 interp_o=1,
+                 interp_o=1,L=29.5,L0=10,
                  Nvel=1,us0=0.16,
                  u_nonconstant=False):
         
@@ -281,7 +280,7 @@ class PDEModel(Data):
         dp1 and dp2 are parameters for trapping via bundling.
         """
         
-        super().__init__()
+        super().__init__(L=L,L0=L0)
 
         #self.data_dir = data_dir
 
@@ -417,7 +416,7 @@ class PDEModel(Data):
         return out
 
     
-    def _run_euler(self,scenario):
+    def _run_euler(self,scenario,rep=False):
         """
         t: time array
         y0: initial condition
@@ -425,7 +424,7 @@ class PDEModel(Data):
         
         if self.Nvel == 1:
             if self.u_nonconstant:
-                self.ur = self._s2_vel()
+                self.ur = self._s2_vel(rep)
             else:
                 self.u = self._u_constant
                 self.ur = self.us0*self.u(self.r)
@@ -445,11 +444,21 @@ class PDEModel(Data):
             fn = interp1d(self.rs,us,kind=kind)
             self.ur = fn(self.r)
             
-        
+        #print(self.ur)
         y0 = np.zeros(2*self.N)
 
-        y0[:self.N] = self.control_fn(self.r)*self.eps
-        y0[self.N:] = self.control_fn(self.r)*(1-self.eps)
+
+        #y0[:self.N] = self.control_fn(self.r)*self.eps
+        #y0[self.N:] = self.control_fn(self.r)*(1-self.eps)
+        
+        if rep:
+            #y0[:self.N] = self.control_fn(self.r)*self.eps
+            #y0[self.N:] = self.control_fn(self.r)*(1-self.eps)
+            y0[:self.N] = self.data_rep_fns['control'](self.r)*self.eps
+            y0[self.N:] = self.data_rep_fns['control'](self.r)*(1-self.eps)
+        else:
+            y0[:self.N] = self.control_fn(self.r)*self.eps
+            y0[self.N:] = self.control_fn(self.r)*(1-self.eps)
 
         TN = int(self.T/self.dt)
         t = np.linspace(0,self.T,TN)
@@ -480,7 +489,7 @@ class PDEModel(Data):
         self.y0 = y0
 
 
-    def _s2_vel(self):
+    def _s2_vel(self,rep=False):
         """
         take a look at velocity profile (see page 230 in personal notebook)
         """
@@ -489,9 +498,17 @@ class PDEModel(Data):
 
         r = self.r
         #F = self.steadys_fn(r)
-        f_last = self.data_avg_fns['24h'](r)
-        p0 = self.data_avg_fns['control'](r)*(1-self.eps)
-        f0 = self.data_avg_fns['control'](r)*self.eps
+        if rep:
+            #f_last = self.data_avg_fns['24h'](r)
+            f_last = self.data_rep_fns['24h'](r)
+            p0 = self.data_rep_fns['control'](r)*(1-self.eps)
+            f0 = self.data_rep_fns['control'](r)*self.eps
+        else:
+            f_last = self.data_avg_fns['24h'](r)
+            p0 = self.data_avg_fns['control'](r)*(1-self.eps)
+            f0 = self.data_avg_fns['control'](r)*self.eps
+        
+        
 
         fhat = f0-f_last
         
@@ -593,7 +610,7 @@ def parsets(scenario='default',method=''):
 def u_dyn(c,t):
     return c*t
 
-def get_1d_interp(data,kind='linear'):
+def get_1d_interp(data,kind='linear',fill_value='extrapolate'):
     """
     get linear interpolation of data
     data: must be data_avg['time'] where 'time' is chosen
@@ -606,7 +623,7 @@ def get_1d_interp(data,kind='linear'):
 
     fn = interp1d(x,y,kind=kind,
                   bounds_error=False,
-                  fill_value='extrapolate')
+                  fill_value=fill_value)
 
     return fn
 
