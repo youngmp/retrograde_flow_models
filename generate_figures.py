@@ -474,7 +474,7 @@ def u_nonconstant():
     return fig    
     
 
-def solution(model='t1e'):
+def solution(model='t1e',rep=False):
     """
     plot simulation data
     including intermediate comparisons
@@ -485,17 +485,23 @@ def solution(model='t1e'):
     err, seed = lib.lowest_error_seed(model)
     
     pars = lib.load_pars(model,seed)
+
+    #pars['dt']=0.05
     print(model,'starting pars',pars,'best seed =',seed)
-    
+
+    if rep:
+        pass
+        #pars.update({'L':29.5})
+    pars['L'] = 25
+    pars['L0'] = 11
     p = pde.PDEModel(**pars)
-    p._run_euler(model)
-    I = p.y[:p.N,-1] + p.y[p.N:,-1]
+    p._run_euler(model,rep)
     
     F = p.y[:p.N,:]
     P = p.y[p.N:,:]
 
     I = F + P
-        
+    
     nrows = 3
     ncols = 2
 
@@ -510,7 +516,10 @@ def solution(model='t1e'):
     # plot best solution
     for i,hour in enumerate(keys_list):
 
-        data = p.data_avg_fns[hour](p.r)
+        if rep:
+            data = p.data_rep_fns[hour](p.r)
+        else:
+            data = p.data_avg_fns[hour](p.r)
         
         if hour == 'control':
             hour = '0h'
@@ -519,7 +528,7 @@ def solution(model='t1e'):
             time = float(hour[:-1])
             minute = time*60
             idx = int(minute/p.dt)
-            
+        
         axs[0,i].plot(p.r[:-1],I[:-1,idx],color='k')
         axs[0,i].plot(p.r[1:-1],data[1:-1],label='Data',c='tab:green',dashes=(3,1))
         
@@ -549,34 +558,35 @@ def solution(model='t1e'):
     
     axs[0,0].legend()
 
-    # plot remaining seeds
-    for seed_idx in range(10):
-        #print(model,seed_idx,seed)
-        if seed_idx not in [seed]:
-            
-            pars = lib.load_pars(model,seed_idx)
-            
-            p2 = pde.PDEModel(**pars)
-            p2._run_euler(model)
-                        
-            F = p2.y[:p2.N,:]
-            P = p2.y[p2.N:,:]
+    if not(rep):
+        # plot remaining seeds
+        for seed_idx in range(10):
+            #print(model,seed_idx,seed)
+            if seed_idx not in [seed]:
 
-            I = F + P
+                pars = lib.load_pars(model,seed_idx)
+                print(seed_idx,pars)
+                p2 = pde.PDEModel(**pars)
+                p2._run_euler(model)
 
-            for i,hour in enumerate(keys_list):
-                        
-                if hour == 'control':
-                    hour = '0h'
-                    idx = 0
-                else:
-                    time = float(hour[:-1])
-                    minute = time*60
-                    idx = int(minute/p.dt)
+                F = p2.y[:p2.N,:]
+                P = p2.y[p2.N:,:]
 
-                axs[0,i].plot(p.r[:-1],I[:-1,idx],color='gray',zorder=-3,alpha=0.25)
-                axs[1,i].plot(p.r[:-1],F[:-1,idx],color='gray',zorder=-3,alpha=0.25)
-                axs[2,i].plot(p.r[:-1],P[:-1,idx],color='gray',zorder=-3,alpha=0.25)
+                I = F + P
+
+                for i,hour in enumerate(keys_list):
+
+                    if hour == 'control':
+                        hour = '0h'
+                        idx = 0
+                    else:
+                        time = float(hour[:-1])
+                        minute = time*60
+                        idx = int(minute/p.dt)
+
+                    axs[0,i].plot(p2.r[:-1],I[:-1,idx],color='gray',zorder=-3,alpha=0.25)
+                    axs[1,i].plot(p2.r[:-1],F[:-1,idx],color='gray',zorder=-3,alpha=0.25)
+                    axs[2,i].plot(p2.r[:-1],P[:-1,idx],color='gray',zorder=-3,alpha=0.25)
 
     if model == 't1e':
         fig.subplots_adjust(top=.95,right=.95,left=.1,bottom=0.4,hspace=.8,wspace=1)
@@ -651,10 +661,12 @@ def main():
         #(solution,['t2c'],['f_sol_t2c.png','f_sol_t2c.pdf']),
         #(solution,['t2d'],['f_sol_t2d.png','f_sol_t2d.pdf']),
        
-        (solution,['jamminga'],['f_sol_ja.png','f_sol_ja.pdf']),
-        (solution,['jammingb'],['f_sol_jb.png','f_sol_jb.pdf']),
-        (solution,['jammingc'],['f_sol_jc.png','f_sol_jc.pdf']),
-        (solution,['jammingd'],['f_sol_jd.png','f_sol_jd.pdf']),
+        #(solution,['jamminga'],['f_sol_ja.png','f_sol_ja.pdf']),
+        #(solution,['jammingb'],['f_sol_jb.png','f_sol_jb.pdf']),
+        #(solution,['jammingc'],['f_sol_jc.png','f_sol_jc.pdf']),
+        #(solution,['jammingd'],['f_sol_jd.png','f_sol_jd.pdf']),
+
+        (solution,['t1e',True],['f_validation.png','f_validation.pdf']),
         ]
 
     # multiprocessing code from Kendrick Shaw
