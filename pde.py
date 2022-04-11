@@ -65,27 +65,20 @@ class Data:
             print('created data directory at',self.data_dir)
             os.mkdir(self.data_dir)
 
-        data = self._build_data_dict(L0=self.L0,L=self.L,
-                                      normed=self.normed)
-
-        data_avg, data_rep, data_avg_raw, data_rep_raw = data
+        self._build_data_dict(L0=self.L0,L=self.L,
+                              normed=self.normed)
         
-        self.data_avg = data_avg
-        self.data_rep = data_rep
-        self.data_avg_raw = data_avg_raw
-        self.data_rep_raw = data_rep_raw
-
         # interp1d functions -- linear interp on bounded domain
-        self.data_avg_fns = self._build_data_fns(data_avg)
-        self.data_rep_fns = self._build_data_fns(data_rep)
+        self.data_avg_fns = self._build_data_fns(self.data_avg)
+        self.data_rep_fns = self._build_data_fns(self.data_rep)
 
         # generate functions
         #print('data keys',data_avg.keys())
 
-        pars_control = self._load_gaussian_pars(self.data_dir,data_avg,'control',
+        pars_control = self._load_gaussian_pars(self.data_dir,self.data_avg,'control',
                                                 normed=self.normed,n_gauss=11,
                                                 recompute=self.recompute)
-        pars_steadys = self._load_gaussian_pars(self.data_dir,data_avg,'24h',
+        pars_steadys = self._load_gaussian_pars(self.data_dir,self.data_avg,'24h',
                                                 normed=self.normed,n_gauss=6,
                                                 recompute=self.recompute)
 
@@ -155,8 +148,8 @@ class Data:
             return np.loadtxt(fname)
 
         
-    @staticmethod
-    def _build_data_dict(fname='patrons20180327dynamiqueNZ_reformatted.xlsx',
+    #@staticmethod
+    def _build_data_dict(self,fname='patrons20180327dynamiqueNZ_reformatted.xlsx',
                          L0=10,L=30,normed=True):
 
         # load intensity data
@@ -196,6 +189,7 @@ class Data:
                 r1 = x1[mask][:-1]
                 i1 = y1[mask][:-1]
                 n1 = np.sum(i1*2*np.pi*r1*dr1)
+                print('hour',hour,'rep norm L0,L normed',n1)
             else:
                 n1 = 1
                 
@@ -219,6 +213,7 @@ class Data:
                 r2 = x2[mask][:-1]
                 i2 = y2[mask][:-1]
                 n2 = np.sum(i2*2*np.pi*r2*dr2)
+                print('hour',hour,'avg norm L0,L normed',n2)
             else:
                 n2 = 1
             
@@ -228,7 +223,11 @@ class Data:
             z2[:,1] /= n2
             data_avg[hour] = z2
 
-        return data_avg, data_rep, data_avg_raw, data_rep_raw
+        self.data_avg = data_avg
+        self.data_rep = data_rep
+        self.data_avg_raw = data_avg_raw
+        self.data_rep_raw = data_rep_raw
+        
 
     @staticmethod
     def _build_data_fns(data,fill_value='extrapolate'):
