@@ -76,10 +76,12 @@ class Data:
         #print('data keys',data_avg.keys())
 
         args = (self.data_dir,self.data_avg,'control')
-        kwargs = {'normed':self.normed,'n_gauss':11,'recompute':self.recompute}
+        kwargs = {'normed':self.normed,'n_gauss':10,'recompute':self.recompute}
         pars_control_avg = self._load_gaussian_pars(*args,**kwargs)
 
+        
         args = (self.data_dir,self.data_rep,'control')
+        kwargs['rep'] = True
         pars_control_rep = self._load_gaussian_pars(*args,**kwargs)
 
         # gaussian interp fns. -- gaussian interp on R
@@ -111,12 +113,18 @@ class Data:
         pars = res.x
         return pars
 
-    def _load_gaussian_pars(self,data_dir,data,time,normed,n_gauss=6,recompute=False):
+    def _load_gaussian_pars(self,data_dir,data,time,normed,
+                            n_gauss=6,recompute=False,rep=False):
         """
         time: str. time of data
         """
 
-        fname = data_dir + time + str(n_gauss) +'_normed=' + str(normed) + '.txt'
+        fname = data_dir + '{}' + time + str(n_gauss) +'_normed=' + str(normed) + '.txt'
+        if rep:
+            fname = fname.format('rep_')
+        else:
+            fname = fname.format('avg_')
+
         file_not_found = not(os.path.isfile(fname))
         
         if recompute or file_not_found:
