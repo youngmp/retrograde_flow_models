@@ -76,16 +76,16 @@ class Data:
         #print('data keys',data_avg.keys())
 
         args = (self.data_dir,self.data_avg,'control')
-        kwargs = {'normed':self.normed,'n_gauss':11,'recompute':self.recompute)
+        kwargs = {'normed':self.normed,'n_gauss':11,'recompute':self.recompute}
         pars_control_avg = self._load_gaussian_pars(*args,**kwargs)
-        
-        #pars_control = self._load_gaussian_pars(self.data_dir,self.data_avg,'control',
-        #                                        normed=self.normed,n_gauss=11,
-        #                                        recompute=self.recompute)
+
+        args = (self.data_dir,self.data_rep,'control')
+        pars_control_rep = self._load_gaussian_pars(*args,**kwargs)
 
         # gaussian interp fns. -- gaussian interp on R
         self.control_fn_avg = CallableGaussian(pars_control_avg)
-        #self.control_fn_rep = CallableGaussian(pars_control_rep)
+        self.control_fn_rep = CallableGaussian(pars_control_rep)
+
 
     def _get_gaussian_res(self,x_data,y_data,time,n_gauss=3):
         """
