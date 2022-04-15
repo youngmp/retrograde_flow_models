@@ -196,15 +196,24 @@ def gaussian_fit():
     fig, axs = plt.subplots(nrows=1,ncols=2,figsize=(6,3))
 
     d = pde.Data(recompute=False,normed=True)
+    
     x_data = d.data_avg['control'][:,0]
     y_data = d.data_avg['control'][:,1]
-    
     axs[0].plot(x_data,y_data,label='Data',lw=2)
     axs[0].plot(x_data,d.control_fn_avg(x_data),label='Approx.',lw=2)
 
+    x_data = d.data_rep['control'][:,0]
+    y_data = d.data_rep['control'][:,1]
+    axs[1].plot(x_data,y_data,label='Data',lw=2)
+    axs[1].plot(x_data,d.control_fn_rep(x_data),label='Approx.',lw=2)
+
     axs[0].set_xlabel(r'$r$',fontsize=fsizelabel)
-    axs[0].set_ylabel(r'Norm. Intensity $\tilde I_0(r)$',fontsize=fsizelabel)
+    axs[0].set_ylabel(r'Norm. Fluorescence $\tilde I_0(r)$',fontsize=fsizelabel)
     axs[0].tick_params(axis='both',labelsize=fsizetick)
+
+    axs[1].set_xlabel(r'$r$',fontsize=fsizelabel)
+    axs[1].set_ylabel(r'Norm. Fluorescence $\tilde I_0(r)$',fontsize=fsizelabel)
+    axs[1].tick_params(axis='both',labelsize=fsizetick)
 
     axs[0].set_xlim(x_data[0],x_data[-1])
     axs[0].legend()
