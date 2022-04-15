@@ -492,8 +492,9 @@ def solution(model='t1e',rep=False):
     if rep:
         pass
         #pars.update({'L':29.5})
-    pars['L'] = 25
-    pars['L0'] = 11
+        pars['L'] = 25
+        pars['L0'] = 11
+    
     p = pde.PDEModel(**pars)
     p._run_euler(model,rep)
     
@@ -615,9 +616,15 @@ def solution(model='t1e',rep=False):
 
         ax_u.plot(p.r,p._s2_vel(),lw=2)
 
+        # mark max
+        max_idx = np.argmax(p._s2_vel())
+        max_val = np.amax(p._s2_vel())
+
+        ax_u.scatter(p.r[max_idx],max_val,s=30,color='tab:red',zorder=10)
+
         ax_u.set_ylabel(r'$u(r)$',size=fsizelabel)
-        ax_u.set_xticks([p.L0,p.L])
-        ax_u.set_xticklabels([r'$L_0$',r'$L$'])
+        ax_u.set_xticks([p.L0,p.r[max_idx],p.L])
+        ax_u.set_xticklabels([r'$L_0$',r'$L^*$',r'$L$'])
         ax_u.tick_params(axis='both',labelsize=fsizetick)
         ax_u.set_ylim(0,.1)
 
@@ -645,7 +652,7 @@ def generate_figure(function, args, filenames, title="", title_pos=(0.5,0.95)):
 def main():
 
     figures = [
-        #(data_figure, [], ['f_data.png','f_data.pdf']),
+        (data_figure, [], ['f_data.png','f_data.pdf']),
         #(gaussian_fit, [], ['f_gaussian_fit.png','f_gaussian_fit.pdf']),
         #(solution_schematic, [], ['f_solution_schematic.png','f_solution_schematic.pdf']),
         #(u_nonconstant, [], ['f_u_nonconstant.png','f_u_nonconstant.pdf']),
@@ -666,7 +673,7 @@ def main():
         #(solution,['jammingc'],['f_sol_jc.png','f_sol_jc.pdf']),
         #(solution,['jammingd'],['f_sol_jd.png','f_sol_jd.pdf']),
 
-        (solution,['t1e',True],['f_validation.png','f_validation.pdf']),
+        #(solution,['t1e',True],['f_validation.png','f_validation.pdf']),
         ]
 
     # multiprocessing code from Kendrick Shaw
