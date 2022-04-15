@@ -200,7 +200,7 @@ def gaussian_fit():
     y_data = d.data_avg['control'][:,1]
     
     axs[0].plot(x_data,y_data,label='Data',lw=2)
-    axs[0].plot(x_data,d.control_fn(x_data),label='Approx.',lw=2)
+    axs[0].plot(x_data,d.control_fn_avg(x_data),label='Approx.',lw=2)
 
     axs[0].set_xlabel(r'$r$',fontsize=fsizelabel)
     axs[0].set_ylabel(r'Norm. Intensity $\tilde I_0(r)$',fontsize=fsizelabel)
