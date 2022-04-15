@@ -87,19 +87,6 @@ class Data:
         self.steadys_fn = CallableGaussian(pars_steadys)
         #p.steadys_fn = steadys_fn
 
-        """
-        if False:
-            fn_ctrl = get_1d_interp(data_avg['control'])
-
-            
-            x_data = data_avg['control'][:,0]
-            y_data = data_avg['control'][:,1]
-            t = 'Gaussian Fit VS Control'
-            #plot_gaussian_fit(x_data,y_data,pars_control,t=t)
-            plot_gaussian_fit(x_data,fn_ctrl(x_data),pars_control,t=t)
-            plt.show()
-        """
-
     def _get_gaussian_res(self,x_data,y_data,time,n_gauss=3):
         """
         x_data: x values of data to be fitted with gaussians
@@ -170,12 +157,14 @@ class Data:
         data_avg_raw = {}
         data_rep_raw = {}
 
+        data_avg_n = {}
+        data_rep_n = {}
+
         for hour in list_hours:
 
             # get column names
             # ('13c', 'radius'), ('13c', 'intensity'), ('rep', 'radius'), ...
             cols = data_raw[hour].columns
-            #print(hour,col,col[0])
 
             # save rep. data
             rep_data = data_raw[hour]['rep']
@@ -189,7 +178,7 @@ class Data:
                 r1 = x1[mask][:-1]
                 i1 = y1[mask][:-1]
                 n1 = np.sum(i1*2*np.pi*r1*dr1)
-                print('hour',hour,'rep norm L0,L normed',n1)
+                data_rep_n[hour] = n1
             else:
                 n1 = 1
                 
@@ -213,7 +202,7 @@ class Data:
                 r2 = x2[mask][:-1]
                 i2 = y2[mask][:-1]
                 n2 = np.sum(i2*2*np.pi*r2*dr2)
-                print('hour',hour,'avg norm L0,L normed',n2)
+                data_avg_n[hour] = n2
             else:
                 n2 = 1
             
@@ -227,10 +216,13 @@ class Data:
         self.data_rep = data_rep
         self.data_avg_raw = data_avg_raw
         self.data_rep_raw = data_rep_raw
+
+        self.data_avg_n = data_avg_n
+        self.data_rep_n = data_rep_n
         
 
     @staticmethod
-    def _build_data_fns(data,fill_value='extrapolate'):
+    def _build_data_fns(data,fill_value=0):
         """
         build 1d interpolation of data for use in cost function
         data is either data_avg or data_rep, the dicts constructed in 
@@ -240,8 +232,8 @@ class Data:
         data_fn = {}
 
         for hour in data.keys():
-
-            fn = get_1d_interp(data[hour],fill_value=fill_value)
+            #print(data[hour][0,1])
+            fn = get_1d_interp(data[hour],fill_value=(data[hour][0,1],0))
 
             data_fn[hour] = fn
 
@@ -423,7 +415,7 @@ class PDEModel(Data):
         
         if self.Nvel == 1:
             if self.u_nonconstant:
-                self.ur = self._s2_vel(rep)
+                self.ur = self._s2_vel()
             else:
                 self.u = self._u_constant
                 self.ur = self.us0*self.u(self.r)
@@ -488,7 +480,7 @@ class PDEModel(Data):
         self.y0 = y0
 
 
-    def _s2_vel(self,rep=False):
+    def _s2_vel(self):
         """
         take a look at velocity profile (see page 230 in personal notebook)
         """
@@ -496,26 +488,16 @@ class PDEModel(Data):
         import matplotlib.pyplot as plt
 
         r = self.r
-        #F = self.steadys_fn(r)
-        if rep:
-            #f_last = self.data_avg_fns['24h'](r)
-            f_last = self.data_rep_fns['24h'](r)
-            p0 = self.data_rep_fns['control'](r)*(1-self.eps)
-            f0 = self.data_rep_fns['control'](r)*self.eps
-        else:
-            f_last = self.data_avg_fns['24h'](r)
-            p0 = self.data_avg_fns['control'](r)*(1-self.eps)
-            f0 = self.data_avg_fns['control'](r)*self.eps
-        
-        
+
+        f_last = self.data_avg_fns['24h'](r)
+        p0 = self.data_avg_fns['control'](r)*(1-self.eps)
+        f0 = self.data_avg_fns['control'](r)*self.eps        
 
         fhat = f0-f_last
         
         dr = self.dr
 
         mu = r*fhat
-        
-        #c = 2*np.sum(mu)*dr/(self.L**2 - self.L0**2)
         
         #u = np.cumsum(r*(F-c))*dr/mu
         u = self.dp*np.cumsum(mu*(1+p0/fhat))*dr/mu
