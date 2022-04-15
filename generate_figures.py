@@ -17,11 +17,76 @@ fsizetitle = 13
 
 import pde
 import lib
-
+import copy
 import numpy as np
 
 import os
 import multiprocessing
+
+def experiment_figure():
+    """
+    figure for experimental setup
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib.image as mpimg
+
+    
+    fig, axs = plt.subplots(nrows=1,ncols=3,figsize=(8,2))
+
+    # plot cell images
+    img_ctrl = mpimg.imread('i_controlmicro.png')
+    img_noco = mpimg.imread('i_nocomicro.png')
+
+    axs[0].imshow(img_ctrl,aspect='auto')
+    axs[1].imshow(img_noco,aspect='equal')
+
+
+    # show horizontal lines corresponding to data
+    axs[0].plot([.5,.08],[.5,.5],transform=axs[0].transAxes,
+                color='tab:red',ls='--',marker='o')
+    axs[1].plot([.5,.08],[.5,.5],transform=axs[1].transAxes,
+                color='tab:blue',ls='-',marker='o')
+    
+    # plot vimentin data
+    d = pde.Data(L0=0,L=29.5)
+    x = d.data_rep_raw['control'][:,0];y = d.data_rep_raw['control'][:,1]
+    axs[2].plot(x,y,label=r'\SI{0}{h}',color='tab:red',ls='--')
+
+    x = d.data_rep_raw['24h'][:,0];y = d.data_rep_raw['24h'][:,1]
+    axs[2].plot(x,y,label=r'\SI{24}{h}',color='tab:blue',ls='-')
+
+
+    # labels, axis tweaks
+    axs[0].set_title(r'A. \SI{0}{h}',loc='left',size=fsizetitle)
+    axs[1].set_title(r'B. \SI{24}{h}',loc='left',size=fsizetitle)
+    axs[2].set_title(r'C.',loc='left',size=fsizetitle)
+
+    axs[2].set_xlabel(r'Radius ($\si{\um}$)',fontsize=fsizelabel)
+
+    axs[2].set_ylabel(r'Intensity',fontsize=fsizelabel)
+
+    axs[2].tick_params(axis='both',labelsize=fsizetick)
+    
+    axs[2].legend()
+
+    axs[0].axis('off')
+    axs[1].axis('off')
+
+    axs[2].set_xlim(0,29.5)
+
+    fig.subplots_adjust(top=.85,right=.98,left=-.1,bottom=0.25,hspace=0,wspace=.0)
+
+
+    l1,b1,w1,h1 = (.05, .25, .15, .6)
+    l2,b2,w2,h2 = (0.3, 0.25, 0.15079365079365087, 0.6)
+    
+    m = 1.3
+    a = h1*(m-1)
+    axs[0].set_position([l1,b1-a,w1*m,h1*m])
+    axs[1].set_position([l2,b2-a,w2*m,h2*m])
+    
+    return fig
+    
 
 def data_figure():
     """
@@ -32,6 +97,11 @@ def data_figure():
 
     # load normed data
     d = pde.Data()
+
+    avg_n_dict = copy.deepcopy(d.data_avg_n)
+    rep_n_dict = copy.deepcopy(d.data_rep_n)
+
+    d = pde.Data(L0=0,L=29.5)
 
     # load unnormed data
     #data =  d._build_data_dict(L0=d.L0,L=d.L,normed=True)
@@ -49,9 +119,10 @@ def data_figure():
         color = str((1-i/len(list_hours))/1.2)
 
         if hour == 'control':
-            label = '0h'
+            label = r'\SI{0}{h}'
         else:
-            label = hour
+            
+            label = r'\SI{'+hour[:-1]+'}{h}'
 
         if hour == '24h':
             color = 'tab:blue'
@@ -69,20 +140,34 @@ def data_figure():
         axs[0,1].plot(x,y,label=label,color=color)
         
         # normed, rep
-        x = d.data_rep[hour][:,0]
-        y = d.data_rep[hour][:,1]
+        x = d.data_rep_raw[hour][:,0]
+        y = d.data_rep_raw[hour][:,1]/rep_n_dict[hour]
+        #x = d.data_rep[hour][:,0]
+        #y = d.data_rep[hour][:,1]
         axs[1,0].plot(x,y,label=label,color=color)
 
         # normed, avg
-        x = d.data_avg[hour][:,0]
-        y = d.data_avg[hour][:,1]
+        x = d.data_avg_raw[hour][:,0]
+        y = d.data_avg_raw[hour][:,1]/avg_n_dict[hour]
+        #x = d.data_avg[hour][:,0]
+        #y = d.data_avg[hour][:,1]
         axs[1,1].plot(x,y,label=label,color=color)
 
+        
+        
+
+    axs[0,0].legend(labelspacing=.25)
     for i in range(2):
         for j in range(2):
-            axs[i,j].legend()
+            
             axs[i,j].set_xlabel(r'Radius ($\si{\um}$)',fontsize=fsizelabel)
             axs[i,j].tick_params(axis='both',labelsize=fsizetick)
+
+            axs[i,j].set_xlim(0,29.5)
+            axs[i,j].axvspan(0, 10, color='tab:red', alpha=0.1,hatch='x')
+
+            axs[i,j].get_position().x1
+            axs[i,j].text(1/6,.07,"Discarded\nRegion",ha='center',transform=axs[i,j].transAxes)
 
 
     axs[0,0].set_title('A. Representative',loc='left',size=fsizetitle)
@@ -108,25 +193,24 @@ def gaussian_fit():
 
     import matplotlib.pyplot as plt
     
-    fig = plt.figure(figsize=(4,3))
-    ax = fig.add_subplot(111)
-
+    fig, axs = plt.subplots(nrows=1,ncols=2,figsize=(6,3))
 
     d = pde.Data(recompute=False,normed=True)
     x_data = d.data_avg['control'][:,0]
     y_data = d.data_avg['control'][:,1]
     
-    
-    ax.plot(x_data,y_data,label='Data',lw=2)
-    ax.plot(x_data,d.control_fn(x_data),label='Approx.',lw=2)
-    #ax.set_title(t)
+    axs[0].plot(x_data,y_data,label='Data',lw=2)
+    axs[0].plot(x_data,d.control_fn(x_data),label='Approx.',lw=2)
 
-    ax.set_xlabel(r'$r$',fontsize=fsizelabel)
-    ax.set_ylabel(r'Norm. Intensity $\tilde I_0(r)$',fontsize=fsizelabel)
-    ax.tick_params(axis='both',labelsize=fsizetick)
+    axs[0].set_xlabel(r'$r$',fontsize=fsizelabel)
+    axs[0].set_ylabel(r'Norm. Intensity $\tilde I_0(r)$',fontsize=fsizelabel)
+    axs[0].tick_params(axis='both',labelsize=fsizetick)
 
-    ax.set_xlim(x_data[0],x_data[-1])
-    ax.legend()
+    axs[0].set_xlim(x_data[0],x_data[-1])
+    axs[0].legend()
+
+    axs[0].set_title("A.",loc='left')
+    axs[1].set_title("B.",loc='left')
 
     plt.tight_layout()
 
@@ -485,15 +569,16 @@ def solution(model='t1e',rep=False):
     err, seed = lib.lowest_error_seed(model)
     
     pars = lib.load_pars(model,seed)
+    print(model,seed,pars)
 
     #pars['dt']=0.05
-    print(model,'starting pars',pars,'best seed =',seed)
+    #print(model,'starting pars',pars,'best seed =',seed)
 
     if rep:
         pass
         #pars.update({'L':29.5})
-        pars['L'] = 25
-        pars['L0'] = 11
+        #pars['L'] = 25
+        #pars['L0'] = 10
     
     p = pde.PDEModel(**pars)
     p._run_euler(model,rep)
@@ -512,7 +597,7 @@ def solution(model='t1e',rep=False):
     
     # keys list sorted manually for now.
     #keys_list = ['control', '0.5h', '1h', '2h', '4h', '8.5h', '24h']
-    keys_list = ['control', '2h', '4h','8.5h', '24h']
+    keys_list = ['control','2h', '4h','8.5h', '24h']
 
     # plot best solution
     for i,hour in enumerate(keys_list):
@@ -566,7 +651,7 @@ def solution(model='t1e',rep=False):
             if seed_idx not in [seed]:
 
                 pars = lib.load_pars(model,seed_idx)
-                print(seed_idx,pars)
+                #print(model,seed_idx,pars)
                 p2 = pde.PDEModel(**pars)
                 p2._run_euler(model)
 
@@ -589,7 +674,7 @@ def solution(model='t1e',rep=False):
                     axs[1,i].plot(p2.r[:-1],F[:-1,idx],color='gray',zorder=-3,alpha=0.25)
                     axs[2,i].plot(p2.r[:-1],P[:-1,idx],color='gray',zorder=-3,alpha=0.25)
 
-    if model == 't1e':
+    if model == 't1e' and not(rep):
         fig.subplots_adjust(top=.95,right=.95,left=.1,bottom=0.4,hspace=.8,wspace=1)
         
     else:
@@ -605,7 +690,7 @@ def solution(model='t1e',rep=False):
         axs[i,0].yaxis.offsetText.set_visible(False)
         axs[i,0].yaxis.set_label_text(fn_labels[i] + " (" + offset+")",size=fsizelabel)
 
-    if model == 't1e':
+    if model == 't1e' and not(rep):
         # subplot for velocity profile
         x0 = (axs[2,1].get_position().x1 + axs[2,1].get_position().x0)/2
         y0 = .07
@@ -652,8 +737,9 @@ def generate_figure(function, args, filenames, title="", title_pos=(0.5,0.95)):
 def main():
 
     figures = [
-        (data_figure, [], ['f_data.png','f_data.pdf']),
-        #(gaussian_fit, [], ['f_gaussian_fit.png','f_gaussian_fit.pdf']),
+        #(experiment_figure, [], ['f_experiment.png','f_experiment.pdf']),
+        #(data_figure, [], ['f_data.png','f_data.pdf']),
+        (gaussian_fit, [], ['f_gaussian_fit.png','f_gaussian_fit.pdf']),
         #(solution_schematic, [], ['f_solution_schematic.png','f_solution_schematic.pdf']),
         #(u_nonconstant, [], ['f_u_nonconstant.png','f_u_nonconstant.pdf']),
         
