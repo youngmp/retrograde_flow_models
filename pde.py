@@ -83,8 +83,8 @@ class Data:
                                                 recompute=self.recompute)
 
         # gaussian interp fns. -- gaussian interp on R
-        self.control_fn = CallableGaussian(pars_control)
-        self.steadys_fn = CallableGaussian(pars_steadys)
+        self.control_fn_avg = CallableGaussian(pars_control)
+        self.steadys_fn_avg = CallableGaussian(pars_steadys)
         #p.steadys_fn = steadys_fn
 
     def _get_gaussian_res(self,x_data,y_data,time,n_gauss=3):
@@ -439,8 +439,8 @@ class PDEModel(Data):
         y0 = np.zeros(2*self.N)
 
 
-        #y0[:self.N] = self.control_fn(self.r)*self.eps
-        #y0[self.N:] = self.control_fn(self.r)*(1-self.eps)
+        #y0[:self.N] = self.control_fn_avg(self.r)*self.eps
+        #y0[self.N:] = self.control_fn_avg(self.r)*(1-self.eps)
         
         if rep:
             #y0[:self.N] = self.control_fn(self.r)*self.eps
@@ -448,8 +448,8 @@ class PDEModel(Data):
             y0[:self.N] = self.data_rep_fns['control'](self.r)*self.eps
             y0[self.N:] = self.data_rep_fns['control'](self.r)*(1-self.eps)
         else:
-            y0[:self.N] = self.control_fn(self.r)*self.eps
-            y0[self.N:] = self.control_fn(self.r)*(1-self.eps)
+            y0[:self.N] = self.control_fn_avg(self.r)*self.eps
+            y0[self.N:] = self.control_fn_avg(self.r)*(1-self.eps)
 
         TN = int(self.T/self.dt)
         t = np.linspace(0,self.T,TN)
@@ -661,7 +661,7 @@ def get_ana(p,t,option='i',scenario=1):
     I = F + P
     """
 
-    p_fn = p.control_fn
+    p_fn = p.control_fn_avg
     
     r = p.r
     u = self.uval*p.u(r)
@@ -744,7 +744,7 @@ def plot_sim(p):
         ax.set_title('in plot_sim')
         ax.plot(p.r,p.y[:p.N,0])
         ax.plot(p.r,p.y[p.N:,0])
-        #ax.plot(p.r,p.control_fn(p.r))
+        #ax.plot(p.r,p.control_fn_avg(p.r))
         plt.show()
 
     
@@ -1049,7 +1049,7 @@ def main():
         ax.set_title('just after p._run_euler')
         ax.plot(p.r,p.y[:p.N,0])
         ax.plot(p.r,p.y[p.N:,0])
-        #ax.plot(p.r,p.control_fn(p.r))
+        #ax.plot(p.r,p.control_fn_avg(p.r))
 
 
     # plot solution
