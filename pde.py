@@ -75,17 +75,17 @@ class Data:
         # generate functions
         #print('data keys',data_avg.keys())
 
-        pars_control = self._load_gaussian_pars(self.data_dir,self.data_avg,'control',
-                                                normed=self.normed,n_gauss=11,
-                                                recompute=self.recompute)
-        pars_steadys = self._load_gaussian_pars(self.data_dir,self.data_avg,'24h',
-                                                normed=self.normed,n_gauss=6,
-                                                recompute=self.recompute)
+        args = (self.data_dir,self.data_avg,'control')
+        kwargs = {'normed':self.normed,'n_gauss':11,'recompute':self.recompute)
+        pars_control_avg = self._load_gaussian_pars(*args,**kwargs)
+        
+        #pars_control = self._load_gaussian_pars(self.data_dir,self.data_avg,'control',
+        #                                        normed=self.normed,n_gauss=11,
+        #                                        recompute=self.recompute)
 
         # gaussian interp fns. -- gaussian interp on R
-        self.control_fn_avg = CallableGaussian(pars_control)
-        self.steadys_fn_avg = CallableGaussian(pars_steadys)
-        #p.steadys_fn = steadys_fn
+        self.control_fn_avg = CallableGaussian(pars_control_avg)
+        #self.control_fn_rep = CallableGaussian(pars_control_rep)
 
     def _get_gaussian_res(self,x_data,y_data,time,n_gauss=3):
         """
@@ -769,11 +769,9 @@ def plot_sim(p):
 
     axs[1][0].plot(p.r,p.y0[:p.N],label='Initial F')
     axs[1][0].plot(p.r,fsol[:,-1],label='Final F')
-    #axs[1,0].plot(p.r,steadys_fn(p.r),label='Final/2')
     
     axs[1][1].plot(p.r,p.y0[p.N:],label='Initial P')
     axs[1][1].plot(p.r,psol[:,-1],label='Final P')
-    #axs[1,1].plot(p.r,steadys_fn(p.r)/2,label='Final/2')
 
     data_ctrl = p.data_avg_fns['control'](p.r)
     data_ss = p.data_avg_fns['24h'](p.r)
