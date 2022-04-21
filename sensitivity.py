@@ -13,50 +13,66 @@ from SALib.analyze import sobol, fast
 from SALib.test_functions import Ishigami
 import numpy as np
 
-def generate_plot(recompute=True):
-    import matplotlib.pyplot as plt
-    fig, axs = plt.subplots(nrows=1,ncols=1,figsize=(4,4))
+def load_rss_data(ne=100,nd=100,maxe=0.01,mind=0.006,maxd=0.02,exp=False,
+                  recompute=False,ss=True):
 
-    ne = 20;nd = 20
-    maxe = .5;maxd = 1
-    
     eps_vals = np.linspace(0,maxe,ne)
-    dp_vals  = np.linspace(0,maxd,nd)
 
-    fname = 'data/Z_ne={}_nd={}_maxe={}_maxd={}.txt'.format(ne,nd,maxe,maxd)
+    assert(mind is not int)
+    assert(maxd is not int)
+    
+    if exp:
+        assert(mind<0)
+        assert(maxd<0)
+        dp_vals  = 10**(np.linspace(mind,maxd,nd))
+    else:
+        dp_vals = np.linspace(mind,maxd,nd)
+
+    #maxd = dp_vals[-1]
+
+    pars = (ne,nd,maxe,mind,maxd,ss,exp)
+    fname = 'data/Z_ne={}_nd={}_maxe={}_mind={}_maxd={}_ss={}_exp={}.txt'.format(*pars)
+    
     file_not_found = not(os.path.isfile(fname))
+    if file_not_found:
+        print('Unable to find file', fname)
     
     if recompute or file_not_found:
         EPS,DP = np.meshgrid(eps_vals,dp_vals)
         Z = np.zeros_like(EPS)
-        #DP = np.meshgrid(eps_vals,dp_vals)
 
-        p = pde.PDEModel(T=1500,dt=.05,order=1,N=50,
-                         u_nonconstant=True,
-                         Nvel=1,df=0)
+        p = pde.PDEModel(T=1500,dt=.05,order=1,N=50,u_nonconstant=True,Nvel=1,df=0)
 
         par_names = ['eps','dp']
 
         for i in range(np.shape(EPS)[0]):
-            print(i)
             for j in range(np.shape(EPS)[1]):
 
                 x = [EPS[i,j],DP[i,j]]
-                exp = mf.cost_fn(x,p,par_names,ss_condition=True,scenario='t1e')
-
-                if exp == 1e5:
-                    exp = 1
-                elif exp == 0:
-                    exp = np.nan
+                exp = mf.cost_fn(x,p,par_names,ss_condition=ss,scenario='t1e')
 
                 Z[i,j] = exp
 
         np.savetxt(fname,Z)
     else:
         Z = np.loadtxt(fname)
+
+    return eps_vals,dp_vals,Z
     
+
+def generate_plot(recompute=False):
+
+    #eps_vals,dp_vals,Z = load_rss_data(recompute=recompute)
+    #eps_vals,dp_vals,Z = load_rss_data(recompute=recompute,exp=True,ne=50,nd=50,maxe=.1,mind=-2.5,maxd=-1.,ss=False)
     
-    axs.imshow(Z,extent=[eps_vals[0],eps_vals[-1],dp_vals[0],dp_vals[-1]])
+    import matplotlib.pyplot as plt
+    
+    fig, axs = plt.subplots(nrows=1,ncols=1,figsize=(4,4))
+
+    axs.set_yscale('log')
+    cax = axs.pcolormesh(eps_vals,dp_vals,Z)
+    
+    cbar = fig.colorbar(cax)
     axs.set_ylabel('dp')
     axs.set_xlabel('eps')
     plt.show()
@@ -75,12 +91,14 @@ def main():
     parser.add_argument('--test',dest='test',
                         help='slect test. sobol, efast. ',default='sobol')
 
+    parser.add_argument('--ss',dest='ss',action='store_true',
+                        help='enable steady-state condition',default=True)
+    
     args = parser.parse_args()
-
     
-    #generate_plot()
+    generate_plot(recompute=args.recompute)
 
-    
+    """
     problem = {
         'num_vars': 2,
         'names': ['eps', 'dp'],
@@ -90,11 +108,14 @@ def main():
 
     recompute = True
 
-    fname_pre = 'data/sensitivity'
+    fname_pre = 'data/sensitivity_ss='+str(args.ss)
+    
     if args.test == 'sobol':
         fname = fname_pre+'_samples='+str(args.samples)+'_sobol.txt'
     elif args.test == 'efast':
         fname = fname_pre+'_samples='+str(args.samples)+'_efast.txt'
+
+
         
     file_not_found = not(os.path.isfile(fname))
 
@@ -122,9 +143,13 @@ def main():
             par_names = problem['names']
 
             x = [eps,dp]
-            exp = mf.cost_fn(x,p,par_names,ss_condition=False,scenario='t1e')
+            #exp = mf.cost_fn(x,p,par_names,ss_condition=False,scenario='t1e')
+            exp = mf.cost_fn(x,p,par_names,ss_condition=args.ss,scenario='t1e')
 
-            Y[i] = exp
+            if exp == 1e5:
+                Y[i] = exp
+            else:
+                Y[i] = np.exp(exp)
 
             print(i,p_vals,Y[i])
 
@@ -145,7 +170,7 @@ def main():
     print(Si.keys())
     print('S1',Si['S1'],Si['S1_conf'])
     print('ST',Si['ST'],Si['ST_conf'])
-    
+    """
 
 if __name__ == '__main__':
     main()
