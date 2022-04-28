@@ -51,6 +51,10 @@ def load_rss_data(ne=100,nd=100,maxe=0.01,mind=0.006,maxd=0.02,exp=False,
                 x = [EPS[i,j],DP[i,j]]
                 exp = mf.cost_fn(x,p,par_names,ss_condition=ss,scenario='t1e')
 
+                if np.isinf(exp):
+                    exp = -0.69
+
+                # note 0 == nan, -0.69 == infty. if ss, then 1e5 is fail.
                 Z[i,j] = exp
 
         np.savetxt(fname,Z)
@@ -59,23 +63,6 @@ def load_rss_data(ne=100,nd=100,maxe=0.01,mind=0.006,maxd=0.02,exp=False,
 
     return eps_vals,dp_vals,Z
     
-
-def generate_plot(recompute=False):
-
-    #eps_vals,dp_vals,Z = load_rss_data(recompute=recompute)
-    #eps_vals,dp_vals,Z = load_rss_data(recompute=recompute,exp=True,ne=50,nd=50,maxe=.1,mind=-2.5,maxd=-1.,ss=False)
-    
-    import matplotlib.pyplot as plt
-    
-    fig, axs = plt.subplots(nrows=1,ncols=1,figsize=(4,4))
-
-    axs.set_yscale('log')
-    cax = axs.pcolormesh(eps_vals,dp_vals,Z)
-    
-    cbar = fig.colorbar(cax)
-    axs.set_ylabel('dp')
-    axs.set_xlabel('eps')
-    plt.show()
 
 def main():
     
@@ -93,12 +80,16 @@ def main():
 
     parser.add_argument('--ss',dest='ss',action='store_true',
                         help='enable steady-state condition',default=True)
+
+    #parser.add_argument('--me',dest='ss',action='store_true',
+    #                    help='enable steady-state condition',default=True)
     
     args = parser.parse_args()
-    
-    generate_plot(recompute=args.recompute)
 
-    """
+    #generate_plot(args.recompute)
+    #eps_vals,dp_vals,Z = load_rss_data(recompute=args.recompute,exp=True,ne=50,nd=50,maxe=0.4,mind=-2.5,maxd=-1.,ss=False)
+
+
     problem = {
         'num_vars': 2,
         'names': ['eps', 'dp'],
@@ -170,7 +161,7 @@ def main():
     print(Si.keys())
     print('S1',Si['S1'],Si['S1_conf'])
     print('ST',Si['ST'],Si['ST_conf'])
-    """
+
 
 if __name__ == '__main__':
     main()
