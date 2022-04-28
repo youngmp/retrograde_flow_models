@@ -70,7 +70,7 @@ class Data:
         
         # interp1d functions -- linear interp on bounded domain
         self.data_avg_fns = self._build_data_fns(self.data_avg)
-        self.data_rep_fns = self._build_data_fns(self.data_rep)
+        self.data_rep_fns = self._build_data_fns(self.data_rep,rep=True)
 
         # generate functions
         #print('data keys',data_avg.keys())
@@ -230,7 +230,7 @@ class Data:
         
 
     @staticmethod
-    def _build_data_fns(data,fill_value=0):
+    def _build_data_fns(data,rep=False):#fill_value=0):
         """
         build 1d interpolation of data for use in cost function
         data is either data_avg or data_rep, the dicts constructed in 
@@ -241,7 +241,10 @@ class Data:
 
         for hour in data.keys():
             #print(data[hour][0,1])
-            fn = get_1d_interp(data[hour],fill_value=(data[hour][0,1],0))
+            if rep:
+                fn = get_1d_interp(data[hour],fill_value=(data[hour][0,1],0))
+            else:
+                fn = get_1d_interp(data[hour])
 
             data_fn[hour] = fn
 
