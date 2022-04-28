@@ -221,7 +221,7 @@ def main():
                         help='If true, recompute optimization data')
 
     args = parser.parse_args()
-    print(args)
+    #print(args)
 
     # 1440 minutes in 24 h.
     # note Nvel takes precedence over u_nonconstant
@@ -230,7 +230,7 @@ def main():
                      u_nonconstant=args.u_nonconstant,
                      Nvel=args.Nvel)
     
-    print(args.scenario, args.scenario == 't1b')
+    #print(args.scenario, args.scenario == 't1b')
     if args.scenario == 't1a':
         # original model fitting eps, df, dp
         par_names = ['eps','df','dp','us0']
@@ -384,7 +384,14 @@ def main():
     for i, val in enumerate(res_arr):
         setattr(p,par_names[i],val)
 
-    print(par_names,res_arr,'. err =',res_fun)
+
+    if args.seed == 0:
+        print(par_names)
+    for i in range(len(par_names)):
+        print(str(res_arr[i])+'\t',end="")
+    print(res_fun)
+    #print()
+    #print(par_names,res_arr,'. err =',res_fun)
     if args.plots:
         
         p.T = 200
