@@ -15,6 +15,7 @@ fsizelabel = 13
 fsizetitle = 13
 #tight_layout_pad =  0
 
+import sensitivity as sv
 import pde
 import lib
 import copy
@@ -63,7 +64,7 @@ def experiment_figure():
 
     axs[2].set_xlabel(r'Radius ($\si{\um}$)',fontsize=fsizelabel)
 
-    axs[2].set_ylabel(r'Intensity',fontsize=fsizelabel)
+    axs[2].set_ylabel(r'Fluorscence Intensity',fontsize=fsizelabel)
 
     axs[2].tick_params(axis='both',labelsize=fsizetick)
     
@@ -175,10 +176,10 @@ def data_figure():
     axs[1,0].set_title('C. Representative (Normalized)',loc='left',size=fsizetitle)
     axs[1,1].set_title(r'\textbf{D. Average (Normalized)}',loc='left',size=fsizetitle)
     
-    axs[0,0].set_ylabel('Intensity',fontsize=fsizelabel)
-    axs[0,1].set_ylabel('Intensity',fontsize=fsizelabel)
-    axs[1,0].set_ylabel('Norm. Intensity',fontsize=fsizelabel)
-    axs[1,1].set_ylabel('Norm. Intensity',fontsize=fsizelabel)
+    axs[0,0].set_ylabel('Fluorescence Intensity',fontsize=fsizelabel)
+    axs[0,1].set_ylabel('Fluorescence Intensity',fontsize=fsizelabel)
+    axs[1,0].set_ylabel('Norm. Fluorescence',fontsize=fsizelabel)
+    axs[1,1].set_ylabel('Norm. Fluorescence',fontsize=fsizelabel)
 
     #plt.tight_layout(pad=tight_layout_pad)
     plt.tight_layout()
@@ -193,33 +194,34 @@ def gaussian_fit():
 
     import matplotlib.pyplot as plt
     
-    fig, axs = plt.subplots(nrows=1,ncols=2,figsize=(6,3))
+    fig, axs = plt.subplots(nrows=1,ncols=2,figsize=(6,2))
 
     d = pde.Data(recompute=False,normed=True)
     
     x_data = d.data_avg['control'][:,0]
     y_data = d.data_avg['control'][:,1]
-    axs[0].plot(x_data,y_data,label='Data',lw=2)
-    axs[0].plot(x_data,d.control_fn_avg(x_data),label='Approx.',lw=2)
+    axs[0].plot(x_data,y_data,label='Data',lw=4,color='tab:green',ls='--')
+    axs[0].plot(x_data,d.control_fn_avg(x_data),label='Approx.',lw=2,color='k')
 
     x_data = d.data_rep['control'][:,0]
     y_data = d.data_rep['control'][:,1]
-    axs[1].plot(x_data,y_data,label='Data',lw=2)
-    axs[1].plot(x_data,d.control_fn_rep(x_data),label='Approx.',lw=2)
+    axs[1].plot(x_data,y_data,label='Data',lw=4,color='tab:green',ls='--')
+    axs[1].plot(x_data,d.control_fn_rep(x_data),label='Approx.',lw=2,color='k')
 
-    axs[0].set_xlabel(r'$r$',fontsize=fsizelabel)
-    axs[0].set_ylabel(r'Norm. Fluorescence $\tilde I_0(r)$',fontsize=fsizelabel)
+    axs[0].set_xlabel(r'$r$ (\si{\um})',fontsize=fsizelabel)
+    axs[0].set_ylabel(r'Norm. Fluor. $\tilde I_0(r)$',fontsize=fsizelabel)
     axs[0].tick_params(axis='both',labelsize=fsizetick)
 
-    axs[1].set_xlabel(r'$r$',fontsize=fsizelabel)
-    axs[1].set_ylabel(r'Norm. Fluorescence $\tilde I_0(r)$',fontsize=fsizelabel)
+    axs[1].set_xlabel(r'$r$ (\si{\um})',fontsize=fsizelabel)
+    axs[1].set_ylabel(r'Norm. Fluor. $\tilde I_0(r)$',fontsize=fsizelabel)
     axs[1].tick_params(axis='both',labelsize=fsizetick)
 
     axs[0].set_xlim(x_data[0],x_data[-1])
+    axs[1].set_xlim(x_data[0],x_data[-1])
     axs[0].legend()
 
-    axs[0].set_title("A.",loc='left')
-    axs[1].set_title("B.",loc='left')
+    axs[0].set_title("A. Average \SI{0}{h}",loc='left')
+    axs[1].set_title("B. Representative \SI{0}{h}",loc='left')
 
     plt.tight_layout()
 
@@ -230,10 +232,10 @@ def solution_schematic():
 
     import matplotlib.pyplot as plt
     
-    pars = {'eps':.3,'df':0,'dp':.01,'T':1500,'dt':.01,'N':100,'Nvel':1,'u_nonconstant':True}
+    pars = {'eps':.2,'df':0,'dp':.01,'T':1500,'dt':.01,'N':100,'Nvel':1,'u_nonconstant':True}
 
     p = pde.PDEModel(**pars)
-    p._run_euler('2')
+    p._run_euler('t1e')
         
     #p = PDEModel()
     L0=p.L0; L=p.L
@@ -308,10 +310,6 @@ def solution_schematic():
             #axs[j,i].set_yticks([])
             axs[j,i].axis('off')
     
-    for i in range(2,ncols):
-        
-        axs[i,0].set_ylim(0,2)
-        axs[i,1].set_ylim(-.1,1.1)
 
     for i in range(2,nrows):
         for j in range(ncols):
@@ -329,6 +327,9 @@ def solution_schematic():
             axs[i,j].ticklabel_format(axis='y',style='scientific',scilimits=(0,0))
             #ticklabel_format(axis='y',style='scientific',scilimits=(0,0))
             #axs[i,j].get_yaxis().get_offset_text().set_position((0,0))
+
+            axs[i,j].spines['right'].set_visible(False)
+            axs[i,j].spines['top'].set_visible(False)
     
     fig.subplots_adjust(top=1,right=.95,left=.12,bottom=0.05,hspace=.8,wspace=1)
 
@@ -352,15 +353,15 @@ def solution_schematic():
     ax_i0.ticklabel_format(axis='y',style='scientific',scilimits=(0,0))
 
     #bbox=dict(boxstyle="round",fc='tab:blue',alpha=0.4)
-    ax_i0.annotate(r'$F(r,0) = \varepsilon\tilde I_0(r)$',xy=(.1,-.6),xycoords='axes fraction',size=15,ha='right',bbox=dict(boxstyle="round",fc='tab:blue',alpha=0.4))
+    ax_i0.annotate(r'$F(r,0) = \varepsilon\tilde I_0(r)$',xy=(.25,-.6),xycoords='axes fraction',size=15,ha='right',bbox=dict(boxstyle="round",fc='tab:blue',alpha=0.4))
     ax_i0.annotate(r'',xy=(.15, -1), xycoords='axes fraction', xytext=(0.5,-.1), arrowprops=dict(arrowstyle="simple,head_width=1,head_length=1", color='tab:blue'))
 
-    ax_i0.annotate(r'$P(r,0) = (1-\varepsilon)\tilde I_0(r)$',xy=(.9,-.6),xycoords='axes fraction',size=15,ha='left',bbox=dict(boxstyle="round",fc='tab:orange',alpha=0.4))
+    ax_i0.annotate(r'$P(r,0) = (1-\varepsilon)\tilde I_0(r)$',xy=(.75,-.6),xycoords='axes fraction',size=15,ha='left',bbox=dict(boxstyle="round",fc='tab:orange',alpha=0.4))
     ax_i0.annotate(r'',xy=(.85, -1), xycoords='axes fraction', xytext=(.5,-.1), arrowprops=dict(arrowstyle="simple,head_width=1,head_length=1", color='tab:orange'))
 
-
     ax_i0.set_xticks([L0,L])
-    ax_i0.set_xticklabels([r'$L_0$ (Nuclear Envelope)',r'$L$ (Cell Membrane)'])    
+    ax_i0.set_xticklabels([r'$L_0$ (Nuclear Envelope)',r'$L$ (Cell Membrane)'])
+    ax_i0.set_xlim(L0,L)
     
     
     # F to P and vice-versa diagram
@@ -387,8 +388,8 @@ def solution_schematic():
 
     x = (axs[3,1].get_position().x0 + axs[3,0].get_position().x1)/2
     
-    plt.text(x,.87,r'$d_p$',size=fsizelabel,ha='center',transform=fig.transFigure)
-    plt.text(x,.92,r'$d_f$',size=fsizelabel,ha='center',transform=fig.transFigure)
+    plt.text(x,.87,r'$d_p$ (Trap)',size=fsizelabel,ha='center',transform=fig.transFigure)
+    plt.text(x,.92,r'$d_f$ (Release)',size=fsizelabel,ha='center',transform=fig.transFigure)
 
     
     # arrow from P to F in plots, vice-versa.
@@ -413,15 +414,16 @@ def solution_schematic():
 
     x = (axs[3,1].get_position().x0 + axs[3,0].get_position().x1)/2
 
-    plt.text(x-.03,y+.02,r'$d_f$',size=fsizelabel,ha='center',transform=fig.transFigure)
-    plt.text(x-.03,y-.03,r'$d_p$',size=fsizelabel,ha='center',transform=fig.transFigure)
+    plt.text(x-.03,y-.03,r'$d_p$ (Trap)',size=fsizelabel,ha='center',transform=fig.transFigure)
+    plt.text(x-.03,y+.02,r'$d_f$ (Release)',size=fsizelabel,ha='center',transform=fig.transFigure)
+    
 
-    plt.text(x-.03,y+.05,r'(Trapping)',size=fsizelabel,ha='center',transform=fig.transFigure)
+    #plt.text(x-.03,y+.05,r'(Trapping)',size=fsizelabel,ha='center',transform=fig.transFigure)
     
 
     # advection label
     arrow_str = 'simple, head_width=.7, tail_width=.15, head_length=1'
-    axs[3,1].annotate('',(.2,.4),(.4,.4),ha='left',
+    axs[3,1].annotate('',(.25,.4),(.45,.4),ha='left',
                       va='center',
                       xycoords='axes fraction',
                       arrowprops=dict(arrowstyle=arrow_str,
@@ -435,7 +437,7 @@ def solution_schematic():
                        r'\item $u(I)$ conc.-dependent'
                        r'\end{itemize}')
     
-    axs[3,1].annotate(advection_label,(.4,.5),(.4,.5),xycoords='axes fraction',va='center')
+    axs[3,1].annotate(advection_label,(.45,.5),(.45,.5),xycoords='axes fraction',va='center')
 
     curly_str = (r'$'
                  r'\begin{cases}'
@@ -444,12 +446,8 @@ def solution_schematic():
                  r'\phantom{1}\\'
                  r'\end{cases}'
                  r'$')
-    #curly_str = (r'\begin{equation}'
-    #             r'test'
-    #            r'\end{equation}')
-    axs[3,1].annotate(curly_str,(.4,.4),(.4,.4),xycoords='axes fraction',size=10,va='center')
-    
 
+    axs[3,1].annotate(curly_str,(.45,.4),(.45,.4),xycoords='axes fraction',size=10,va='center')
     
     
     # time arrow
@@ -491,7 +489,7 @@ def solution_schematic():
 
     return fig
 
-def u_nonconstant():
+def velocity():
 
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
@@ -531,13 +529,13 @@ def u_nonconstant():
         axs[i].set_xticklabels([r'$L_0$',r'$L$'])
         axs[i].tick_params(axis='both',labelsize=fsizetick)
 
-    axs[0].set_ylabel(r'$u(r)$',size=fsizelabel)
-    axs[1].set_ylabel(r'$I(r,t)$',size=fsizelabel)
-    axs[2].set_ylabel(r'$u(I(r,t))$',size=fsizelabel)
+    axs[0].set_ylabel(r'Velocity $u(r)$',size=fsizelabel)
+    axs[1].set_ylabel(r'Intensity $I(r,t)$',size=fsizelabel)
+    axs[2].set_ylabel(r'Velocity $u(I(r,t))$',size=fsizelabel)
     
     axs[0].set_title(r'A. Spatially-Dependent',loc='left',size=fsizetitle)
-    axs[1].set_title(r'B. Jamming Velocity',loc='left',size=fsizetitle)
-    axs[2].set_title(r'',loc='left',size=fsizetitle)
+    axs[1].set_title(r'B.',loc='left',size=fsizetitle)
+    axs[2].set_title(r'C. Conc. Dep. (Jamming)',loc='left',size=fsizetitle)
 
     # center left plot
     left = axs[0].get_position().x0
@@ -552,7 +550,7 @@ def u_nonconstant():
     # arrow betwen right plots
 
     x_start = (axs[1].get_position().x0+axs[1].get_position().x1)/2
-    y_start = (axs[1].get_position().y0)-.05
+    y_start = (axs[1].get_position().y0)-.01
     
     plt.annotate(r'',xytext=(x_start, y_start), xy=(x_start,y_start-.1),
                  ha='center', xycoords='figure fraction',arrowprops=dict(arrowstyle="simple,tail_width=1.4,head_width=2.3,head_length=1", color='tab:blue'))
@@ -728,6 +726,109 @@ def solution(model='t1e',rep=False):
     return fig
 
 
+def cost_function(recompute=False):
+    
+    eps1,dps1,Z1 = sv.load_rss_data(recompute=recompute,ss=False)
+    #eps_vals2,dp_vals2,Z2 = load_rss_data(recompute=recompute,exp=True,ne=50,nd=50,maxe=.1,mind=-2.5,maxd=-1.,ss=False)
+
+    # get cost function without steady-state assumption
+    eps2,dps2,Z_no_ss = sv.load_rss_data(recompute=recompute,exp=True,ne=50,nd=50,maxe=0.4,mind=-2.5,maxd=-1.,ss=False)
+
+    # get cost function with ss assumption. use this to partition figure
+    eps3,dps3,Z3 = sv.load_rss_data(recompute=recompute,exp=True,ne=50,nd=50,maxe=0.4,mind=-2.5,maxd=-1.,ss=True)
+
+    
+    boundary_idxs = np.where(np.abs(np.diff(Z3,axis=0))>1e4)
+
+    
+    
+    # limit Z data in eps
+    eps_mask = eps2 < 0.35
+    eps2 = eps2[eps_mask]
+    Z_no_ss = Z_no_ss[:,eps_mask]
+    
+    
+    Z_fail_ss = np.zeros_like(Z_no_ss)
+
+    # force 0 values to be nan (cost function returns 0 if solutions return nan)
+    nan_idxs = np.where(Z_no_ss==0)
+    Z_no_ss[nan_idxs] = np.nan; Z_fail_ss[nan_idxs] = np.nan
+    Z_no_ss = np.exp(Z_no_ss)
+    
+    bdy_idx_x = []
+    bdy_idx_y = []
+
+    # force Z data to be above boundary_idxs
+    for n in range(len(boundary_idxs[0])):
+        i = boundary_idxs[0][n]; j = boundary_idxs[1][n]
+
+        Z_fail_ss[:i,j] = Z_no_ss[:i,j]
+        Z_fail_ss[i:,j] = np.nan
+        Z_no_ss[:i,j] = np.nan
+
+        #print(i,j)
+        # construct boundary line
+        bdy_idx_x.append(j)
+        bdy_idx_y.append(i)
+    #print(bdy_line_x)
+
+    import matplotlib.pyplot as plt
+    
+    fig, axs = plt.subplots(nrows=1,ncols=1,figsize=(6,4))
+
+    axs.set_yscale('log')
+    #cax1 = axs.pcolormesh(eps1,dps1,Z1)
+    totval = np.nansum(Z_no_ss+Z_fail_ss)
+    
+    maxval = np.amax([np.nanmax(Z_no_ss),np.nanmax(Z_fail_ss)])
+    minval = np.amin([np.nanmin(Z_no_ss),np.nanmin(Z_fail_ss)])
+
+    cax2 = axs.pcolormesh(eps2,dps2,Z_no_ss,vmin=minval,vmax=maxval)
+    cax3 = axs.pcolormesh(eps2,dps2,Z_fail_ss,vmin=minval,vmax=maxval,alpha=.9)
+    #cax3 = axs.pcolormesh(eps3,dps3,np.diff(Z3,axis=0))
+    
+    c2 = axs.contour(eps2,dps2,Z_no_ss,colors='white')
+    c3 = axs.contour(eps2,dps2,Z_fail_ss,colors='white',levels=c2.levels,alpha=.5)
+    #axs.contour(eps1,dps1,Z1,colors='k',levels=c2.levels)
+
+
+    sorted_idx = np.argsort(bdy_idx_x)
+    #print(sorted_idx,np.array(bdy_idx_x)[sorted_idx])
+    x = eps2[np.array(bdy_idx_x)[sorted_idx]]
+    y = dps2[np.array(bdy_idx_y)[sorted_idx]]
+    
+    x = np.append(x,eps2[np.array(bdy_idx_x)[sorted_idx][-1]+1])
+    y = np.append(y,dps2[np.array(bdy_idx_y)[sorted_idx][-1]+1])
+    #axs.plot(x,y,color='tab:red',lw=2)
+    axs.fill_between(x,np.zeros(len(x)),y,alpha=.3,color='tab:red',hatch='x')
+
+    # show minimum
+    axs.scatter(0,0.011,color='tab:orange',marker='x',s=100,clip_on=False,lw=4,zorder=10)
+
+    # label failure regions
+    axs.text(0.85,0.5,r'$u(r)$ Undefined',rotation=90,transform=axs.transAxes,size=fsizelabel,
+             ha='center',va='center')
+    
+    props = dict(boxstyle='round', facecolor='white', alpha=0.8)
+    axs.text(0.35, 0.1, 'Steady-State Condition Fails', transform=axs.transAxes, fontsize=14,
+             
+            ha='center', bbox=props)
+
+    
+    cbar = fig.colorbar(cax2); cbar.ax.tick_params(labelsize=fsizetick)
+    #cbar = fig.colorbar(cax3)
+    axs.set_ylabel(r'$d_p$',size=fsizelabel)
+    axs.set_xlabel(r'$\varepsilon$',size=fsizelabel)
+
+    axs.tick_params(axis='both',labelsize=fsizetick)
+
+    axs.set_xlim(0,0.4)
+    
+    plt.tight_layout()
+    return fig
+    #plt.show()
+
+
 def generate_figure(function, args, filenames, title="", title_pos=(0.5,0.95)):
     """
     code taken from Shaw et al 2012 code
@@ -748,9 +849,11 @@ def main():
     figures = [
         #(experiment_figure, [], ['f_experiment.png','f_experiment.pdf']),
         #(data_figure, [], ['f_data.png','f_data.pdf']),
-        (gaussian_fit, [], ['f_gaussian_fit.png','f_gaussian_fit.pdf']),
+        #(gaussian_fit, [], ['f_gaussian_fit.png','f_gaussian_fit.pdf']),
         #(solution_schematic, [], ['f_solution_schematic.png','f_solution_schematic.pdf']),
-        #(u_nonconstant, [], ['f_u_nonconstant.png','f_u_nonconstant.pdf']),
+        #(velocity, [], ['f_velocity.png','f_velocity.pdf']),
+
+        (cost_function, [], ['f_cost_function.png','f_cost_function.pdf']),
         
         #(solution,['t1a'],['f_sol_t1a.png','f_sol_t1a.pdf']),
         #(solution,['t1b'],['f_sol_t1b.png','f_sol_t1b.pdf']),
