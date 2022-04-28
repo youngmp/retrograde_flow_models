@@ -160,8 +160,8 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
     
     #res = basinhopping(cost_fn,init,minimizer_kwargs=minimizer_kwargs)
     res = dual_annealing(cost_fn,bounds=bounds,args=args,
-                         visit=2.8,restart_temp_ratio=2e-06,
-                         initial_temp=5.3e4,accept=-5,seed=seed)
+                         visit=2.62,restart_temp_ratio=2e-06,
+                         initial_temp=5.230e3,accept=-5,seed=seed)
     # defaults: initial_temp=5230, restart_temp_ratio=2e-05, visit=2.62, accept=-5.0.
 
     return res
