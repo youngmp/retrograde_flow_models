@@ -156,9 +156,6 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
     
     args = (p,par_names,ss_condition,psource,
             scenario,uconst)
-
-    
-    
     
     if method == 'annealing':
         res = dual_annealing(cost_fn,bounds=bounds,args=args,
@@ -166,7 +163,7 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
                              initial_temp=6e3,accept=-5,seed=seed,
                              maxiter=5000,maxfun=1e9)
     elif method == 'de':
-        res = differential_evolution(cost_fn,bounds=bounds,args=args)
+        res = differential_evolution(cost_fn,bounds=bounds,args=args,tol=1e-6)
         
     elif method == 'bh':
         minimizer_kwargs = {"method": "Powell",'bounds':bounds,'args':args}
