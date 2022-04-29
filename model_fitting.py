@@ -165,12 +165,12 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
                              visit=3,restart_temp_ratio=1e-07,
                              initial_temp=6e3,accept=-5,seed=seed,
                              maxiter=5000,maxfun=1e9)
-    elif method == 'differential_evolution':
+    elif method == 'de':
         res = differential_evolution(cost_fn,bounds=bounds,args=args,
                                      visit=3,restart_temp_ratio=1e-07,
                                      initial_temp=6e3,accept=-5,seed=seed,
                                      maxiter=5000,maxfun=1e9)
-    elif method == 'basin_hopping':
+    elif method == 'bh':
         res = basinhopping(cost_fn,init,minimizer_kwargs=minimizer_kwargs)
         
     # defaults: initial_temp=5230, restart_temp_ratio=2e-05, visit=2.62, accept=-5.0,maxiter=1000
