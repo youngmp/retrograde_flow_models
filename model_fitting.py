@@ -23,7 +23,7 @@ import argparse
 
 import numpy as np
 from scipy.optimize import least_squares
-from scipy.optimize import basinhopping, dual_annealing
+from scipy.optimize import basinhopping, dual_annealing, differential_evolution
 from scipy.interpolate import interp1d
 
 np.seterr(all='warn')
@@ -130,7 +130,8 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
                        parfix={},ss_condition=False,
                        psource=False,
                        scenario=None,
-                       uconst=True,seed=0):
+                       uconst=True,seed=0,
+                       method='annealing'):
     
     """
     fit sim to data
@@ -158,11 +159,20 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
     #                    'bounds':bounds,
     #                    'args':args}
     
-    #res = basinhopping(cost_fn,init,minimizer_kwargs=minimizer_kwargs)
-    res = dual_annealing(cost_fn,bounds=bounds,args=args,
-                         visit=3,restart_temp_ratio=1e-07,
-                         initial_temp=6e3,accept=-5,seed=seed,
-                         maxiter=5000,maxfun=1e9)
+    
+    if method == 'annealing':
+        res = dual_annealing(cost_fn,bounds=bounds,args=args,
+                             visit=3,restart_temp_ratio=1e-07,
+                             initial_temp=6e3,accept=-5,seed=seed,
+                             maxiter=5000,maxfun=1e9)
+    elif method == 'differential_evolution':
+        res = differential_evolution(cost_fn,bounds=bounds,args=args,
+                                     visit=3,restart_temp_ratio=1e-07,
+                                     initial_temp=6e3,accept=-5,seed=seed,
+                                     maxiter=5000,maxfun=1e9)
+    elif method == 'basin_hopping':
+        res = basinhopping(cost_fn,init,minimizer_kwargs=minimizer_kwargs)
+        
     # defaults: initial_temp=5230, restart_temp_ratio=2e-05, visit=2.62, accept=-5.0,maxiter=1000
 
     return res
@@ -220,6 +230,12 @@ def main():
 
     parser.add_argument('-r','--recompute',dest='recompute',action='store_true',
                         help='If true, recompute optimization data')
+
+
+    parser.add_argument('--method',dest='method',type=str,
+                        default='annealing',
+                        help='select method. annealing, bh (basin hopping), or de (differential evolution)')
+
 
     args = parser.parse_args()
     #print(args)
@@ -324,6 +340,9 @@ def main():
     fname_pre += '_umax='+str(args.umax)
     fname_pre += '_dmax='+str(args.dmax)
     fname_pre += '_seed='+str(args.seed)
+
+    if args.method == 'de' or args.method == 'bh':
+        fname_pre += '_method='+args.method
 
     if (args.Nvel > 1) and args.u_nonconstant:
         raise ValueError('Incompatible flags. can only have Nvel > 1 OR u_nonconstant, but not both.')
