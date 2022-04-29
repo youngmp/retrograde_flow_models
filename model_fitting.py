@@ -388,7 +388,8 @@ def main():
                                  psource=args.psource,
                                  scenario=args.scenario,
                                  uconst=not(args.u_nonconstant),
-                                 seed=args.seed)
+                                 seed=args.seed,
+                                 method=args.method)
         
         np.savetxt(fname,res.x)
         np.savetxt(fname_err,[res.fun])
