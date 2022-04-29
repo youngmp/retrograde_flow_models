@@ -35,7 +35,7 @@ def get_parameter_fname(model,seed,err=False):
         fname_pre+='_umax=2.0_dmax=5.0'
     elif model == 't2d':
         #fname_pre+='_umax=2.0_dmax=100.0'
-        fname_pre+='_umax=2.0_dmax=100.0'
+        fname_pre+='_umax=2.0_dmax=1000.0'
 
     elif model == 'jamminga':
         fname_pre+='_umax=2.0_dmax=5.0'
