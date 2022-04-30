@@ -16,40 +16,40 @@ def get_parameter_fname(model,seed,err=False):
     fname_pre = 'data/'+model+'_residuals'
 
     if model == 't1a':
-        fname_pre+='_umax=3.0_dmax=5.0'
+        fname_pre+='_umax=4.0_dmax=20.0'
     elif model == 't1b':
-        fname_pre+='_umax=2.0_dmax=20.0'
+        fname_pre+='_umax=4.0_dmax=20.0'
     elif model == 't1c':
-        fname_pre+='_umax=1.0_dmax=5.0'
+        fname_pre+='_umax=4.0_dmax=20.0'
         
     elif model == 't1d':
-        fname_pre+='_umax=4.0_dmax=5.0'
+        fname_pre+='_umax=4.0_dmax=20.0'
     elif model == 't1e':
         fname_pre+='_umax=2_dmax=5'
     elif model == 't2a':
-        fname_pre+='_umax=2.0_dmax=20.0'
+        fname_pre+='_umax=4.0_dmax=20.0'
 
     elif model == 't2b':
-        fname_pre+='_umax=2.0_dmax=20.0'
+        fname_pre+='_umax=4.0_dmax=20.0'
     elif model == 't2c':
-        fname_pre+='_umax=2.0_dmax=5.0'
+        fname_pre+='_umax=4.0_dmax=20.0'
     elif model == 't2d':
         #fname_pre+='_umax=2.0_dmax=100.0'
-        fname_pre+='_umax=2.0_dmax=1000.0'
+        fname_pre+='_umax=4.0_dmax=200.0'
 
     elif model == 'jamminga':
-        fname_pre+='_umax=2.0_dmax=5.0'
+        fname_pre+='_umax=4.0_dmax=20.0'
     elif model == 'jammingb':
-        fname_pre+='_umax=2.0_dmax=5.0'
+        fname_pre+='_umax=4.0_dmax=20.0'
     elif model == 'jammingc':
-        fname_pre+='_umax=2.0_dmax=5.0'
+        fname_pre+='_umax=4.0_dmax=20.0'
     elif model == 'jammingd':
-        fname_pre+='_umax=2.0_dmax=5.0'
+        fname_pre+='_umax=4.0_dmax=20.0'
 
     if err:
-        fname = fname_pre + '_seed='+str(seed)+'_ss_err.txt'
+        fname = fname_pre + '_seed='+str(seed)+'_method=de_ss_err.txt'
     else:
-        fname = fname_pre + '_seed='+str(seed)+'_ss.txt'
+        fname = fname_pre + '_seed='+str(seed)+'_method=de_ss.txt'
 
     return fname
 
@@ -83,12 +83,7 @@ def load_pars(model,seed):
     """
     
     fname_pre = 'data/'+model+'_residuals'
-
-    #_umax=1_seed='+str(seed)+'_ss.txt'
-    
-
-    pars = {'T':1500,'dt':0.02,'order':1,'N':50}
-    
+    pars = {'T':1500,'dt':0.02,'order':1,'N':50}    
     scenario = model[-1]
     
     if model[:-1] == 't1':
@@ -133,21 +128,17 @@ def load_pars(model,seed):
             par_names = ['eps','imax','us0','dp','df']
 
         elif scenario == 'b':
-            par_names = ['eps','imax','us0','df'];fname_pre+='_umax=2.0_dmax=5.0'
+            par_names = ['eps','imax','us0','df']
 
         elif scenario == 'c':
-            par_names = ['eps','imax','us0'];fname_pre+='_umax=2.0_dmax=5.0'
+            par_names = ['eps','imax','us0']
 
         elif scenario == 'd':
-            par_names = ['eps','imax','us0','dp'];fname_pre+='_umax=2.0_dmax=5.0'
+            par_names = ['eps','imax','us0','dp']
 
-    
-    #fname = fname_pre+'seed='+str(seed)+'_ss.txt'
     res = np.loadtxt(get_parameter_fname(model,seed))
     
     for i,key in enumerate(par_names):
         pars[key] = res[i]
-        #print(i,key,res[i],model,seed)
 
-    #print('pars from load_pars',pars,model)
     return pars
