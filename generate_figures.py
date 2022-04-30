@@ -600,7 +600,7 @@ def solution(model='t1e',rep=False):
 
     fig,axs = plt.subplots(nrows=3,ncols=5,figsize=(8,6),
                            gridspec_kw={'wspace':0.1,'hspace':0},
-                           sharey='row')
+                           sharey='all')
     
     # keys list sorted manually for now.
     #keys_list = ['control', '0.5h', '1h', '2h', '4h', '8.5h', '24h']
@@ -706,13 +706,13 @@ def solution(model='t1e',rep=False):
 
         ax_u = fig.add_axes([x0,y0,w,h])
 
-        ax_u.plot(p.r,p._s2_vel(),lw=2)
+        ax_u.plot(p.r,p._s2_vel(),lw=2,color='k')
 
         # mark max
         max_idx = np.argmax(p._s2_vel())
         max_val = np.amax(p._s2_vel())
 
-        ax_u.scatter(p.r[max_idx],max_val,s=30,color='tab:red',zorder=10)
+        ax_u.scatter(p.r[max_idx],max_val,s=40,color='tab:red',zorder=10)
 
         ax_u.set_ylabel(r'$u(r)$',size=fsizelabel)
         ax_u.set_xticks([p.L0,p.r[max_idx],p.L])
@@ -853,11 +853,11 @@ def main():
         #(solution_schematic, [], ['f_solution_schematic.png','f_solution_schematic.pdf']),
         #(velocity, [], ['f_velocity.png','f_velocity.pdf']),
 
-        (cost_function, [], ['f_cost_function.png','f_cost_function.pdf']),
+        #(cost_function, [], ['f_cost_function.png','f_cost_function.pdf']),
         
         #(solution,['t1a'],['f_sol_t1a.png','f_sol_t1a.pdf']),
         #(solution,['t1b'],['f_sol_t1b.png','f_sol_t1b.pdf']),
-        #(solution,['t1c'],['f_sol_t1c.png','f_sol_t1c.pdf']),
+        (solution,['t1c'],['f_sol_t1c.png','f_sol_t1c.pdf']),
         #(solution,['t1d'],['f_sol_t1d.png','f_sol_t1d.pdf']),
         #(solution,['t1e'],['f_best_sol.png','f_best_sol.pdf','f_sol_t1e.png','f_sol_t1e.pdf']),
        
