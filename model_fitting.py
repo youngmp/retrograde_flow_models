@@ -283,7 +283,7 @@ def main():
 
     elif args.scenario == 't2a':
         par_names = ['eps','dp1','dp2','df','us0']
-        bounds = [(0,1),(0,5),(0,5),(0,5),(0,args.umax)]
+        bounds = [(0,1),(0,args.dmax),(0,args.dmax),(0,args.dmax),(0,args.umax)]
         init = [0,1,1,1,0.16]
         parfix = {}
 
