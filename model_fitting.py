@@ -50,6 +50,10 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
     p._run_euler(scenario)
     y = p.y
 
+    #print(x)
+    #if np.isnan(np.sum(x)):
+    #    raise ValueError
+
     if False:
         import matplotlib.pyplot as plt
         fig = plt.figure()
@@ -122,7 +126,8 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
             
             s1 += '{:.2f},'
         s1 = s1[:-1]
-    
+
+    #print(s1,stdout)
     print(s1.format(*stdout))
     return err_new
 
@@ -156,12 +161,15 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
     
     args = (p,par_names,ss_condition,psource,
             scenario,uconst)
-    
+
     if method == 'annealing':
         res = dual_annealing(cost_fn,bounds=bounds,args=args,
                              visit=3,restart_temp_ratio=1e-07,
                              initial_temp=6e3,accept=-5,seed=seed,
-                             maxiter=5000,maxfun=1e9)
+                             maxiter=5000,maxfun=1e8,
+                             local_search_options={'method':'Nelder-Mead','bounds':bounds})
+                             #local_search_options={'nan_policy':'omit'})
+        
     elif method == 'de':
         res = differential_evolution(cost_fn,bounds=bounds,args=args,tol=1e-6)
         
@@ -278,7 +286,7 @@ def main():
     elif args.scenario == 't1e':
         par_names=['eps','dp']
         bounds = [(0,.05),(0,args.dmax)]
-        init = [0,1]
+        init = [0,.01]
         parfix = {'df':0,'us0':0}
 
     elif args.scenario == 't2a':
