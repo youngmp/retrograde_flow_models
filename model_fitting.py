@@ -45,62 +45,68 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
         #print(par_names[i],val)
         setattr(p,par_names[i],val)
 
-    TN = int(p.T/p.dt)
+    if np.isnan(np.sum(x)):
+        err = 1e5
+    else:
+        TN = int(p.T/p.dt)
 
-    p._run_euler(scenario)
-    y = p.y
+        p._run_euler(scenario)
+        y = p.y
 
-    #print(x)
-    #if np.isnan(np.sum(x)):
-    #    raise ValueError
+        #print(x)
+        #if np.isnan(np.sum(x)):
+        #    raise ValueError
 
-    if False:
-        import matplotlib.pyplot as plt
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.plot(y)
-        plt.show()
-        plt.close()
-        time.sleep(2)
-    
-    # get solution
-    fsol = y[:p.N,:]
-    psol = y[p.N:,:]
+        if False:
+            import matplotlib.pyplot as plt
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+            ax.plot(y)
+            plt.show()
+            plt.close()
+            time.sleep(2)
 
-    I = fsol + psol
-        
-    #'2h', '4h', '30min', '1h', '24h', 'control', '8h30'
-    err = 0
-    for hour in p.data_avg.keys():
+        # get solution
+        fsol = y[:p.N,:]
+        psol = y[p.N:,:]
 
-        # convert hour to index
-        if hour == 'control':
-            pass # ignore initial condition (trivial)
-        else:
-                
-            time = float(hour[:-1])
-            minute = time*60
-            idx = int(minute/p.dt)
+        I = fsol + psol
 
-            # restrict solution to observed positions
-            I_fn = interp1d(p.r,I[:,idx])
-            I_cut = I_fn(p.data_avg[hour][:,0])
+        #'2h', '4h', '30min', '1h', '24h', 'control', '8h30'
+        err = 0
+
+        for hour in p.data_avg.keys():
+
+            # convert hour to index
+            if hour == 'control':
+                pass # ignore initial condition (trivial)
+            else:
+
+                time = float(hour[:-1])
+                minute = time*60
+                idx = int(minute/p.dt)
+
+                # restrict solution to observed positions
+                I_fn = interp1d(p.r,I[:,idx])
+                I_cut = I_fn(p.data_avg[hour][:,0])
+
+                data = p.data_avg[hour][:,1]
+                err += np.linalg.norm(data[1:-1]-I_cut[1:-1])**2
+
             
-            data = p.data_avg[hour][:,1]
-            err += np.linalg.norm(data[1:-1]-I_cut[1:-1])**2
+        if ss_condition:
+            if 1e5*np.linalg.norm(I[:,int(1200/p.dt)]-I[:,int(1440/p.dt)])**2 > 1e-10:
+                err_new = 1e5
+
 
     #err_log = np.log10(err)
     if np.isnan(err):
         err_old = 1e5
         err_new = 1e5
     else:
-        err_old = err*1e5
+        err_old = err
         err_new = np.log10(err)
     #err2 = err
-    
-    if ss_condition:
-        if 1e5*np.linalg.norm(I[:,int(1200/p.dt)]-I[:,int(1440/p.dt)])**2 > 1e-10:
-            err_new = 1e5
 
     stdout = [err_old,err_new,p.eps,p.df,p.dp]
     s1 = 'err_old={:.4f}, err_new(log)={:.4f}, eps={:.4f}, '\
@@ -163,9 +169,10 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
             scenario,uconst)
 
     if method == 'annealing':
+        
         res = dual_annealing(cost_fn,bounds=bounds,args=args,
-                             visit=3,restart_temp_ratio=1e-07,
-                             initial_temp=6e3,accept=-5,seed=seed,
+                             visit=2.9,restart_temp_ratio=1e-07,
+                             initial_temp=6e4,accept=-5,seed=seed,
                              maxiter=5000,maxfun=1e8,
                              local_search_options={'method':'Nelder-Mead','bounds':bounds})
                              #local_search_options={'nan_policy':'omit'})
@@ -285,7 +292,7 @@ def main():
 
     elif args.scenario == 't1e':
         par_names=['eps','dp']
-        bounds = [(0,.05),(0,args.dmax)]
+        bounds = [(0,.02),(0,args.dmax)]
         init = [0,.01]
         parfix = {'df':0,'us0':0}
 
