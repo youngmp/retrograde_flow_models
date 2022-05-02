@@ -8,11 +8,12 @@ import numpy as np
 def data_dir():
     return 'data/'
 
-def get_parameter_fname(model,seed,err=False):
+def get_parameter_fname(model,seed,err=False,method=''):
     """
     get file name for parameters
     err: return filename for error
     """
+    
     fname_pre = 'data/'+model+'_residuals'
 
     if model == 't1a':
@@ -34,7 +35,6 @@ def get_parameter_fname(model,seed,err=False):
     elif model == 't2c':
         fname_pre+='_umax=4.0_dmax=20.0'
     elif model == 't2d':
-        #fname_pre+='_umax=2.0_dmax=100.0'
         fname_pre+='_umax=4.0_dmax=200.0'
 
     elif model == 'jamminga':
@@ -46,15 +46,22 @@ def get_parameter_fname(model,seed,err=False):
     elif model == 'jammingd':
         fname_pre+='_umax=4.0_dmax=20.0'
 
-    if err:
-        fname = fname_pre + '_seed='+str(seed)+'_method=de_ss_err.txt'
+    fname_pre += '_seed='+str(seed)
+
+    if method == '':
+        pass
     else:
-        fname = fname_pre + '_seed='+str(seed)+'_method=de_ss.txt'
+        fname_pre += '_method='+str(method)
+
+    if err:
+        fname = fname_pre + '_ss_err.txt'
+    else:
+        fname = fname_pre + '_ss.txt'
 
     return fname
 
 
-def lowest_error_seed(model='t1e'):
+def lowest_error_seed(model='t1e',method=''):
     """
     given a model, search over all seeds to find seed with lowest error
     for now, seeds go from 0 to 9.
@@ -65,7 +72,7 @@ def lowest_error_seed(model='t1e'):
     min_seed = 10
     
     for i in range(10):
-        fname = get_parameter_fname(model,i,err=True)
+        fname = get_parameter_fname(model,i,err=True,method=method)
         
         err_model = np.loadtxt(fname)
 
@@ -76,7 +83,7 @@ def lowest_error_seed(model='t1e'):
     return err, min_seed
 
 
-def load_pars(model,seed):
+def load_pars(model,seed,method=''):
     """
     load residuals found from annealing
     use zero seed for now
@@ -136,7 +143,7 @@ def load_pars(model,seed):
         elif scenario == 'd':
             par_names = ['eps','imax','us0','dp']
 
-    res = np.loadtxt(get_parameter_fname(model,seed))
+    res = np.loadtxt(get_parameter_fname(model,seed,False,method))
     
     for i,key in enumerate(par_names):
         pars[key] = res[i]
