@@ -15,12 +15,14 @@ fsizelabel = 13
 fsizetitle = 13
 #tight_layout_pad =  0
 
+import model_fitting as mf
 import sensitivity as sv
 import pde
 import lib
 import copy
 import numpy as np
 
+from scipy.interpolate import interp1d
 import os
 import multiprocessing
 
@@ -565,7 +567,7 @@ def velocity():
     return fig    
     
 
-def solution(model='t1e',rep=False):
+def solution(model='t1e',rep=False,method=''):
     """
     plot simulation data
     including intermediate comparisons
@@ -573,13 +575,10 @@ def solution(model='t1e',rep=False):
 
     import matplotlib.pyplot as plt
 
-    err, seed = lib.lowest_error_seed(model)
+    err, seed = lib.lowest_error_seed(model,method=method)
     
-    pars = lib.load_pars(model,seed)
+    pars = lib.load_pars(model,seed,method)
     print(model,seed,pars)
-
-    #pars['dt']=0.05
-    #print(model,'starting pars',pars,'best seed =',seed)
 
     if rep:
         pass
@@ -657,7 +656,7 @@ def solution(model='t1e',rep=False):
             #print(model,seed_idx,seed)
             if seed_idx not in [seed]:
 
-                pars = lib.load_pars(model,seed_idx)
+                pars = lib.load_pars(model,seed_idx,method)
                 #print(model,seed_idx,pars)
                 p2 = pde.PDEModel(**pars)
                 p2._run_euler(model)
@@ -739,8 +738,6 @@ def cost_function(recompute=False):
 
     
     boundary_idxs = np.where(np.abs(np.diff(Z3,axis=0))>1e4)
-
-    
     
     # limit Z data in eps
     eps_mask = eps2 < 0.35
@@ -828,13 +825,66 @@ def cost_function(recompute=False):
     return fig
     #plt.show()
 
+def rss(p,I):
+    """
+    return RSS of only the initial function scaled by \ve
+    """
+    err = 0
+    for hour in p.data_avg.keys():
 
+        # convert hour to index
+        if hour == 'control':
+            pass # ignore initial condition (trivial)
+        else:
+            # restrict solution to observed positions
+            I_fn = interp1d(p.r,I)
+            I_cut = I_fn(p.data_avg[hour][:,0])
+
+            data = p.data_avg[hour][:,1]
+            err += np.linalg.norm(data[1:-1]-I_cut[1:-1])**2
+            
+    return err
+
+def proof_c():
+    """
+    show RSS(ve I_0) < RSS(I_0)
+    """
+    
+    import matplotlib.pyplot as plt
+
+    fig = plt.figure(figsize=(6,3))
+    ax = fig.add_subplot(111)
+    # get initial data
+    p = pde.PDEModel()
+    i0 = p.control_fn_avg
+    
+    ves = np.linspace(0,1,100)
+    rss_vals = np.zeros_like(ves)
+
+    for i,ve in enumerate(ves):
+        rss_vals[i] = rss(p,ve*i0(p.r))
+    
+    ax.plot(ves,rss_vals,color='k')
+    ax.scatter(ves[-1],rss_vals[-1],zorder=10,clip_on=False,color='tab:red')
+
+    ax.annotate(r'$\text{RSS}(\tilde I_0)$',xy=(ves[-1],rss_vals[-1]),xytext=(.8,.4),textcoords='axes fraction',arrowprops=dict(arrowstyle='->,head_length=0.5,head_width=0.3',connectionstyle='angle3,angleA=-35,angleB=90'),size=fsizelabel)
+
+    ax.set_xlabel(r'$\varepsilon$',size=fsizelabel)
+    ax.set_ylabel(r'$\text{RSS}(\varepsilon\tilde I_0)$',size=fsizelabel)
+
+    ax.tick_params(axis='both',labelsize=fsizetick)
+    ax.set_xlim(ves[0],ves[-1])
+    #ax.set_ylim(rss_vals[0],rss_vals[-1])
+
+    plt.tight_layout()
+
+    return fig
+    
 def generate_figure(function, args, filenames, title="", title_pos=(0.5,0.95)):
     """
     code taken from Shaw et al 2012 code
     """
-    
-    #tempfile._name_sequence = None
+
     fig = function(*args)
     fig.text(title_pos[0], title_pos[1], title, ha='center')
     
@@ -844,8 +894,24 @@ def generate_figure(function, args, filenames, title="", title_pos=(0.5,0.95)):
     else:
         fig.savefig(filenames)
 
+def f_sol_names(model,method):
+    """
+    return list of fnames
+    model: t1a -- jammingd
+    """
+    
+    fname_pre = 'figs/f_sol_'+str(model)
+    if method == '':
+        pass
+    else:
+        fname_pre += '_method='+str(method)
+    
+    return [fname_pre+'.png',fname_pre+'.pdf']
+        
 def main():
 
+    method = 'de'
+    
     figures = [
         #(experiment_figure, [], ['f_experiment.png','f_experiment.pdf']),
         #(data_figure, [], ['f_data.png','f_data.pdf']),
@@ -855,23 +921,25 @@ def main():
 
         #(cost_function, [], ['f_cost_function.png','f_cost_function.pdf']),
         
-        #(solution,['t1a'],['f_sol_t1a.png','f_sol_t1a.pdf']),
-        #(solution,['t1b'],['f_sol_t1b.png','f_sol_t1b.pdf']),
-        (solution,['t1c'],['f_sol_t1c.png','f_sol_t1c.pdf']),
-        #(solution,['t1d'],['f_sol_t1d.png','f_sol_t1d.pdf']),
-        #(solution,['t1e'],['f_best_sol.png','f_best_sol.pdf','f_sol_t1e.png','f_sol_t1e.pdf']),
+        (solution,['t1a',False,method],f_sol_names('t1a',method)),
+        (solution,['t1b',False,method],f_sol_names('t1b',method)),
+        (solution,['t1c',False,method],f_sol_names('t1c',method)),
+        (solution,['t1d',False,method],f_sol_names('t1d',method)),
+        #(solution,['t1e',False,method],['f_best_sol'+str(method)+'.png','f_best_sol'+str(method)+'.pdf','f_sol_t1e'+str(method)+'.png','f_sol_t1e'+str(method)+'.pdf']),
        
-        #(solution,['t2a'],['f_sol_t2a.png','f_sol_t2a.pdf']),
-        #(solution,['t2b'],['f_sol_t2b.png','f_sol_t2b.pdf']),
-        #(solution,['t2c'],['f_sol_t2c.png','f_sol_t2c.pdf']),
-        #(solution,['t2d'],['f_sol_t2d.png','f_sol_t2d.pdf']),
+        #(solution,['t2a',False,method],['f_sol_t2a'+str(method)+'.png','f_sol_t2a'+str(method)+'.pdf']),
+        #(solution,['t2b',False,method],['f_sol_t2b'+str(method)+'.png','f_sol_t2b'+str(method)+'.pdf']),
+        #(solution,['t2c',False,method],['f_sol_t2c'+str(method)+'.png','f_sol_t2c'+str(method)+'.pdf']),
+        #(solution,['t2d',False,method],['f_sol_t2d'+str(method)+'.png','f_sol_t2d'+str(method)+'.pdf']),
        
-        #(solution,['jamminga'],['f_sol_ja.png','f_sol_ja.pdf']),
-        #(solution,['jammingb'],['f_sol_jb.png','f_sol_jb.pdf']),
-        #(solution,['jammingc'],['f_sol_jc.png','f_sol_jc.pdf']),
-        #(solution,['jammingd'],['f_sol_jd.png','f_sol_jd.pdf']),
+        #(solution,['jamminga',False,method],['f_sol_ja'+str(method)+'.png','f_sol_ja'+str(method)+'.pdf']),
+        #(solution,['jammingb',False,method],['f_sol_jb'+str(method)+'.png','f_sol_jb'+str(method)+'.pdf']),
+        #(solution,['jammingc',False,method],['f_sol_jc'+str(method)+'.png','f_sol_jc'+str(method)+'.pdf']),
+        #(solution,['jammingd',False,method],['f_sol_jd'+str(method)+'.png','f_sol_jd'+str(method)+'.pdf']),
 
-        #(solution,['t1e',True],['f_validation.png','f_validation.pdf']),
+        #(solution,['t1e',True,method],['f_validation'+str(method)+'.png','f_validation'+str(method)+'.pdf']),
+
+        #(proof_c,[],['f_proof_c.png','f_proof_c.pdf'])
         ]
 
     # multiprocessing code from Kendrick Shaw
