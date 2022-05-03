@@ -456,8 +456,10 @@ class PDEModel(Data):
         if rep:
             #y0[:self.N] = self.control_fn(self.r)*self.eps
             #y0[self.N:] = self.control_fn(self.r)*(1-self.eps)
-            y0[:self.N] = self.data_rep_fns['control'](self.r)*self.eps
-            y0[self.N:] = self.data_rep_fns['control'](self.r)*(1-self.eps)
+            #y0[:self.N] = self.data_rep_fns['control'](self.r)*self.eps
+            #y0[self.N:] = self.data_rep_fns['control'](self.r)*(1-self.eps)
+            y0[:self.N] = self.control_fn_rep(self.r)*self.eps
+            y0[self.N:] = self.control_fn_rep(self.r)*(1-self.eps)
         else:
             y0[:self.N] = self.control_fn_avg(self.r)*self.eps
             y0[self.N:] = self.control_fn_avg(self.r)*(1-self.eps)
