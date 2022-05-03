@@ -173,8 +173,8 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
         res = dual_annealing(cost_fn,bounds=bounds,args=args,
                              visit=2.75,restart_temp_ratio=1e-07,
                              initial_temp=6e4,accept=-5,seed=seed,
-                             maxiter=5000,maxfun=1e8,
-                             local_search_options={'method':'Nelder-Mead','bounds':bounds})
+                             maxiter=5000,maxfun=1e8)
+                             #local_search_options={'method':'Nelder-Mead','bounds':bounds})
                              #local_search_options={'nan_policy':'omit'})
         
     elif method == 'de':
