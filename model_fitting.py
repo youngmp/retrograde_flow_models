@@ -95,7 +95,7 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
 
             
         if ss_condition:
-            if np.linalg.norm(I[:,int(1200/p.dt)]-I[:,int(1440/p.dt)])**2 > 1e-10:
+            if np.linalg.norm(I[:,int(1200/p.dt)]-I[:,int(1440/p.dt)])**2 > 1e-12:
                 err_new = 1e5
 
 
