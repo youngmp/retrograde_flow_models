@@ -597,13 +597,19 @@ def solution(model='t1e',rep=False,method=''):
     nrows = 3
     ncols = 2
 
-    fig,axs = plt.subplots(nrows=3,ncols=5,figsize=(8,6),
+    if rep:
+        ncols = 6
+        keys_list = ['control','1h','2h', '4h','8.5h', '24h']
+    else:
+        ncols = 5
+        keys_list = ['control','2h', '4h','8.5h', '24h']
+    fig,axs = plt.subplots(nrows=3,ncols=ncols,figsize=(8,6),
                            gridspec_kw={'wspace':0.1,'hspace':0},
                            sharey='all')
     
     # keys list sorted manually for now.
     #keys_list = ['control', '0.5h', '1h', '2h', '4h', '8.5h', '24h']
-    keys_list = ['control','2h', '4h','8.5h', '24h']
+    
 
     # plot best solution
     for i,hour in enumerate(keys_list):
@@ -746,11 +752,16 @@ def cost_function(recompute=False):
     
     
     Z_fail_ss = np.zeros_like(Z_no_ss)
+    Z_u_undef = np.zeros_like(Z_no_ss)+np.nan
 
     # force 0 values to be nan (cost function returns 0 if solutions return nan)
     nan_idxs = np.where(Z_no_ss==0)
     Z_no_ss[nan_idxs] = np.nan; Z_fail_ss[nan_idxs] = np.nan
     Z_no_ss = np.exp(Z_no_ss)
+    
+    nan2_idxs = np.where(np.isnan(Z_no_ss))
+    Z_u_undef[np.where(np.isnan(Z_no_ss))] = 0
+    
     
     bdy_idx_x = []
     bdy_idx_y = []
@@ -780,6 +791,7 @@ def cost_function(recompute=False):
     maxval = np.amax([np.nanmax(Z_no_ss),np.nanmax(Z_fail_ss)])
     minval = np.amin([np.nanmin(Z_no_ss),np.nanmin(Z_fail_ss)])
 
+    #cax1 = axs.pcolormesh(eps2,dps2,Z_u_undef,color='k')
     cax2 = axs.pcolormesh(eps2,dps2,Z_no_ss,vmin=minval,vmax=maxval)
     cax3 = axs.pcolormesh(eps2,dps2,Z_fail_ss,vmin=minval,vmax=maxval,alpha=.9)
     #cax3 = axs.pcolormesh(eps3,dps3,np.diff(Z3,axis=0))
@@ -808,9 +820,7 @@ def cost_function(recompute=False):
     
     props = dict(boxstyle='round', facecolor='white', alpha=0.8)
     axs.text(0.35, 0.1, 'Steady-State Condition Fails', transform=axs.transAxes, fontsize=14,
-             
-            ha='center', bbox=props)
-
+             ha='center', bbox=props)
     
     cbar = fig.colorbar(cax2); cbar.ax.tick_params(labelsize=fsizetick)
     #cbar = fig.colorbar(cax3)
@@ -919,25 +929,26 @@ def main():
         #(solution_schematic, [], ['f_solution_schematic.png','f_solution_schematic.pdf']),
         #(velocity, [], ['f_velocity.png','f_velocity.pdf']),
 
-        #(cost_function, [], ['f_cost_function.png','f_cost_function.pdf']),
+        #(cost_function, [], ['figs/f_cost_function.png','figs/f_cost_function.pdf']),
         
-        (solution,['t1a',False,method],f_sol_names('t1a',method)),
-        (solution,['t1b',False,method],f_sol_names('t1b',method)),
-        (solution,['t1c',False,method],f_sol_names('t1c',method)),
-        (solution,['t1d',False,method],f_sol_names('t1d',method)),
-        #(solution,['t1e',False,method],['f_best_sol'+str(method)+'.png','f_best_sol'+str(method)+'.pdf','f_sol_t1e'+str(method)+'.png','f_sol_t1e'+str(method)+'.pdf']),
+        #(solution,['t1a',False,method],f_sol_names('t1a',method)),
+        #(solution,['t1b',False,method],f_sol_names('t1b',method)),
+        #(solution,['t1c',False,method],f_sol_names('t1c',method)),
+        #(solution,['t1d',False,method],f_sol_names('t1d',method)),
+        
+        #(solution,['t1e',False,''],['figs/f_best_sol'+str(method)+'.png','figs/f_best_sol'+str(method)+'.pdf','figs/f_sol_t1e'+str(method)+'.png','figs/f_sol_t1e'+str(method)+'.pdf']),
        
-        #(solution,['t2a',False,method],['f_sol_t2a'+str(method)+'.png','f_sol_t2a'+str(method)+'.pdf']),
-        #(solution,['t2b',False,method],['f_sol_t2b'+str(method)+'.png','f_sol_t2b'+str(method)+'.pdf']),
-        #(solution,['t2c',False,method],['f_sol_t2c'+str(method)+'.png','f_sol_t2c'+str(method)+'.pdf']),
-        #(solution,['t2d',False,method],['f_sol_t2d'+str(method)+'.png','f_sol_t2d'+str(method)+'.pdf']),
-       
-        #(solution,['jamminga',False,method],['f_sol_ja'+str(method)+'.png','f_sol_ja'+str(method)+'.pdf']),
-        #(solution,['jammingb',False,method],['f_sol_jb'+str(method)+'.png','f_sol_jb'+str(method)+'.pdf']),
-        #(solution,['jammingc',False,method],['f_sol_jc'+str(method)+'.png','f_sol_jc'+str(method)+'.pdf']),
-        #(solution,['jammingd',False,method],['f_sol_jd'+str(method)+'.png','f_sol_jd'+str(method)+'.pdf']),
+        #(solution,['t2a',False,method],f_sol_names('t2a',method)),
+        #(solution,['t2b',False,method],f_sol_names('t2b',method)),
+        #(solution,['t2c',False,method],f_sol_names('t2c',method)),
+        #(solution,['t2d',False,method],f_sol_names('t2d',method)),
 
-        #(solution,['t1e',True,method],['f_validation'+str(method)+'.png','f_validation'+str(method)+'.pdf']),
+        #(solution,['jamminga',False,method],f_sol_names('jamminga',method)),
+        #(solution,['jammingb',False,method],f_sol_names('jammingb',method)),
+        #(solution,['jammingc',False,method],f_sol_names('jammingc',method)),
+        #(solution,['jammingd',False,method],f_sol_names('jammingd',method)),
+
+        (solution,['t1e',True,method],['figs/f_validation.png','figs/f_validation.pdf']),
 
         #(proof_c,[],['f_proof_c.png','f_proof_c.pdf'])
         ]
