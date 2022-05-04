@@ -45,71 +45,63 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
         #print(par_names[i],val)
         setattr(p,par_names[i],val)
 
-    if np.isnan(np.sum(x)):
-        err = 1e5
-    else:
-        TN = int(p.T/p.dt)
 
-        p._run_euler(scenario)
-        y = p.y
+    TN = int(p.T/p.dt)
 
-        #print(x)
-        #if np.isnan(np.sum(x)):
-        #    raise ValueError
+    p._run_euler(scenario)
+    y = p.y
 
-        if False:
-            import matplotlib.pyplot as plt
-            fig = plt.figure()
-            ax = fig.add_subplot(111)
-            ax.plot(y)
-            plt.show()
-            plt.close()
-            time.sleep(2)
+    #print(x)
+    #if np.isnan(np.sum(x)):
+    #    raise ValueError
 
-        # get solution
-        fsol = y[:p.N,:]
-        psol = y[p.N:,:]
+    if False:
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(y)
+        plt.show()
+        plt.close()
+        time.sleep(2)
 
-        I = fsol + psol
+    # get solution
+    fsol = y[:p.N,:]
+    psol = y[p.N:,:]
 
-        #'2h', '4h', '30min', '1h', '24h', 'control', '8h30'
-        err = 0
+    I = fsol + psol
 
-        for hour in p.data_avg.keys():
+    #'2h', '4h', '30min', '1h', '24h', 'control', '8h30'
+    err = 0
 
-            # convert hour to index
-            if hour == 'control':
-                pass # ignore initial condition (trivial)
-            else:
+    for hour in p.data_avg.keys():
 
-                time = float(hour[:-1])
-                minute = time*60
-                idx = int(minute/p.dt)
+        # convert hour to index
+        if hour == 'control':
+            pass # ignore initial condition (trivial)
+        else:
 
-                # restrict solution to observed positions
-                I_fn = interp1d(p.r,I[:,idx])
-                I_cut = I_fn(p.data_avg[hour][:,0])
+            time = float(hour[:-1])
+            minute = time*60
+            idx = int(minute/p.dt)
 
-                data = p.data_avg[hour][:,1]
-                err += np.linalg.norm(data[1:-1]-I_cut[1:-1])**2
+            # restrict solution to observed positions
+            I_fn = interp1d(p.r,I[:,idx])
+            I_cut = I_fn(p.data_avg[hour][:,0])
 
-            
-        if ss_condition:
-            if np.linalg.norm(I[:,int(1200/p.dt)]-I[:,int(1440/p.dt)])**2 > 1e-12:
-                err_new = 1e5
+            data = p.data_avg[hour][:,1]
+            err += np.linalg.norm(data[1:-1]-I_cut[1:-1])**2
 
+    err = np.log10(err)
+    if ss_condition:
+        if np.linalg.norm(I[:,int(1200/p.dt)]-I[:,int(1440/p.dt)])**2 > 1e-10:
+            err = 1e5
 
     #err_log = np.log10(err)
     if np.isnan(err):
-        err_old = 1e5
-        err_new = 1e5
-    else:
-        err_old = err
-        err_new = np.log10(err)
-    #err2 = err
+        err = 1e5
 
-    stdout = [err_old,err_new,p.eps,p.df,p.dp]
-    s1 = 'err_old={:.4f}, err_new(log)={:.4f}, eps={:.4f}, '\
+    stdout = [np.exp(err),err,p.eps,p.df,p.dp]
+    s1 = 'err={:.4f}, log(err)={:.4f}, eps={:.4f}, '\
         +'d_f={:.4f}, dp={:.4f}'
 
     if psource:
@@ -135,7 +127,7 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
 
     #print(s1,stdout)
     print(s1.format(*stdout))
-    return err_new
+    return err
 
 def get_data_residuals(p,par_names=['eps','df','dp'],
                        bounds=[(0,1),(0,100),(0,100)],
