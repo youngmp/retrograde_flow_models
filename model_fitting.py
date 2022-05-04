@@ -100,8 +100,8 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
     if np.isnan(err):
         err = 1e5
 
-    stdout = [np.exp(err),err,p.eps,p.df,p.dp]
-    s1 = 'err={:.4f}, log(err)={:.4f}, eps={:.4f}, '\
+    stdout = [err,p.eps,p.df,p.dp]
+    s1 = 'log(err)={:.4f}, eps={:.4f}, '\
         +'d_f={:.4f}, dp={:.4f}'
 
     if psource:
