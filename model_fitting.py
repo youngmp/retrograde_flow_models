@@ -170,7 +170,7 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
                              #local_search_options={'nan_policy':'omit'})
         
     elif method == 'de':
-        res = differential_evolution(cost_fn,bounds=bounds,args=args,tol=1e-4)
+        res = differential_evolution(cost_fn,bounds=bounds,args=args,tol=1e-5)
         
     elif method == 'bh':
         minimizer_kwargs = {"method": "Powell",'bounds':bounds,'args':args}
