@@ -1,4 +1,5 @@
 import matplotlib as mpl
+
 #from matplotlib import rc
 #mpl.rc('text',usetex=True)
 #mpl.rc('font',family='serif', serif=['Computer Modern Roman'])
@@ -15,6 +16,8 @@ fsizelabel = 13
 fsizetitle = 13
 #tight_layout_pad =  0
 
+from matplotlib.patches import Rectangle
+
 import model_fitting as mf
 import sensitivity as sv
 import pde
@@ -25,6 +28,8 @@ import numpy as np
 from scipy.interpolate import interp1d
 import os
 import multiprocessing
+
+
 
 def experiment_figure():
     """
@@ -502,11 +507,12 @@ def velocity():
     #gs = GridSpec(2, 2)
     #gs.update()
 
-    ax1 = fig.add_subplot(gs[:,0])
+    ax1 = fig.add_subplot(gs[0,0])
     ax2 = fig.add_subplot(gs[0,1])
-    ax3 = fig.add_subplot(gs[1,1])
+    ax3 = fig.add_subplot(gs[1,0])
+    ax4 = fig.add_subplot(gs[1,1])
 
-    axs = [ax1,ax2,ax3]
+    axs = [ax1,ax2,ax3,ax4]
 
     nrows=2;ncols=2
     #fig,axs = plt.subplots(nrows=nrows,ncols=ncols,figsize=(6,4))
@@ -567,6 +573,45 @@ def velocity():
     return fig    
     
 
+def best_10_seeds(model):
+    """
+    found using google docs sheet
+    """
+    
+    if model == 't1a':
+        return [79,34,71,9,83,94,36,24,53,40,39]
+    elif model == 't1b':
+        return [69,34,84,11,8,86,43,45,12,74]
+    elif model == 't1c':
+        return [21,32,58,74,39,42,62,46,50,56]
+
+    elif model == 't1d':
+        return [65,58,28,22,10,27,76,33,20,80]
+    elif model == 't1e':
+        return [i for i in range(10)]
+    elif model == 't2a':
+        return [97,92,82,16,32,84,65,39,63,4]
+
+    elif model == 't2b':
+        return [95,89,64,41,38,49,90,84,35,23]
+    elif model == 't2c':
+        return [93,75,48,84,25,61,38,0,1,4]
+    elif model == 't2d':
+        return [93,89,59,22,81,73,84,38,95,32]
+
+    elif model == 'jamminga':
+        return [96,26,27,70,87,47,22,17,69,81]
+    elif model == 'jammingb':
+        return [56,71,26,84,64,30,34,8,41,21]
+    elif model == 'jammingc':
+        return [60,18,58,8,3,68,93,85,12,26]
+
+    elif model == 'jammingd':
+        return [22,69,29,45,11,35,25,10,96,1]
+    
+    else:
+        raise ValueError('Invalid model',model)
+
 def solution(model='t1e',rep=False,method=''):
     """
     plot simulation data
@@ -575,18 +620,16 @@ def solution(model='t1e',rep=False,method=''):
 
     import matplotlib.pyplot as plt
 
-    err, seed = lib.lowest_error_seed(model,method=method)
+    # best 10 seeds in order from best to worst
+    best_seeds = best_10_seeds(model)
+
+    seed = best_seeds[0]
+    #err, seed = lib.lowest_error_seed(model,method=method)
     
     pars = lib.load_pars(model,seed,method)
     print(model,seed,pars)
-
-    if rep:
-        pass
-        #pars.update({'L':29.5})
-        #pars['L'] = 25
-        #pars['L0'] = 10
     
-    p = pde.PDEModel(**pars)
+    p = pde.PDEModel(**pars)    
     p._run_euler(model,rep)
     
     F = p.y[:p.N,:]
@@ -607,10 +650,6 @@ def solution(model='t1e',rep=False,method=''):
                            gridspec_kw={'wspace':0.1,'hspace':0},
                            sharey='all')
     
-    # keys list sorted manually for now.
-    #keys_list = ['control', '0.5h', '1h', '2h', '4h', '8.5h', '24h']
-    
-
     # plot best solution
     for i,hour in enumerate(keys_list):
 
@@ -632,6 +671,12 @@ def solution(model='t1e',rep=False,method=''):
         
         axs[1,i].plot(p.r[:-1],F[:-1,idx],color='tab:blue')
         axs[2,i].plot(p.r[:-1],P[:-1,idx],color='tab:orange')
+
+        #axs[2,i].plot(p.r[:-1],P[:-1,int(20*60/p.dt)],color='k')
+
+        if hour == '24h':
+            
+            print(np.linalg.norm(P[:-1,int(20*60/p.dt)]-P[:-1,int(24*60/p.dt)])**2)
 
         axs[0,i].set_title(r'\SI{'+hour[:-1]+r'}{h}',size=fsizetitle)
 
@@ -658,12 +703,14 @@ def solution(model='t1e',rep=False,method=''):
 
     if not(rep):
         # plot remaining seeds
-        for seed_idx in range(10):
+        
+        for seed_idx in best_seeds:
             #print(model,seed_idx,seed)
             if seed_idx not in [seed]:
 
                 pars = lib.load_pars(model,seed_idx,method)
-                #print(model,seed_idx,pars)
+                
+                print(model,seed_idx,pars)
                 p2 = pde.PDEModel(**pars)
                 p2._run_euler(model)
 
@@ -732,8 +779,9 @@ def solution(model='t1e',rep=False,method=''):
 
 
 def cost_function(recompute=False):
-    
-    eps1,dps1,Z1 = sv.load_rss_data(recompute=recompute,ss=False)
+
+    #print()
+    #print(eps1[0],eps1[-1],dps1[0],dps1[-1])
     #eps_vals2,dp_vals2,Z2 = load_rss_data(recompute=recompute,exp=True,ne=50,nd=50,maxe=.1,mind=-2.5,maxd=-1.,ss=False)
 
     # get cost function without steady-state assumption
@@ -741,7 +789,6 @@ def cost_function(recompute=False):
 
     # get cost function with ss assumption. use this to partition figure
     eps3,dps3,Z3 = sv.load_rss_data(recompute=recompute,exp=True,ne=50,nd=50,maxe=0.4,mind=-2.5,maxd=-1.,ss=True)
-
     
     boundary_idxs = np.where(np.abs(np.diff(Z3,axis=0))>1e4)
     
@@ -749,7 +796,6 @@ def cost_function(recompute=False):
     eps_mask = eps2 < 0.35
     eps2 = eps2[eps_mask]
     Z_no_ss = Z_no_ss[:,eps_mask]
-    
     
     Z_fail_ss = np.zeros_like(Z_no_ss)
     Z_u_undef = np.zeros_like(Z_no_ss)+np.nan
@@ -761,7 +807,6 @@ def cost_function(recompute=False):
     
     nan2_idxs = np.where(np.isnan(Z_no_ss))
     Z_u_undef[np.where(np.isnan(Z_no_ss))] = 0
-    
     
     bdy_idx_x = []
     bdy_idx_y = []
@@ -778,27 +823,25 @@ def cost_function(recompute=False):
         # construct boundary line
         bdy_idx_x.append(j)
         bdy_idx_y.append(i)
-    #print(bdy_line_x)
 
     import matplotlib.pyplot as plt
     
-    fig, axs = plt.subplots(nrows=1,ncols=1,figsize=(6,4))
+    fig, axs = plt.subplots(nrows=1,ncols=2,figsize=(8,3.5),gridspec_kw={'width_ratios':[2,1]})
 
-    axs.set_yscale('log')
-    #cax1 = axs.pcolormesh(eps1,dps1,Z1)
+    axs[0].set_yscale('log')
+    #axs[1].set_yscale('log')
     totval = np.nansum(Z_no_ss+Z_fail_ss)
     
     maxval = np.amax([np.nanmax(Z_no_ss),np.nanmax(Z_fail_ss)])
     minval = np.amin([np.nanmin(Z_no_ss),np.nanmin(Z_fail_ss)])
 
     #cax1 = axs.pcolormesh(eps2,dps2,Z_u_undef,color='k')
-    cax2 = axs.pcolormesh(eps2,dps2,Z_no_ss,vmin=minval,vmax=maxval)
-    cax3 = axs.pcolormesh(eps2,dps2,Z_fail_ss,vmin=minval,vmax=maxval,alpha=.9)
+    cax2 = axs[0].pcolormesh(eps2,dps2,Z_no_ss,vmin=minval,vmax=maxval)
+    cax3 = axs[0].pcolormesh(eps2,dps2,Z_fail_ss,vmin=minval,vmax=maxval,alpha=.9)
     #cax3 = axs.pcolormesh(eps3,dps3,np.diff(Z3,axis=0))
     
-    c2 = axs.contour(eps2,dps2,Z_no_ss,colors='white')
-    c3 = axs.contour(eps2,dps2,Z_fail_ss,colors='white',levels=c2.levels,alpha=.5)
-    #axs.contour(eps1,dps1,Z1,colors='k',levels=c2.levels)
+    c2 = axs[0].contour(eps2,dps2,Z_no_ss,colors='white')
+    c3 = axs[0].contour(eps2,dps2,Z_fail_ss,colors='white',levels=c2.levels,alpha=.5)
 
 
     sorted_idx = np.argsort(bdy_idx_x)
@@ -809,27 +852,74 @@ def cost_function(recompute=False):
     x = np.append(x,eps2[np.array(bdy_idx_x)[sorted_idx][-1]+1])
     y = np.append(y,dps2[np.array(bdy_idx_y)[sorted_idx][-1]+1])
     #axs.plot(x,y,color='tab:red',lw=2)
-    axs.fill_between(x,np.zeros(len(x)),y,alpha=.3,color='tab:red',hatch='x')
+    axs[0].fill_between(x,np.zeros(len(x)),y,alpha=.3,color='tab:red',hatch='x')
 
     # show minimum
-    axs.scatter(0,0.011,color='tab:orange',marker='x',s=100,clip_on=False,lw=4,zorder=10)
+    axs[0].scatter(0,0.011,color='tab:orange',marker='x',s=100,clip_on=False,lw=4,zorder=10)
 
     # label failure regions
-    axs.text(0.85,0.5,r'$u(r)$ Undefined',rotation=90,transform=axs.transAxes,size=fsizelabel,
+    axs[0].text(0.9,0.5,r'$u(r)$ Undefined',rotation=90,transform=axs[0].transAxes,size=fsizelabel,
              ha='center',va='center')
     
     props = dict(boxstyle='round', facecolor='white', alpha=0.8)
-    axs.text(0.35, 0.1, 'Steady-State Condition Fails', transform=axs.transAxes, fontsize=14,
+    axs[0].text(0.4, 0.1, 'Steady-State Cond. Fails', transform=axs[0].transAxes, fontsize=14,
              ha='center', bbox=props)
     
-    cbar = fig.colorbar(cax2); cbar.ax.tick_params(labelsize=fsizetick)
+    cbar = fig.colorbar(cax2,ax=axs[0]); cbar.ax.tick_params(labelsize=fsizetick)
     #cbar = fig.colorbar(cax3)
-    axs.set_ylabel(r'$d_p$',size=fsizelabel)
-    axs.set_xlabel(r'$\varepsilon$',size=fsizelabel)
 
-    axs.tick_params(axis='both',labelsize=fsizetick)
 
-    axs.set_xlim(0,0.4)
+    # confidence interval
+    eps1,dps1,Z1 = sv.load_rss_data(recompute=recompute,ss=False,mind=8e-3,maxd=1.3e-2,maxe=0.02)
+    
+    eps_lo = 0
+    eps_hi = .015
+    dp_lo = .0085
+    dp_hi = .013
+
+    axs[0].add_patch(Rectangle((eps_lo,dp_lo),
+                               eps_hi-eps_lo,
+                               dp_hi-dp_lo,
+                               fc='none',ec='tab:red',zorder=1))
+
+    Z = np.exp(Z1)
+    n = 1001
+    rss0 = np.amin(Z)
+    ln_th0 = np.log(Z/n)
+    ln_th_ = np.log(rss0/n)
+
+    diff = ln_th0-ln_th_
+
+    idxs_dp = (dps1<dp_hi)&(dps1>dp_lo)
+    idxs_ep = eps1<eps_hi
+    diff1 = diff[idxs_dp,:]
+    diff2 = diff1[:,idxs_ep]
+    #print(np.shape(eps1),np.shape(dps1[idxs]),np.shape(diff[:,idxs]))
+    cax = axs[1].pcolormesh(eps1[idxs_ep],dps1[idxs_dp],diff2)
+    #axs[1].contour(eps1,dps1,diff,colors='white',levels=[5.991/n])
+    axs[1].contour(eps1,dps1,diff,colors='white',levels=[7.815/n])
+    cbar2 = fig.colorbar(cax,ax=axs[1]); cbar2.ax.tick_params(labelsize=fsizetick)
+    
+
+    #axs[1].set_yscale('log')
+    axs[0].set_xlabel(r'$\varepsilon$',size=fsizelabel)
+    axs[1].set_xlabel(r'$\varepsilon$',size=fsizelabel)
+    
+    axs[0].set_ylabel(r'$d_p$',size=fsizelabel)
+    axs[1].set_ylabel(r'$d_p$',size=fsizelabel)
+    
+
+    axs[0].tick_params(axis='both',labelsize=fsizetick)
+    axs[1].tick_params(axis='both',labelsize=fsizetick)
+
+    axs[0].set_xlim(0,0.35)
+    
+    axs[1].set_xlim(eps_lo,eps_hi)
+    axs[1].set_ylim(dp_lo,dp_hi-.00004)
+
+    axs[0].set_title('A. RSS',loc='left')
+    axs[1].set_title('B. Confidence Interval',loc='left')
+    
     
     plt.tight_layout()
     return fig
@@ -889,7 +979,275 @@ def proof_c():
     plt.tight_layout()
 
     return fig
+
+def plot_axs_split(axs_split):
+    """
+    axs: list of gridspec 
+    """
+
     
+
+    models = ['t1d','t2d','jammingd']
+    ylabels = [(r'$d_p$',r'$\bar{u}$'),(r'$d_{p_2}/d_{p_1}$',r'$\bar{u}$'),
+               (r'$d_p$',r'$I_\text{max}/u_\text{max}$')]
+    ylos = [(-2,-.4),(-.1,-.4),(-2,-.1)]
+    yhis = [(22,4.4),(1.1,4.4),(22,1.1)]
+    
+    for i in range(3):
+        axs_split[i].set_zorder(2)
+        axs_split[i].set_xlim(-.1,1.1);axs_split[i+3].set_xlim(-.1,1.1)
+        
+        axs_split[i].set_xticklabels([])
+        axs_split[i].tick_params(axis='x',direction='in')
+
+    
+    for i,model in enumerate(models):
+        #axs_split[i].plot()
+
+        errs = get_errs(model)
+
+        for seed in range(100):
+            fname = lib.get_parameter_fname(model,seed,method='de')
+            pars = np.loadtxt(fname)
+
+            color, s, zorder = get_scatter_params(errs,errs[seed])
+
+            if i == 0:
+                axs_split[i].scatter(pars[0],pars[1],color=color,s=s,zorder=zorder)
+                axs_split[i+3].scatter(pars[0],pars[2],color=color,s=s,zorder=zorder)
+
+            if i == 1:
+                axs_split[i].scatter(pars[0],pars[2]/pars[1],color=color,s=s,zorder=zorder)
+                axs_split[i+3].scatter(pars[0],pars[3],color=color,s=s,zorder=zorder)
+
+            if i == 2:
+                axs_split[i].scatter(pars[0],pars[3],color=color,s=s,zorder=zorder)
+                axs_split[i+3].scatter(pars[0],pars[1]/pars[2],color=color,s=s,zorder=zorder)
+
+
+    # set y labels. could do it above but more readable here maybe.    
+    for i in range(len(models)):
+        #i,j = idxs_plot[idx]
+        #model = idxs_model[idx]
+        model = models[i]
+
+        pars,par_names = lib.load_pars(model,0,method='de',return_names=True)
+
+        axs_split[i].set_ylim(ylos[i][0],yhis[i][0])
+        axs_split[i+3].set_ylim(ylos[i][1],yhis[i][1])
+        axs_split[i].text(-.32,0.5,ylabels[i][0],va='center',rotation=90,
+                    transform=axs_split[i].transAxes,size=fsizelabel)
+        axs_split[i+3].text(-.32,0.5,ylabels[i][1],va='center',rotation=90,
+                      transform=axs_split[i+3].transAxes,size=fsizelabel)
+
+        if i+3 > 3:
+            #print(i+3)
+            axs_split[i+3].set_xticks([0,0.5,1])
+            axs_split[i+3].set_xlabel(r'$\varepsilon$',size=fsizelabel)
+        else:
+            axs_split[i+3].axes.get_xaxis().set_visible(False)
+
+                
+    return axs_split
+
+
+def get_scatter_params(errs,err):
+    """
+    return scatter plot parameters given error difference
+    """
+
+    
+    from matplotlib import cm
+    viridis = cm.get_cmap('viridis',12)
+    
+    err_min=np.amin(errs);err_max=np.amax(errs)        
+    errs_range = np.linspace(err_min,err_max,100)
+
+    cmap_val = np.linspace(0,1,100)
+            
+    #print(color_val)
+    if (err_max - err_min) < 1e-2:
+        color = viridis(.0)
+        zorder = 2
+        s = 10
+                
+    else:
+        # get min err range
+        idx2 = np.argmin(np.abs(err-errs_range))
+        color_val = cmap_val[idx2]
+
+        if np.abs(err - err_max) > np.abs(err - err_min):
+            zorder = 10
+            s = 10
+        else:
+            zorder = 2
+            s = 10
+                    
+        color = viridis(color_val*.8)
+
+    return color, s, zorder
+    
+def get_errs(model):
+    """
+    collect all rss given model
+    """
+    errs = []
+    
+    max_seed = 100
+    if model == 't1e':
+        max_seed = 10        
+    for seed in range(max_seed):
+        fname_err = lib.get_parameter_fname(model,seed,err=True,method='de')
+        
+        err = np.loadtxt(fname_err)
+        errs.append(err)
+
+    return errs
+
+def identifiability():
+    """
+    identifiable and non-id. models
+    """
+
+    from matplotlib.patches import Rectangle
+    import matplotlib.pyplot as plt
+    from matplotlib.gridspec import GridSpec
+    import matplotlib.gridspec as gridspec
+
+    from matplotlib import cm
+
+    nrows=2*5;ncols=3
+    fig = plt.figure(figsize=(8,8))
+    
+    gs = GridSpec(nrows=nrows,ncols=ncols)
+
+    # manual loop over index... easier to do this for now.
+    mechanism = ['t1','t2','jamming']
+    scenario = ['a','b','c','d','e']
+    models = [mechanism[j]+scenario[i] for i in range(int(nrows/2)) for j in range(ncols)]
+
+    del models[-1];del models[-1]
+    
+    axs = [fig.add_subplot(gs[2*i:2*i+2,j]) for i in range(int(nrows/2)) for j in range(ncols)]
+    
+    # turn off corresponding axs
+    axs[9].axis('off')
+    axs[10].axis('off')
+    axs[11].axis('off')
+
+    gs2 = gridspec.GridSpecFromSubplotSpec(2,3,subplot_spec=gs[6:8,:],hspace=0)
+    
+    # split axes scenario d
+    axs_split = [fig.add_subplot(gs2[i,j]) for i in range(2) for j in range(3)]
+    axs_split = plot_axs_split(axs_split)
+    
+    for i in range(len(models)):        
+        model = models[i]
+
+        # compile err for given model
+        errs = get_errs(model)
+        err_min=np.amin(errs);err_max=np.amax(errs)        
+        errs_range = np.linspace(err_min,err_max,100)
+        
+        # plot all
+        max_seed = 100
+        if model == 't1e':
+            max_seed = 10
+            
+        for seed in range(max_seed):
+            fname = lib.get_parameter_fname(model,seed,method='de')
+            pars = np.loadtxt(fname)
+
+            color, s, zorder = get_scatter_params(errs,errs[seed])
+
+            if i >= 9 and i <= 11:
+                pass
+            elif i >= 3 and i <= 4:
+                
+                axs[i].scatter(pars[0],pars[2],color=color,s=s,zorder=zorder)
+            else:
+                axs[i].scatter(pars[0],pars[1],color=color,s=s,zorder=zorder)
+
+    for i in range(len(axs)):
+        axs[i].set_xlim(-.1,1.1)
+        axs[i].tick_params(axis='x',direction='in')
+            
+    axs[0].set_title('T1')
+    axs[1].set_title('T2')
+    axs[2].set_title('Jamming')
+
+    # scenario label
+    for i,s in enumerate(scenario):
+        m = len(mechanism)
+        
+        axs[i*m].text(-.6,0.5,s,va='center',rotation=0,transform=axs[i*m].transAxes,
+                      size=fsizelabel+2)
+        axs[i*(m-1)].set_ylim(-.1,1.1)
+
+    # x-axis label
+    axs[-3].set_xlabel(r'$\varepsilon$',size=fsizelabel)
+    axs[-4].set_xlabel(r'$\varepsilon$',size=fsizelabel)
+    axs[-5].set_xlabel(r'$\varepsilon$',size=fsizelabel)
+
+    # remove bottom left and bottom right plots
+    axs[-1].axis('off')
+    axs[-2].axis('off')
+
+
+    # set y labels. could do it above but more readable here maybe.    
+    for i in range(len(models)):
+        #i,j = idxs_plot[idx]
+        #model = idxs_model[idx]
+        model = models[i]
+
+        pars,par_names = lib.load_pars(model,0,method='de',return_names=True)
+
+        if par_names[1] == 'df':
+            par_name = r'$d_f$';ylo=-1;yhi=21
+        elif par_names[1] == 'dp1':
+            par_name = r'$d_{p_1}$';
+            if model[-1] == 'a':
+                ylo=-1;yhi=21
+            else:
+                ylo=-10;yhi=210
+                
+        elif par_names[1] == 'dp':
+            par_name = r'$d_p$';ylo=-1;yhi=21
+        elif par_names[1] == 'imax':
+            par_name = r'$I_\text{max}$';ylo=-.1;yhi=1.1
+        elif par_names[1] == 'us0':
+            par_name = r'$\bar{u}$';ylo=-.4;yhi=4.4
+        else:
+            par_name = par_names[1]
+
+        if i >= 3 and i <= 4:
+            par_name = r'$\bar{u}$';ylo=-.4;yhi=4.4
+            
+        if i >= 9 and i <= 11:
+            pass
+        
+        else:
+            axs[i].set_ylim(ylo,yhi)
+            axs[i].text(-.32,0.5,par_name,va='center',rotation=90,
+                        transform=axs[i].transAxes,size=fsizelabel)
+
+    
+    fig.subplots_adjust(top=.95,right=.95,left=.15,bottom=0.1,hspace=.05,wspace=.4)
+
+    # highlight every other row
+    js = [3,9]
+    shift = .14
+    for j in js:
+        x0 = axs[j].axes.get_position().x0; y0 = axs[j].axes.get_position().y0
+        x1 = axs[j+2].axes.get_position().x1; y1 = axs[j].axes.get_position().y1
+        r1 = Rectangle((x0-shift,y0),(x1-x0+shift),(y1-y0),alpha=.1,color='gray',zorder=3)
+        #print(x0,y0,x1,y1)
+        fig.add_artist(r1)#Rectangle((x0,y0),(x1-x0),(y1-y0),zorder=10)
+
+
+        
+    return fig
+
 def generate_figure(function, args, filenames, title="", title_pos=(0.5,0.95)):
     """
     code taken from Shaw et al 2012 code
@@ -927,28 +1285,29 @@ def main():
         #(data_figure, [], ['f_data.png','f_data.pdf']),
         #(gaussian_fit, [], ['f_gaussian_fit.png','f_gaussian_fit.pdf']),
         #(solution_schematic, [], ['f_solution_schematic.png','f_solution_schematic.pdf']),
-        #(velocity, [], ['f_velocity.png','f_velocity.pdf']),
+        (velocity, [], ['f_velocity.png','f_velocity.pdf']),
 
         #(cost_function, [], ['figs/f_cost_function.png','figs/f_cost_function.pdf']),
+        #(identifiability,[],['figs/f_identifiability.png','figs/f_identifiability.pdf']),
         
         #(solution,['t1a',False,method],f_sol_names('t1a',method)),
         #(solution,['t1b',False,method],f_sol_names('t1b',method)),
         #(solution,['t1c',False,method],f_sol_names('t1c',method)),
         #(solution,['t1d',False,method],f_sol_names('t1d',method)),
         
-        #(solution,['t1e',False,''],['figs/f_best_sol'+str(method)+'.png','figs/f_best_sol'+str(method)+'.pdf','figs/f_sol_t1e'+str(method)+'.png','figs/f_sol_t1e'+str(method)+'.pdf']),
+        #(solution,['t1e',False,''],['figs/f_best_sol_'+str(method)+'.png','figs/f_best_sol_'+str(method)+'.pdf']),
        
         #(solution,['t2a',False,method],f_sol_names('t2a',method)),
         #(solution,['t2b',False,method],f_sol_names('t2b',method)),
         #(solution,['t2c',False,method],f_sol_names('t2c',method)),
         #(solution,['t2d',False,method],f_sol_names('t2d',method)),
 
-        #(solution,['jamminga',False,method],f_sol_names('jamminga',method)),
-        #(solution,['jammingb',False,method],f_sol_names('jammingb',method)),
-        #(solution,['jammingc',False,method],f_sol_names('jammingc',method)),
-        #(solution,['jammingd',False,method],f_sol_names('jammingd',method)),
+        #(solution,['jamminga',False,method],f_sol_names('ja',method)),
+        #(solution,['jammingb',False,method],f_sol_names('jb',method)),
+        #(solution,['jammingc',False,method],f_sol_names('jc',method)),
+        #(solution,['jammingd',False,method],f_sol_names('jd',method)),
 
-        (solution,['t1e',True,method],['figs/f_validation.png','figs/f_validation.pdf']),
+        #(solution,['t1e',True,method],['figs/f_validation.png','figs/f_validation.pdf']),
 
         #(proof_c,[],['f_proof_c.png','f_proof_c.pdf'])
         ]
