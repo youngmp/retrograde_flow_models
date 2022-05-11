@@ -411,6 +411,8 @@ def main():
 
     if args.seed == 0:
         print(par_names)
+
+    print(str(args.seed)+'\t',end="")
     for i in range(len(par_names)):
         print(str(res_arr[i])+'\t',end="")
     print(res_fun)
