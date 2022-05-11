@@ -26,7 +26,8 @@ def get_parameter_fname(model,seed,err=False,method=''):
     elif model == 't1d':
         fname_pre+='_umax=4.0_dmax=20.0'
     elif model == 't1e':
-        fname_pre+='_umax=2_dmax=5'
+        #fname_pre+='_umax=2_dmax=5'
+        fname_pre+='_umax=4.0_dmax=20.0'
     elif model == 't2a':
         fname_pre+='_umax=4.0_dmax=20.0'
 
@@ -61,29 +62,31 @@ def get_parameter_fname(model,seed,err=False,method=''):
     return fname
 
 
-def lowest_error_seed(model='t1e',method=''):
+def lowest_error_seed(model='t1e',method='',seeds=10,exclude=None):
     """
     given a model, search over all seeds to find seed with lowest error
-    for now, seeds go from 0 to 9.
     return min err and seed
     """
+    if exclude is None:
+        exclude = []
     
     err = 10
-    min_seed = 10
+    min_seed = 0
     
-    for i in range(10):
-        fname = get_parameter_fname(model,i,err=True,method=method)
-        
-        err_model = np.loadtxt(fname)
+    for i in range(seeds):
+        if not(i in exclude):
+            fname = get_parameter_fname(model,i,err=True,method=method)
 
-        if err_model < err:
-            err = err_model
-            min_seed = i
+            err_model = np.loadtxt(fname)
+
+            if err_model < err:
+                err = err_model
+                min_seed = i
 
     return err, min_seed
 
 
-def load_pars(model,seed,method=''):
+def load_pars(model,seed,method='',return_names=False):
     """
     load residuals found from annealing
     use zero seed for now
@@ -148,4 +151,25 @@ def load_pars(model,seed,method=''):
     for i,key in enumerate(par_names):
         pars[key] = res[i]
 
-    return pars
+    if return_names:
+        return pars, par_names
+    else:
+        return pars
+
+def get_seeds_below_threshold(model,threshold=0):
+    """
+    load parameter set with error below threshold
+    assume seeds go from 0-99, threshold in log(rss), method de
+    """
+
+    seedlist = []
+    
+    for seed in range(100):
+        fname = get_parameter_fname(model,seed,err=True,method='de')
+
+        err_model = np.loadtxt(fname)
+
+        if err_model < threshold:
+            seedlist.append(seed)
+            
+    return seedlist
