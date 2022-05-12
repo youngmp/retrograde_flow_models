@@ -172,7 +172,8 @@ def data_figure():
         axs[3].plot(x,y,label=label,color=color)
 
         
-    axs[0].legend(labelspacing=-.1,bbox_to_anchor=(.76,1.1))
+    axs[0].legend(labelspacing=-.1,bbox_to_anchor=(.8,.15),framealpha=1)
+    
     for i in range(4):
             
         #axs[i,j].set_xlabel(r'Radius ($\si{\um}$)',fontsize=fsizelabel)
@@ -214,7 +215,7 @@ def gaussian_fit():
 
     import matplotlib.pyplot as plt
     
-    fig, axs = plt.subplots(nrows=1,ncols=2,figsize=(6,2))
+    fig, axs = plt.subplots(nrows=2,ncols=1,figsize=(5,4))
 
     d = pde.Data(recompute=False,normed=True)
     
@@ -1289,9 +1290,9 @@ def main():
     method = 'de'
     
     figures = [
-        (experiment_figure, [], ['figs/f_experiment.png','figs/f_experiment.pdf']),
+        #(experiment_figure, [], ['figs/f_experiment.png','figs/f_experiment.pdf']),
         (data_figure, [], ['figs/f_data.png','figs/f_data.pdf']),
-        #(gaussian_fit, [], ['figs/f_gaussian_fit.png','figs/f_gaussian_fit.pdf']),
+        (gaussian_fit, [], ['figs/f_gaussian_fit.png','figs/f_gaussian_fit.pdf']),
         #(solution_schematic,[],['figs/f_solution_schematic.png','figs/f_solution_schematic.pdf']),
         #(velocity, [], ['figs/f_velocity.png','figs/f_velocity.pdf']),
 
