@@ -39,24 +39,21 @@ def experiment_figure():
     import matplotlib.image as mpimg
     from matplotlib.gridspec import GridSpec
 
-    fig = plt.figure(figsize=(5,5))
+    fig = plt.figure(figsize=(5,4))
 
-    gs = GridSpec(2,2)
+    gs = GridSpec(2,2,height_ratios=[2,1])
     
     axs = []
     axs.append(fig.add_subplot(gs[0,0]))
     axs.append(fig.add_subplot(gs[0,1]))
     axs.append(fig.add_subplot(gs[1,:]))
     
-    #fig, axs = plt.subplots(nrows=2,ncols=2)
-
     # plot cell images
     img_ctrl = mpimg.imread('i_controlmicro.png')
     img_noco = mpimg.imread('i_nocomicro.png')
 
     axs[0].imshow(img_ctrl,aspect='equal')
     axs[1].imshow(img_noco,aspect='equal')
-
 
     # show horizontal lines corresponding to data
     axs[0].plot([.5,.08],[.5,.5],transform=axs[0].transAxes,
@@ -214,8 +211,9 @@ def gaussian_fit():
     """
 
     import matplotlib.pyplot as plt
+    import matplotlib.ticker as mticker
     
-    fig, axs = plt.subplots(nrows=2,ncols=1,figsize=(5,4))
+    fig, axs = plt.subplots(nrows=1,ncols=2,figsize=(5,2))
 
     d = pde.Data(recompute=False,normed=True)
     
@@ -224,27 +222,38 @@ def gaussian_fit():
     axs[0].plot(x_data,y_data,label='Data',lw=4,color='tab:green',ls='--')
     axs[0].plot(x_data,d.control_fn_avg(x_data),label='Approx.',lw=2,color='k')
 
+    max1 = np.amax(y_data)
+    
     x_data = d.data_rep['control'][:,0]
     y_data = d.data_rep['control'][:,1]
     axs[1].plot(x_data,y_data,label='Data',lw=4,color='tab:green',ls='--')
     axs[1].plot(x_data,d.control_fn_rep(x_data),label='Approx.',lw=2,color='k')
 
     axs[0].set_xlabel(r'$r$ (\si{\um})',fontsize=fsizelabel)
-    axs[0].set_ylabel(r'Norm. Fluor. $\tilde I_0(r)$',fontsize=fsizelabel)
+    axs[0].set_ylabel(r'$\tilde I_0(r)$',fontsize=fsizelabel)
     axs[0].tick_params(axis='both',labelsize=fsizetick)
 
     axs[1].set_xlabel(r'$r$ (\si{\um})',fontsize=fsizelabel)
-    axs[1].set_ylabel(r'Norm. Fluor. $\tilde I_0(r)$',fontsize=fsizelabel)
+    axs[1].set_ylabel(r'$\tilde I_0(r)$',fontsize=fsizelabel)
     axs[1].tick_params(axis='both',labelsize=fsizetick)
-
+    
     axs[0].set_xlim(x_data[0],x_data[-1])
     axs[1].set_xlim(x_data[0],x_data[-1])
-    axs[0].legend()
+    axs[0].legend(labelspacing=-.1)
 
     axs[0].set_title("A. Average \SI{0}{h}",loc='left')
     axs[1].set_title("B. Representative \SI{0}{h}",loc='left')
 
+    #f = mticker.ScalarFormatter(useOffset=False, useMathText=True)
+    #g = lambda x,pos : '${}$'.format(f._formatSciNotation('%1.10e' % x))
+    #axs[0].yaxis.set_major_formatter(mticker.FuncFormatter(g))
+    #axs[1].yaxis.set_major_formatter(mticker.FuncFormatter(g))
+    #axs[0].ticklabel_format(axis='y',style='sci',scilimits=(0,0),useOffset=False)
+
+    #axs[0].set_ylim(0,max1+max1/10)
     plt.tight_layout()
+
+    fig.subplots_adjust(hspace=.8)
 
     return fig
 
@@ -515,7 +524,7 @@ def velocity():
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
 
-    fig = plt.figure(figsize=(6,4))
+    fig = plt.figure(figsize=(5,3.5))
     gs = GridSpec(2, 2,hspace=0.6,wspace=.8)
     #gs = GridSpec(2, 2)
     #gs.update()
@@ -560,23 +569,19 @@ def velocity():
     axs[0].set_title(r'A. Constant',loc='left',size=fsizetitle)
     axs[1].set_title(r'B.',loc='left',size=fsizetitle)
     axs[2].set_title(r'C. Spatially-Dependent',loc='left',size=fsizetitle)
-    axs[3].set_title(r'Conc. Dep. (Jamming)',loc='left',size=fsizetitle)
+    axs[3].set_title(r'Conc. Dep. (Jamming)',loc='center',size=fsizetitle)
 
+
+    fig.subplots_adjust(left=.16,right=.95,top=.93)
 
     # arrow betwen right plots
     x_start = (axs[1].get_position().x0+axs[1].get_position().x1)/2
     y_start = (axs[1].get_position().y0)-.01
     
-    plt.annotate(r'',xytext=(x_start, y_start), xy=(x_start,y_start-.1),
+    plt.annotate(r'',xytext=(x_start, y_start), xy=(x_start,y_start-.13),
                  ha='center', xycoords='figure fraction',arrowprops=dict(arrowstyle="simple,tail_width=1.4,head_width=2.3,head_length=1", color='k'))
+
     
-
-    #print(y2,y1)
-    
-    #axs[1].set_title(r'D. ?',loc='left')
-
-    #plt.tight_layout()
-
     return fig    
     
 
@@ -1291,10 +1296,11 @@ def main():
     
     figures = [
         #(experiment_figure, [], ['figs/f_experiment.png','figs/f_experiment.pdf']),
-        (data_figure, [], ['figs/f_data.png','figs/f_data.pdf']),
+        #(data_figure, [], ['figs/f_data.png','figs/f_data.pdf']),
         (gaussian_fit, [], ['figs/f_gaussian_fit.png','figs/f_gaussian_fit.pdf']),
-        #(solution_schematic,[],['figs/f_solution_schematic.png','figs/f_solution_schematic.pdf']),
         #(velocity, [], ['figs/f_velocity.png','figs/f_velocity.pdf']),
+        #(solution_schematic,[],['figs/f_solution_schematic.png','figs/f_solution_schematic.pdf']),
+        
 
         #(cost_function, [], ['figs/f_cost_function.png','figs/f_cost_function.pdf']),
         #(identifiability,[],['figs/f_identifiability.png','figs/f_identifiability.pdf']),
