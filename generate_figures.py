@@ -71,9 +71,9 @@ def experiment_figure():
 
 
     # labels, axis tweaks
-    axs[0].set_title(r'A. \SI{0}{h}',loc='left',size=fsizetitle)
-    axs[1].set_title(r'B. \SI{24}{h}',loc='left',size=fsizetitle)
-    axs[2].set_title(r'C.',loc='left',size=fsizetitle)
+    axs[0].set_title(r'(a) \SI{0}{h}',loc='left',size=fsizetitle)
+    axs[1].set_title(r'(b) \SI{24}{h}',loc='left',size=fsizetitle)
+    axs[2].set_title(r'(c)',loc='left',size=fsizetitle)
 
     axs[2].set_xlabel(r'Radius ($\si{\um}$)',fontsize=fsizelabel)
 
@@ -186,9 +186,9 @@ def data_figure():
         axs[i].xaxis.labelpad=0
 
 
-    axs[0].set_title('A. Representative',loc='left',size=fsizetitle,y=.95)
-    axs[1].set_title('B. Average',loc='left',size=fsizetitle,y=.95)
-    axs[2].set_title('C. Representative (Normalized)',loc='left',size=fsizetitle,y=.95)
+    axs[0].set_title('(a) Representative',loc='left',size=fsizetitle,y=.95)
+    axs[1].set_title('(b) Average',loc='left',size=fsizetitle,y=.95)
+    axs[2].set_title('(c) Representative (Normalized)',loc='left',size=fsizetitle,y=.95)
     axs[3].set_title(r'\textbf{D. Average (Normalized)}',loc='left',size=fsizetitle,y=.95)
     
     axs[0].set_ylabel('Fluor. Intensity',fontsize=fsizelabel)
@@ -241,8 +241,8 @@ def gaussian_fit():
     axs[1].set_xlim(x_data[0],x_data[-1])
     axs[0].legend(labelspacing=-.1)
 
-    axs[0].set_title("A. Average \SI{0}{h}",loc='left')
-    axs[1].set_title("B. Representative \SI{0}{h}",loc='left')
+    axs[0].set_title("(a) Average \SI{0}{h}",loc='left')
+    axs[1].set_title("(b) Representative \SI{0}{h}",loc='left')
 
     #f = mticker.ScalarFormatter(useOffset=False, useMathText=True)
     #g = lambda x,pos : '${}$'.format(f._formatSciNotation('%1.10e' % x))
@@ -314,10 +314,10 @@ def solution_schematic():
     #axs[2,0].text((L+L0)/2,2.7,'Initial',ha='center',size=15)
     axs[3,0].text((L+L0)/2,2.7,'',ha='center',size=15)
 
-    plt.text(.12,.94,"A.",transform=fig.transFigure,size=fsizetitle)
-    plt.text(.12,.83,"B.",transform=fig.transFigure,size=fsizetitle)
+    plt.text(.12,.94,"(a)",transform=fig.transFigure,size=fsizetitle)
+    plt.text(.12,.83,"(b)",transform=fig.transFigure,size=fsizetitle)
     
-    axs[2,0].set_title(r'C. Initial ($t=0$)',loc='left',size=fsizetitle)
+    axs[2,0].set_title(r'(c) Initial ($t=0$)',loc='left',size=fsizetitle)
     axs[3,0].set_title(r'D. $t>0$',loc='left',size=fsizetitle)
     axs[4,0].set_title(r'E. Steady-State ($t\rightarrow \infty$)',loc='left',size=fsizetitle)
     
@@ -566,9 +566,9 @@ def velocity():
     axs[2].set_ylabel(r'Velocity $u(r)$',size=fsizelabel)
     axs[3].set_ylabel(r'Velocity $u(I(r,t))$',size=fsizelabel)
     
-    axs[0].set_title(r'A. Constant',loc='left',size=fsizetitle)
-    axs[1].set_title(r'B.',loc='left',size=fsizetitle)
-    axs[2].set_title(r'C. Spatially-Dependent',loc='left',size=fsizetitle)
+    axs[0].set_title(r'(a) Constant',loc='left',size=fsizetitle)
+    axs[1].set_title(r'(b)',loc='left',size=fsizetitle)
+    axs[2].set_title(r'(c) Spatially-Dependent',loc='left',size=fsizetitle)
     axs[3].set_title(r'Conc. Dep. (Jamming)',loc='center',size=fsizetitle)
 
 
@@ -784,8 +784,8 @@ def solution(model='t1e',rep=False,method=''):
         ax_u.tick_params(axis='both',labelsize=fsizetick)
         ax_u.set_ylim(0,.1)
 
-        plt.text(.04,.96,"A.",transform=fig.transFigure,size=fsizetitle)
-        plt.text(.04,.3,"B.",transform=fig.transFigure,size=fsizetitle)
+        plt.text(.04,.96,"(a)",transform=fig.transFigure,size=fsizetitle)
+        plt.text(.04,.3,"(b)",transform=fig.transFigure,size=fsizetitle)
 
     return fig
 
@@ -929,8 +929,8 @@ def cost_function(recompute=False):
     axs[1].set_xlim(eps_lo,eps_hi)
     axs[1].set_ylim(dp_lo,dp_hi-.00004)
 
-    axs[0].set_title('A. RSS',loc='left')
-    axs[1].set_title('B. Confidence Interval',loc='left')
+    axs[0].set_title('(a) RSS',loc='left')
+    axs[1].set_title('(b) Confidence Interval',loc='left')
     
     
     plt.tight_layout()
@@ -1295,10 +1295,10 @@ def main():
     method = 'de'
     
     figures = [
-        #(experiment_figure, [], ['figs/f_experiment.png','figs/f_experiment.pdf']),
-        #(data_figure, [], ['figs/f_data.png','figs/f_data.pdf']),
+        (experiment_figure, [], ['figs/f_experiment.png','figs/f_experiment.pdf']),
+        (data_figure, [], ['figs/f_data.png','figs/f_data.pdf']),
         (gaussian_fit, [], ['figs/f_gaussian_fit.png','figs/f_gaussian_fit.pdf']),
-        #(velocity, [], ['figs/f_velocity.png','figs/f_velocity.pdf']),
+        (velocity, [], ['figs/f_velocity.png','figs/f_velocity.pdf']),
         #(solution_schematic,[],['figs/f_solution_schematic.png','figs/f_solution_schematic.pdf']),
         
 
