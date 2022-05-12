@@ -37,9 +37,18 @@ def experiment_figure():
     """
     import matplotlib.pyplot as plt
     import matplotlib.image as mpimg
+    from matplotlib.gridspec import GridSpec
 
+    fig = plt.figure(figsize=(4,4))
+
+    gs = GridSpec(2,2)
     
-    fig, axs = plt.subplots(nrows=1,ncols=3,figsize=(8,2))
+    axs = []
+    axs.append(fig.add_subplot(gs[0,0]))
+    axs.append(fig.add_subplot(gs[0,1]))
+    axs.append(fig.add_subplot(gs[1,:]))
+    
+    #fig, axs = plt.subplots(nrows=2,ncols=2)
 
     # plot cell images
     img_ctrl = mpimg.imread('i_controlmicro.png')
@@ -82,16 +91,17 @@ def experiment_figure():
 
     axs[2].set_xlim(0,29.5)
 
-    fig.subplots_adjust(top=.85,right=.98,left=-.1,bottom=0.25,hspace=0,wspace=.0)
-
+    #fig.subplots_adjust(top=.85,right=.98,left=-.1,bottom=0.25,hspace=0,wspace=.0)
 
     l1,b1,w1,h1 = (.05, .25, .15, .6)
     l2,b2,w2,h2 = (0.3, 0.25, 0.15079365079365087, 0.6)
     
     m = 1.3
     a = h1*(m-1)
-    axs[0].set_position([l1,b1-a,w1*m,h1*m])
-    axs[1].set_position([l2,b2-a,w2*m,h2*m])
+    #axs[0].set_position([l1,b1-a,w1*m,h1*m])
+    #axs[1].set_position([l2,b2-a,w2*m,h2*m])
+
+    plt.tight_layout()
     
     return fig
     
@@ -120,7 +130,7 @@ def data_figure():
     #assert(len(d.data_avg.keys()) == len(d.data_rep.keys()))
     
     #fig = plt.figure()
-    fig,axs = plt.subplots(nrows=2,ncols=2,figsize=(8,5))
+    fig,axs = plt.subplots(nrows=4,ncols=1,figsize=(4,9))
     
     for i,hour in enumerate(list_hours):
 
@@ -140,53 +150,53 @@ def data_figure():
         # raw, rep
         x = d.data_rep_raw[hour][:,0]
         y = d.data_rep_raw[hour][:,1]
-        axs[0,0].plot(x,y,label=label,color=color)
+        axs[0].plot(x,y,label=label,color=color)
 
         # raw, avg
         x = d.data_avg_raw[hour][:,0]
         y = d.data_avg_raw[hour][:,1]
-        axs[0,1].plot(x,y,label=label,color=color)
+        axs[1].plot(x,y,label=label,color=color)
         
         # normed, rep
         x = d.data_rep_raw[hour][:,0]
         y = d.data_rep_raw[hour][:,1]/rep_n_dict[hour]
         #x = d.data_rep[hour][:,0]
         #y = d.data_rep[hour][:,1]
-        axs[1,0].plot(x,y,label=label,color=color)
+        axs[2].plot(x,y,label=label,color=color)
 
         # normed, avg
         x = d.data_avg_raw[hour][:,0]
         y = d.data_avg_raw[hour][:,1]/avg_n_dict[hour]
         #x = d.data_avg[hour][:,0]
         #y = d.data_avg[hour][:,1]
-        axs[1,1].plot(x,y,label=label,color=color)
+        axs[3].plot(x,y,label=label,color=color)
 
         
         
 
-    axs[0,0].legend(labelspacing=.25)
-    for i in range(2):
-        for j in range(2):
+    axs[0].legend(labelspacing=.25)
+    for i in range(4):
             
-            axs[i,j].set_xlabel(r'Radius ($\si{\um}$)',fontsize=fsizelabel)
-            axs[i,j].tick_params(axis='both',labelsize=fsizetick)
+        #axs[i,j].set_xlabel(r'Radius ($\si{\um}$)',fontsize=fsizelabel)
+        axs[i].set_xlabel(r'Radius $r$ ($\si{\um}$)',fontsize=fsizelabel)
+        axs[i].tick_params(axis='both',labelsize=fsizetick)
+        
+        axs[i].set_xlim(0,29.5)
+        axs[i].axvspan(0, 10, color='tab:red', alpha=0.1,hatch='x')
+        
+        axs[i].get_position().x1
+        axs[i].text(1/6,.07,"Discarded\nRegion",ha='center',transform=axs[i].transAxes)
 
-            axs[i,j].set_xlim(0,29.5)
-            axs[i,j].axvspan(0, 10, color='tab:red', alpha=0.1,hatch='x')
 
-            axs[i,j].get_position().x1
-            axs[i,j].text(1/6,.07,"Discarded\nRegion",ha='center',transform=axs[i,j].transAxes)
-
-
-    axs[0,0].set_title('A. Representative',loc='left',size=fsizetitle)
-    axs[0,1].set_title('B. Average',loc='left',size=fsizetitle)
-    axs[1,0].set_title('C. Representative (Normalized)',loc='left',size=fsizetitle)
-    axs[1,1].set_title(r'\textbf{D. Average (Normalized)}',loc='left',size=fsizetitle)
+    axs[0].set_title('A. Representative',loc='left',size=fsizetitle)
+    axs[1].set_title('B. Average',loc='left',size=fsizetitle)
+    axs[2].set_title('C. Representative (Normalized)',loc='left',size=fsizetitle)
+    axs[3].set_title(r'\textbf{D. Average (Normalized)}',loc='left',size=fsizetitle)
     
-    axs[0,0].set_ylabel('Fluorescence Intensity',fontsize=fsizelabel)
-    axs[0,1].set_ylabel('Fluorescence Intensity',fontsize=fsizelabel)
-    axs[1,0].set_ylabel('Norm. Fluorescence',fontsize=fsizelabel)
-    axs[1,1].set_ylabel('Norm. Fluorescence',fontsize=fsizelabel)
+    axs[0].set_ylabel('Fluor. Intensity',fontsize=fsizelabel)
+    axs[1].set_ylabel('Fluor. Intensity',fontsize=fsizelabel)
+    axs[2].set_ylabel('Norm. Fluor.',fontsize=fsizelabel)
+    axs[3].set_ylabel('Norm. Fluor.',fontsize=fsizelabel)
 
     #plt.tight_layout(pad=tight_layout_pad)
     plt.tight_layout()
@@ -501,7 +511,6 @@ def velocity():
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
 
-
     fig = plt.figure(figsize=(6,4))
     gs = GridSpec(2, 2,hspace=0.6,wspace=.8)
     #gs = GridSpec(2, 2)
@@ -528,40 +537,34 @@ def velocity():
     print(imax)
 
     p.eps = 0
-    axs[0].plot(p.r,p._s2_vel(),lw=2)
-    axs[1].plot(p.r,I,lw=2)
-    axs[2].plot(p.r,p.us0*(1-I/imax),lw=2)
 
-    for i in range(3):
+    axs[0].plot([p.L0,p.L],[0.16,0.16],lw=2,color='k')
+    axs[1].plot(p.r,I,lw=2,color='k')
+    axs[2].plot(p.r,p._s2_vel(),lw=2,color='k')
+    axs[3].plot(p.r,p.us0*(1-I/imax),lw=2,color='k')
+
+    for i in range(4):
         axs[i].set_xticks([p.L0,p.L])
         axs[i].set_xticklabels([r'$L_0$',r'$L$'])
         axs[i].tick_params(axis='both',labelsize=fsizetick)
 
-    axs[0].set_ylabel(r'Velocity $u(r)$',size=fsizelabel)
+    axs[0].set_ylabel(r'Velocity $\bar{u}$',size=fsizelabel)
     axs[1].set_ylabel(r'Intensity $I(r,t)$',size=fsizelabel)
-    axs[2].set_ylabel(r'Velocity $u(I(r,t))$',size=fsizelabel)
+    axs[2].set_ylabel(r'Velocity $u(r)$',size=fsizelabel)
+    axs[3].set_ylabel(r'Velocity $u(I(r,t))$',size=fsizelabel)
     
-    axs[0].set_title(r'A. Spatially-Dependent',loc='left',size=fsizetitle)
+    axs[0].set_title(r'A. Constant',loc='left',size=fsizetitle)
     axs[1].set_title(r'B.',loc='left',size=fsizetitle)
-    axs[2].set_title(r'C. Conc. Dep. (Jamming)',loc='left',size=fsizetitle)
-
-    # center left plot
-    left = axs[0].get_position().x0
-    bottom = (axs[2].get_position().y1+axs[2].get_position().y0)/1.6
-    width = (axs[0].get_position().x1 - axs[0].get_position().x0)
-    height = ((axs[1].get_position().y1+axs[1].get_position().y0)/2 - bottom)*.9
-
-    print([left,bottom,width,height])
-    axs[0].set_position([left,bottom,width,height])
+    axs[2].set_title(r'C. Spatially-Dependent',loc='left',size=fsizetitle)
+    axs[3].set_title(r'Conc. Dep. (Jamming)',loc='left',size=fsizetitle)
 
 
     # arrow betwen right plots
-
     x_start = (axs[1].get_position().x0+axs[1].get_position().x1)/2
     y_start = (axs[1].get_position().y0)-.01
     
     plt.annotate(r'',xytext=(x_start, y_start), xy=(x_start,y_start-.1),
-                 ha='center', xycoords='figure fraction',arrowprops=dict(arrowstyle="simple,tail_width=1.4,head_width=2.3,head_length=1", color='tab:blue'))
+                 ha='center', xycoords='figure fraction',arrowprops=dict(arrowstyle="simple,tail_width=1.4,head_width=2.3,head_length=1", color='k'))
     
 
     #print(y2,y1)
@@ -985,11 +988,9 @@ def plot_axs_split(axs_split):
     axs: list of gridspec 
     """
 
-    
-
     models = ['t1d','t2d','jammingd']
-    ylabels = [(r'$d_p$',r'$\bar{u}$'),(r'$d_{p_2}/d_{p_1}$',r'$\bar{u}$'),
-               (r'$d_p$',r'$I_\text{max}/u_\text{max}$')]
+    ylabels = [(r'$d_p^*$',r'$\bar{u}^*$'),(r'$d_{p_2}^*/d_{p_1}^*$',r'$\bar{u}^*$'),
+               (r'$d_p^*$',r'$I_\text{max}^*/u_\text{max}^*$')]
     ylos = [(-2,-.4),(-.1,-.4),(-2,-.1)]
     yhis = [(22,4.4),(1.1,4.4),(22,1.1)]
     
@@ -1043,7 +1044,7 @@ def plot_axs_split(axs_split):
         if i+3 > 3:
             #print(i+3)
             axs_split[i+3].set_xticks([0,0.5,1])
-            axs_split[i+3].set_xlabel(r'$\varepsilon$',size=fsizelabel)
+            axs_split[i+3].set_xlabel(r'$\varepsilon^*$',size=fsizelabel)
         else:
             axs_split[i+3].axes.get_xaxis().set_visible(False)
 
@@ -1163,7 +1164,8 @@ def identifiability():
             if i >= 9 and i <= 11:
                 pass
             elif i >= 3 and i <= 4:
-                
+                axs[i].scatter(pars[0],pars[2],color=color,s=s,zorder=zorder)
+            elif i == 5 or i == 8:
                 axs[i].scatter(pars[0],pars[2],color=color,s=s,zorder=zorder)
             else:
                 axs[i].scatter(pars[0],pars[1],color=color,s=s,zorder=zorder)
@@ -1185,9 +1187,9 @@ def identifiability():
         axs[i*(m-1)].set_ylim(-.1,1.1)
 
     # x-axis label
-    axs[-3].set_xlabel(r'$\varepsilon$',size=fsizelabel)
-    axs[-4].set_xlabel(r'$\varepsilon$',size=fsizelabel)
-    axs[-5].set_xlabel(r'$\varepsilon$',size=fsizelabel)
+    axs[-3].set_xlabel(r'$\varepsilon^*$',size=fsizelabel)
+    axs[-4].set_xlabel(r'$\varepsilon^*$',size=fsizelabel)
+    axs[-5].set_xlabel(r'$\varepsilon^*$',size=fsizelabel)
 
     # remove bottom left and bottom right plots
     axs[-1].axis('off')
@@ -1203,25 +1205,28 @@ def identifiability():
         pars,par_names = lib.load_pars(model,0,method='de',return_names=True)
 
         if par_names[1] == 'df':
-            par_name = r'$d_f$';ylo=-1;yhi=21
+            par_name = r'$d_f^*$';ylo=-1;yhi=21
         elif par_names[1] == 'dp1':
-            par_name = r'$d_{p_1}$';
+            par_name = r'$d_{p_1}^*$';
             if model[-1] == 'a':
                 ylo=-1;yhi=21
             else:
                 ylo=-10;yhi=210
                 
         elif par_names[1] == 'dp':
-            par_name = r'$d_p$';ylo=-1;yhi=21
+            par_name = r'$d_p^*$';ylo=-1;yhi=21
         elif par_names[1] == 'imax':
-            par_name = r'$I_\text{max}$';ylo=-.1;yhi=1.1
+            par_name = r'$I_\text{max}^*$';ylo=-.1;yhi=1.1
         elif par_names[1] == 'us0':
-            par_name = r'$\bar{u}$';ylo=-.4;yhi=4.4
+            par_name = r'$\bar{u}^*$';ylo=-.4;yhi=4.4
         else:
             par_name = par_names[1]
 
         if i >= 3 and i <= 4:
-            par_name = r'$\bar{u}$';ylo=-.4;yhi=4.4
+            par_name = r'$\bar{u}^*$';ylo=-.4;yhi=4.4
+
+        if i == 5 or i == 8:
+            par_name = r'$u_\text{max}^*$'; ylo=-.4;yhi=4.4
             
         if i >= 9 and i <= 11:
             pass
@@ -1281,11 +1286,11 @@ def main():
     method = 'de'
     
     figures = [
-        #(experiment_figure, [], ['f_experiment.png','f_experiment.pdf']),
-        #(data_figure, [], ['f_data.png','f_data.pdf']),
-        #(gaussian_fit, [], ['f_gaussian_fit.png','f_gaussian_fit.pdf']),
-        #(solution_schematic, [], ['f_solution_schematic.png','f_solution_schematic.pdf']),
-        (velocity, [], ['f_velocity.png','f_velocity.pdf']),
+        #(experiment_figure, [], ['figs/f_experiment.png','figs/f_experiment.pdf']),
+        (data_figure, [], ['figs/f_data.png','figs/f_data.pdf']),
+        #(gaussian_fit, [], ['figs/f_gaussian_fit.png','figs/f_gaussian_fit.pdf']),
+        #(solution_schematic,[],['figs/f_solution_schematic.png','figs/f_solution_schematic.pdf']),
+        #(velocity, [], ['figs/f_velocity.png','figs/f_velocity.pdf']),
 
         #(cost_function, [], ['figs/f_cost_function.png','figs/f_cost_function.pdf']),
         #(identifiability,[],['figs/f_identifiability.png','figs/f_identifiability.pdf']),
