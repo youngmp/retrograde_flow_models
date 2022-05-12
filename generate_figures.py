@@ -39,7 +39,7 @@ def experiment_figure():
     import matplotlib.image as mpimg
     from matplotlib.gridspec import GridSpec
 
-    fig = plt.figure(figsize=(4,4))
+    fig = plt.figure(figsize=(5,5))
 
     gs = GridSpec(2,2)
     
@@ -54,7 +54,7 @@ def experiment_figure():
     img_ctrl = mpimg.imread('i_controlmicro.png')
     img_noco = mpimg.imread('i_nocomicro.png')
 
-    axs[0].imshow(img_ctrl,aspect='auto')
+    axs[0].imshow(img_ctrl,aspect='equal')
     axs[1].imshow(img_noco,aspect='equal')
 
 
@@ -130,7 +130,7 @@ def data_figure():
     #assert(len(d.data_avg.keys()) == len(d.data_rep.keys()))
     
     #fig = plt.figure()
-    fig,axs = plt.subplots(nrows=4,ncols=1,figsize=(4,9))
+    fig,axs = plt.subplots(nrows=4,ncols=1,figsize=(5,6))
     
     for i,hour in enumerate(list_hours):
 
@@ -172,9 +172,7 @@ def data_figure():
         axs[3].plot(x,y,label=label,color=color)
 
         
-        
-
-    axs[0].legend(labelspacing=.25)
+    axs[0].legend(labelspacing=-.1,bbox_to_anchor=(.76,1.1))
     for i in range(4):
             
         #axs[i,j].set_xlabel(r'Radius ($\si{\um}$)',fontsize=fsizelabel)
@@ -187,11 +185,13 @@ def data_figure():
         axs[i].get_position().x1
         axs[i].text(1/6,.07,"Discarded\nRegion",ha='center',transform=axs[i].transAxes)
 
+        axs[i].xaxis.labelpad=0
 
-    axs[0].set_title('A. Representative',loc='left',size=fsizetitle)
-    axs[1].set_title('B. Average',loc='left',size=fsizetitle)
-    axs[2].set_title('C. Representative (Normalized)',loc='left',size=fsizetitle)
-    axs[3].set_title(r'\textbf{D. Average (Normalized)}',loc='left',size=fsizetitle)
+
+    axs[0].set_title('A. Representative',loc='left',size=fsizetitle,y=.95)
+    axs[1].set_title('B. Average',loc='left',size=fsizetitle,y=.95)
+    axs[2].set_title('C. Representative (Normalized)',loc='left',size=fsizetitle,y=.95)
+    axs[3].set_title(r'\textbf{D. Average (Normalized)}',loc='left',size=fsizetitle,y=.95)
     
     axs[0].set_ylabel('Fluor. Intensity',fontsize=fsizelabel)
     axs[1].set_ylabel('Fluor. Intensity',fontsize=fsizelabel)
@@ -200,6 +200,9 @@ def data_figure():
 
     #plt.tight_layout(pad=tight_layout_pad)
     plt.tight_layout()
+
+    fig.subplots_adjust(top=.96,right=.95,left=.2,bottom=0.07,hspace=.8)
+    
 
     return fig
 
@@ -1286,7 +1289,7 @@ def main():
     method = 'de'
     
     figures = [
-        #(experiment_figure, [], ['figs/f_experiment.png','figs/f_experiment.pdf']),
+        (experiment_figure, [], ['figs/f_experiment.png','figs/f_experiment.pdf']),
         (data_figure, [], ['figs/f_data.png','figs/f_data.pdf']),
         #(gaussian_fit, [], ['figs/f_gaussian_fit.png','figs/f_gaussian_fit.pdf']),
         #(solution_schematic,[],['figs/f_solution_schematic.png','figs/f_solution_schematic.pdf']),
