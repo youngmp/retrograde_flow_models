@@ -1,4 +1,5 @@
 import matplotlib as mpl
+from scipy import ndimage
 
 #from matplotlib import rc
 #mpl.rc('text',usetex=True)
@@ -7,7 +8,7 @@ import matplotlib as mpl
 #mpl.rcParams.update(pgf_with_latex)
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['text.usetex'] = True
-mpl.rcParams['text.latex.preview'] = True
+#mpl.rcParams['text.latex.preview'] = True
 mpl.rcParams['pgf.texsystem'] = 'pdflatex'
 mpl.rcParams['text.latex.preamble'] = r'\usepackage{amsmath} \usepackage{siunitx} \usepackage{enumitem} \usepackage{xcolor}'
 
@@ -16,7 +17,7 @@ fsizelabel = 13
 fsizetitle = 13
 #tight_layout_pad =  0
 
-from matplotlib.patches import Rectangle
+
 
 import model_fitting as mf
 import sensitivity as sv
@@ -29,6 +30,9 @@ from scipy.interpolate import interp1d
 import os
 import multiprocessing
 
+import warnings
+warnings.filterwarnings('ignore')
+#np.seterr(under=None)
 
 
 def experiment_figure():
@@ -52,14 +56,24 @@ def experiment_figure():
     img_ctrl = mpimg.imread('i_controlmicro.png')
     img_noco = mpimg.imread('i_nocomicro.png')
 
-    axs[0].imshow(img_ctrl,aspect='equal')
-    axs[1].imshow(img_noco,aspect='equal')
+    axs[0].imshow(ndimage.rotate(img_ctrl,180),aspect='equal')
+    axs[1].imshow(ndimage.rotate(img_noco,180),aspect='equal')
 
     # show horizontal lines corresponding to data
-    axs[0].plot([.5,.08],[.5,.5],transform=axs[0].transAxes,
+    axs[0].plot([.5,1-.08],[.5,.5],transform=axs[0].transAxes,
                 color='tab:red',ls='--',marker='o')
-    axs[1].plot([.5,.08],[.5,.5],transform=axs[1].transAxes,
+    axs[1].plot([.5,1-.08],[.5,.5],transform=axs[1].transAxes,
                 color='tab:blue',ls='-',marker='o')
+    
+    
+    # plot discarded circular region
+    circle1 = plt.Circle((.5,.5),0.14,color='tab:red',alpha=.3,zorder=4,
+                         hatch='x',transform=axs[0].transAxes)
+    circle2 = plt.Circle((.5,.5),0.14,color='tab:red',alpha=.3,zorder=4,
+                         hatch='x',transform=axs[1].transAxes)
+    
+    axs[0].add_patch(circle1)
+    axs[1].add_patch(circle2)
     
     # plot vimentin data
     d = pde.Data(L0=0,L=29.5)
@@ -69,6 +83,11 @@ def experiment_figure():
     x = d.data_rep_raw['24h'][:,0];y = d.data_rep_raw['24h'][:,1]
     axs[2].plot(x,y,label=r'\SI{24}{h}',color='tab:blue',ls='-')
 
+    # plot discarded region
+    axs[2].set_xlim(0,29.5)
+    axs[2].axvspan(0, 10, color='tab:red', alpha=0.1,hatch='x')
+    axs[2].get_position().x1
+    axs[2].text(1/6,.07,"Discarded Region",ha='center',transform=axs[2].transAxes)
 
     # labels, axis tweaks
     axs[0].set_title(r'(a) \SI{0}{h}',loc='left',size=fsizetitle)
@@ -77,7 +96,7 @@ def experiment_figure():
 
     axs[2].set_xlabel(r'Radius ($\si{\um}$)',fontsize=fsizelabel)
 
-    axs[2].set_ylabel(r'Fluorscence Intensity',fontsize=fsizelabel)
+    axs[2].set_ylabel(r'Fluorescence Intensity',fontsize=fsizelabel)
 
     axs[2].tick_params(axis='both',labelsize=fsizetick)
     
@@ -181,7 +200,7 @@ def data_figure():
         axs[i].axvspan(0, 10, color='tab:red', alpha=0.1,hatch='x')
         
         axs[i].get_position().x1
-        axs[i].text(1/6,.07,"Discarded\nRegion",ha='center',transform=axs[i].transAxes)
+        axs[i].text(1/6,.07,"Discarded Region",ha='center',transform=axs[i].transAxes)
 
         axs[i].xaxis.labelpad=0
 
@@ -189,7 +208,7 @@ def data_figure():
     axs[0].set_title('(a) Representative',loc='left',size=fsizetitle,y=.95)
     axs[1].set_title('(b) Average',loc='left',size=fsizetitle,y=.95)
     axs[2].set_title('(c) Representative (Normalized)',loc='left',size=fsizetitle,y=.95)
-    axs[3].set_title(r'\textbf{D. Average (Normalized)}',loc='left',size=fsizetitle,y=.95)
+    axs[3].set_title(r'\textbf{(d) Average (Normalized)}',loc='left',size=fsizetitle,y=.95)
     
     axs[0].set_ylabel('Fluor. Intensity',fontsize=fsizelabel)
     axs[1].set_ylabel('Fluor. Intensity',fontsize=fsizelabel)
@@ -318,12 +337,12 @@ def solution_schematic():
     plt.text(.12,.83,"(b)",transform=fig.transFigure,size=fsizetitle)
     
     axs[2,0].set_title(r'(c) Initial ($t=0$)',loc='left',size=fsizetitle)
-    axs[3,0].set_title(r'D. $t>0$',loc='left',size=fsizetitle)
-    axs[4,0].set_title(r'E. Steady-State ($t\rightarrow \infty$)',loc='left',size=fsizetitle)
+    axs[3,0].set_title(r'(d) $t>0$',loc='left',size=fsizetitle)
+    axs[4,0].set_title(r'(e) Steady-State ($t\rightarrow \infty$)',loc='left',size=fsizetitle)
     
-    axs[2,1].set_title(r'F. Initial ($t=0$)',loc='left',size=fsizetitle)
-    axs[3,1].set_title(r'G. $t>0$',loc='left',size=fsizetitle)
-    axs[4,1].set_title(r'H. Steady-State  ($t\rightarrow \infty$)',loc='left',size=fsizetitle)
+    axs[2,1].set_title(r'(f) Initial ($t=0$)',loc='left',size=fsizetitle)
+    axs[3,1].set_title(r'(g) $t>0$',loc='left',size=fsizetitle)
+    axs[4,1].set_title(r'(h) Steady-State  ($t\rightarrow \infty$)',loc='left',size=fsizetitle)
     
     axs[2,0].set_ylabel('$F$',fontsize=fsizelabel)
     axs[3,0].set_ylabel('$F$',fontsize=fsizelabel)
@@ -355,8 +374,6 @@ def solution_schematic():
             # set axis limit
             axs[i,j].set_xlim(L0,L)
             axs[i,j].ticklabel_format(axis='y',style='scientific',scilimits=(0,0))
-            #ticklabel_format(axis='y',style='scientific',scilimits=(0,0))
-            #axs[i,j].get_yaxis().get_offset_text().set_position((0,0))
 
             axs[i,j].spines['right'].set_visible(False)
             axs[i,j].spines['top'].set_visible(False)
@@ -634,20 +651,27 @@ def solution(model='t1e',rep=False,method=''):
 
     # best 10 seeds in order from best to worst
     best_seeds = best_10_seeds(model)
-
     seed = best_seeds[0]
-    #err, seed = lib.lowest_error_seed(model,method=method)
     
     pars = lib.load_pars(model,seed,method)
     print(model,seed,pars)
     
     p = pde.PDEModel(**pars)    
     p._run_euler(model,rep)
-    
-    F = p.y[:p.N,:]
-    P = p.y[p.N:,:]
 
-    I = F + P
+    dp_lo = 0.0093765
+    pars['dp'] = dp_lo
+    p_lo = pde.PDEModel(**pars)    
+    p_lo._run_euler(model,rep)
+
+    dp_hi = 0.011617
+    pars['dp'] = dp_hi
+    p_hi = pde.PDEModel(**pars)    
+    p_hi._run_euler(model,rep)
+    
+    F = p.y[:p.N,:];P = p.y[p.N:,:];I = F + P
+    F_lo = p_lo.y[:p_lo.N,:];P_lo = p_lo.y[p_lo.N:,:];I_lo = F_lo + P_lo
+    F_hi = p_hi.y[:p_hi.N,:];P_hi = p_hi.y[p_hi.N:,:];I_hi = F_hi + P_hi
     
     nrows = 3
     ncols = 2
@@ -658,7 +682,8 @@ def solution(model='t1e',rep=False,method=''):
     else:
         ncols = 5
         keys_list = ['control','2h', '4h','8.5h', '24h']
-    fig,axs = plt.subplots(nrows=3,ncols=ncols,figsize=(8,6),
+        
+    fig,axs = plt.subplots(nrows=3,ncols=ncols,figsize=(4,4),
                            gridspec_kw={'wspace':0.1,'hspace':0},
                            sharey='all')
     
@@ -678,24 +703,24 @@ def solution(model='t1e',rep=False,method=''):
             minute = time*60
             idx = int(minute/p.dt)
         
-        axs[0,i].plot(p.r[:-1],I[:-1,idx],color='k')
+        axs[0,i].plot(p.r[:-1],I[:-1,idx],color='k',lw=.7)
         axs[0,i].plot(p.r[1:-1],data[1:-1],label='Data',c='tab:green',dashes=(3,1))
-        
-        axs[1,i].plot(p.r[:-1],F[:-1,idx],color='tab:blue')
-        axs[2,i].plot(p.r[:-1],P[:-1,idx],color='tab:orange')
+        axs[1,i].plot(p.r[:-1],F[:-1,idx],color='tab:blue',lw=.7)
+        axs[2,i].plot(p.r[:-1],P[:-1,idx],color='tab:orange',lw=.7)
 
-        #axs[2,i].plot(p.r[:-1],P[:-1,int(20*60/p.dt)],color='k')
+        # plot fill_between:
+        if model == 't1e':
+            axs[0,i].fill_between(p.r[:-1],I_lo[:-1,idx],I_hi[:-1,idx],color='gray',alpha=.25)
+            axs[1,i].fill_between(p.r[:-1],F_lo[:-1,idx],F_hi[:-1,idx],color='tab:blue',alpha=.25)
+            axs[2,i].fill_between(p.r[:-1],P_lo[:-1,idx],P_hi[:-1,idx],color='tab:orange',alpha=.25)
 
         if hour == '24h':
-            
             print(np.linalg.norm(P[:-1,int(20*60/p.dt)]-P[:-1,int(24*60/p.dt)])**2)
 
-        axs[0,i].set_title(r'\SI{'+hour[:-1]+r'}{h}',size=fsizetitle)
-
-        #for j in range(3):
+        axs[0,i].set_title(r'\SI{'+hour[:-1]+r'}{h}',size=fsizetitle,y=0.95)
         axs[-1,i].set_xticks([p.L0,p.L])
-        axs[-1,i].set_xticklabels([r'$L_0$',r'$L$'])
 
+        axs[-1,i].set_xticklabels([r'$L_0$\hspace{.1in}',r'\hspace{.1in}$L$'],ha='center')
         axs[0,i].set_xticks([])
         axs[0,i].set_xticklabels([])
 
@@ -708,21 +733,22 @@ def solution(model='t1e',rep=False,method=''):
 
     fn_labels = [r'$I$',r'$F$',r'$P$']
     for i in range(3):
-        axs[i,0].set_ylabel(fn_labels[i],size=fsizelabel)
+        # go blow to change label size
+        axs[i,0].set_ylabel(fn_labels[i],size=fsizelabel,labelpad=0)
         axs[i,0].ticklabel_format(axis='y',style='scientific',scilimits=(0,0))
-    
-    axs[0,0].legend()
 
     if not(rep):
         # plot remaining seeds
-        
         for seed_idx in best_seeds:
-            #print(model,seed_idx,seed)
             if seed_idx not in [seed]:
-
-                pars = lib.load_pars(model,seed_idx,method)
                 
-                print(model,seed_idx,pars)
+                pars = lib.load_pars(model,seed_idx,method)
+                pars['dt'] = 0.055
+                #pars['N'] = 100
+
+                fn = lib.get_parameter_fname(model,seed_idx,err=True,method='de')
+                #print(seed_idx,pars,np.loadtxt(fn))
+                
                 p2 = pde.PDEModel(**pars)
                 p2._run_euler(model)
 
@@ -731,25 +757,37 @@ def solution(model='t1e',rep=False,method=''):
 
                 I = F + P
 
+                if False:
+                    
+                    fig2 = plt.figure()
+                    axs2 = fig2.add_subplot()
+
+                    for i,hour in enumerate(keys_list):
+                        if hour == 'control':
+                            hour='0h';idx=0
+                        else:
+                            time=float(hour[:-1]);minute=time*60;idx=int(minute/p2.dt)
+
+                        #print('time',time,minute)
+                        axs2.plot(p2.r[:-1],I[:-1,idx],lw=.7)
+                    plt.show()
+
                 for i,hour in enumerate(keys_list):
 
                     if hour == 'control':
-                        hour = '0h'
-                        idx = 0
+                        hour='0h';idx=0
                     else:
-                        time = float(hour[:-1])
-                        minute = time*60
-                        idx = int(minute/p.dt)
-
-                    axs[0,i].plot(p2.r[:-1],I[:-1,idx],color='gray',zorder=-3,alpha=0.25)
-                    axs[1,i].plot(p2.r[:-1],F[:-1,idx],color='gray',zorder=-3,alpha=0.25)
-                    axs[2,i].plot(p2.r[:-1],P[:-1,idx],color='gray',zorder=-3,alpha=0.25)
+                        time=float(hour[:-1]);minute=time*60;idx=int(minute/p2.dt)
+                    
+                    axs[0,i].plot(p2.r[:-1],I[:-1,idx],color='gray',zorder=-3,alpha=0.25,lw=.5)
+                    axs[1,i].plot(p2.r[:-1],F[:-1,idx],color='gray',zorder=-3,alpha=0.25,lw=.5)
+                    axs[2,i].plot(p2.r[:-1],P[:-1,idx],color='gray',zorder=-3,alpha=0.25,lw=.5)
 
     if model == 't1e' and not(rep):
         fig.subplots_adjust(top=.95,right=.95,left=.1,bottom=0.4,hspace=.8,wspace=1)
         
     else:
-        fig.set_size_inches(8,4)
+        fig.set_size_inches(4,3)
         fig.subplots_adjust(top=.9,right=.95,left=.1,bottom=0.1,hspace=.8,wspace=1)
 
     # move scientific notation to y axis label
@@ -759,7 +797,7 @@ def solution(model='t1e',rep=False,method=''):
         offset = axs[i,0].get_yaxis().get_offset_text().get_text()
      
         axs[i,0].yaxis.offsetText.set_visible(False)
-        axs[i,0].yaxis.set_label_text(fn_labels[i] + " (" + offset+")",size=fsizelabel)
+        axs[i,0].yaxis.set_label_text(fn_labels[i] + " (" + offset+")",size=fsizelabel-2)
 
     if model == 't1e' and not(rep):
         # subplot for velocity profile
@@ -770,7 +808,8 @@ def solution(model='t1e',rep=False,method=''):
 
         ax_u = fig.add_axes([x0,y0,w,h])
 
-        ax_u.plot(p.r,p._s2_vel(),lw=2,color='k')
+        ax_u.fill_between(p.r,p_lo._s2_vel(),p_hi._s2_vel(),lw=1,color='k',alpha=.25)
+        ax_u.plot(p.r,p._s2_vel(),lw=.7,color='k')
 
         # mark max
         max_idx = np.argmax(p._s2_vel())
@@ -787,11 +826,13 @@ def solution(model='t1e',rep=False,method=''):
         plt.text(.04,.96,"(a)",transform=fig.transFigure,size=fsizetitle)
         plt.text(.04,.3,"(b)",transform=fig.transFigure,size=fsizetitle)
 
+    #plt.show()
     return fig
 
 
 def cost_function(recompute=False):
 
+    from matplotlib.patches import Rectangle
     #print()
     #print(eps1[0],eps1[-1],dps1[0],dps1[-1])
     #eps_vals2,dp_vals2,Z2 = load_rss_data(recompute=recompute,exp=True,ne=50,nd=50,maxe=.1,mind=-2.5,maxd=-1.,ss=False)
@@ -838,7 +879,7 @@ def cost_function(recompute=False):
 
     import matplotlib.pyplot as plt
     
-    fig, axs = plt.subplots(nrows=1,ncols=2,figsize=(8,3.5),gridspec_kw={'width_ratios':[2,1]})
+    fig, axs = plt.subplots(nrows=2,ncols=1,figsize=(4,6))
 
     axs[0].set_yscale('log')
     #axs[1].set_yscale('log')
@@ -874,7 +915,7 @@ def cost_function(recompute=False):
              ha='center',va='center')
     
     props = dict(boxstyle='round', facecolor='white', alpha=0.8)
-    axs[0].text(0.4, 0.1, 'Steady-State Cond. Fails', transform=axs[0].transAxes, fontsize=14,
+    axs[0].text(0.4, 0.1, 'Steady-State Cond. Fails', transform=axs[0].transAxes, fontsize=12,
              ha='center', bbox=props)
     
     cbar = fig.colorbar(cax2,ax=axs[0]); cbar.ax.tick_params(labelsize=fsizetick)
@@ -935,6 +976,7 @@ def cost_function(recompute=False):
     
     plt.tight_layout()
     return fig
+
     #plt.show()
 
 def rss(p,I):
@@ -992,74 +1034,6 @@ def proof_c():
 
     return fig
 
-def plot_axs_split(axs_split):
-    """
-    axs: list of gridspec 
-    """
-
-    models = ['t1d','t2d','jammingd']
-    ylabels = [(r'$d_p^*$',r'$\bar{u}^*$'),(r'$d_{p_2}^*/d_{p_1}^*$',r'$\bar{u}^*$'),
-               (r'$d_p^*$',r'$I_\text{max}^*/u_\text{max}^*$')]
-    ylos = [(-2,-.4),(-.1,-.4),(-2,-.1)]
-    yhis = [(22,4.4),(1.1,4.4),(22,1.1)]
-    
-    for i in range(3):
-        axs_split[i].set_zorder(2)
-        axs_split[i].set_xlim(-.1,1.1);axs_split[i+3].set_xlim(-.1,1.1)
-        
-        axs_split[i].set_xticklabels([])
-        axs_split[i].tick_params(axis='x',direction='in')
-
-    
-    for i,model in enumerate(models):
-        #axs_split[i].plot()
-
-        errs = get_errs(model)
-
-        for seed in range(100):
-            fname = lib.get_parameter_fname(model,seed,method='de')
-            pars = np.loadtxt(fname)
-
-            color, s, zorder = get_scatter_params(errs,errs[seed])
-
-            if i == 0:
-                axs_split[i].scatter(pars[0],pars[1],color=color,s=s,zorder=zorder)
-                axs_split[i+3].scatter(pars[0],pars[2],color=color,s=s,zorder=zorder)
-
-            if i == 1:
-                axs_split[i].scatter(pars[0],pars[2]/pars[1],color=color,s=s,zorder=zorder)
-                axs_split[i+3].scatter(pars[0],pars[3],color=color,s=s,zorder=zorder)
-
-            if i == 2:
-                axs_split[i].scatter(pars[0],pars[3],color=color,s=s,zorder=zorder)
-                axs_split[i+3].scatter(pars[0],pars[1]/pars[2],color=color,s=s,zorder=zorder)
-
-
-    # set y labels. could do it above but more readable here maybe.    
-    for i in range(len(models)):
-        #i,j = idxs_plot[idx]
-        #model = idxs_model[idx]
-        model = models[i]
-
-        pars,par_names = lib.load_pars(model,0,method='de',return_names=True)
-
-        axs_split[i].set_ylim(ylos[i][0],yhis[i][0])
-        axs_split[i+3].set_ylim(ylos[i][1],yhis[i][1])
-        axs_split[i].text(-.32,0.5,ylabels[i][0],va='center',rotation=90,
-                    transform=axs_split[i].transAxes,size=fsizelabel)
-        axs_split[i+3].text(-.32,0.5,ylabels[i][1],va='center',rotation=90,
-                      transform=axs_split[i+3].transAxes,size=fsizelabel)
-
-        if i+3 > 3:
-            #print(i+3)
-            axs_split[i+3].set_xticks([0,0.5,1])
-            axs_split[i+3].set_xlabel(r'$\varepsilon^*$',size=fsizelabel)
-        else:
-            axs_split[i+3].axes.get_xaxis().set_visible(False)
-
-                
-    return axs_split
-
 
 def get_scatter_params(errs,err):
     """
@@ -1074,7 +1048,23 @@ def get_scatter_params(errs,err):
     errs_range = np.linspace(err_min,err_max,100)
 
     cmap_val = np.linspace(0,1,100)
+
+    # get min err range
+    idx2 = np.argmin(np.abs(err-errs_range))
+    color_val = cmap_val[idx2]
+    s = 5
+    zorder = 0
+
+    #if np.abs(err - err_max) > np.abs(err - err_min):
+    #    zorder = 10
+    #    s = 10
+    #else:
+    #    zorder = 2
+    #    s = 10
+                    
+    color = viridis(color_val*.9)
             
+    """
     #print(color_val)
     if (err_max - err_min) < 1e-2:
         color = viridis(.0)
@@ -1094,7 +1084,7 @@ def get_scatter_params(errs,err):
             s = 10
                     
         color = viridis(color_val*.8)
-
+    """
     return color, s, zorder
     
 def get_errs(model):
@@ -1114,21 +1104,121 @@ def get_errs(model):
 
     return errs
 
+def fmt(x, pos):
+    a, b = '{:.2e}'.format(x).split('e')
+    b = int(b)
+    return r'${} \times 10^{{{}}}$'.format(a, b)
+
+
+def plot_axs_split(fig,axs,axs_split):
+    """
+    axs: list of gridspec 
+    """
+
+    import matplotlib
+    
+    models = ['t1d','t2d','jammingd']
+    ylabels = [(r'$d_p^*$',r'$\bar{u}^*$'),(r'$d_{p_2}^*/d_{p_1}^*$',r'$\bar{u}^*$'),
+               (r'$d_p^*$',r'$I_\text{max}^*/u_\text{max}^*$')]
+    ylos = [(-2,-.4),(-.1,-.4),(-2,-.1)]
+    yhis = [(22,4.4),(1.1,4.4),(22,1.1)]
+    
+    for i in range(3):
+        axs_split[i].set_zorder(2)
+        axs_split[i].set_xlim(-.1,1.1);axs_split[i+3].set_xlim(-.1,1.1)
+        
+        axs_split[i].set_xticklabels([])
+        axs_split[i].tick_params(axis='x',direction='in')
+
+    for i,model in enumerate(models):
+        
+        # plot all
+        xlist = []
+        ylist1 = []
+        ylist2 = []
+        
+        errs = np.array(get_errs(model))
+        err_min = np.amin(errs);err_max=np.amax(errs)        
+        errs_range = np.linspace(err_min,err_max,100)
+        seeds_sorted = np.argsort(errs)[::-1]
+
+        for seed in seeds_sorted:
+            fname = lib.get_parameter_fname(model,seed,method='de')
+            pars = np.loadtxt(fname)
+            color, s, zorder = get_scatter_params(errs,errs[seed])
+
+            xlist.append(pars[0])
+            
+            if i == 0:
+                ylist1.append(pars[1])
+                ylist2.append(pars[2])
+
+            if i == 1:
+                ylist1.append(pars[2]/pars[1])
+                ylist2.append(pars[3])
+
+            if i == 2:
+                ylist1.append(pars[3])
+                ylist2.append(pars[1]/pars[2])
+
+        cbformat = matplotlib.ticker.ScalarFormatter()
+        cbformat.set_powerlimits((0,0))
+
+        err_exp = np.round(np.exp(errs[seeds_sorted]),4)
+        im1 = axs_split[i].scatter(xlist,ylist1,c=err_exp,s=s,zorder=zorder,alpha=.8)
+        im2 = axs_split[i+3].scatter(xlist,ylist2,c=err_exp,s=s,zorder=zorder,alpha=.8)
+
+        #,shrink=1,aspect=1
+        #cb = fig.colorbar(im,ax=axs[i],format=cbformat,shrink=.8)
+        cb = fig.colorbar(im1,ax=[axs_split[i],axs_split[i+3]],format=cbformat,shrink=.8)
+        cb.ax.yaxis.get_offset_text().set_horizontalalignment('left')
+        cb.ax.yaxis.get_offset_text().set_position((-1,0))
+        
+
+    # set y labels. could do it above but more readable here maybe.
+    for i in range(len(models)):
+        #i,j = idxs_plot[idx]
+        #model = idxs_model[idx]
+        model = models[i]
+
+        pars,par_names = lib.load_pars(model,0,method='de',return_names=True)
+
+        axs_split[i].set_ylim(ylos[i][0],yhis[i][0])
+        axs_split[i+3].set_ylim(ylos[i][1],yhis[i][1])
+        axs_split[i].text(-.32,0.5,ylabels[i][0],va='center',rotation=90,
+                    transform=axs_split[i].transAxes,size=fsizelabel)
+        
+        axs_split[i+3].text(-.32,0.5,ylabels[i][1],va='center',rotation=90,
+                      transform=axs_split[i+3].transAxes,size=fsizelabel)
+
+        if i+3 > 3:
+            axs_split[i+3].set_xticks([0,0.5,1])
+            
+        else:
+            axs_split[i+3].axes.get_xaxis().set_visible(False)
+
+    axs_split[-1].set_xlabel(r'$\varepsilon^*$',size=fsizelabel)
+    axs_split[-2].set_xlabel(r'$\varepsilon^*$',size=fsizelabel)
+
+    return axs_split
+
+
 def identifiability():
     """
     identifiable and non-id. models
     """
 
+    import matplotlib
     from matplotlib.patches import Rectangle
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
     import matplotlib.gridspec as gridspec
+    import matplotlib.ticker as ticker
 
     from matplotlib import cm
 
     nrows=2*5;ncols=3
-    fig = plt.figure(figsize=(8,8))
-    
+    fig = plt.figure(figsize=(10,10))
     gs = GridSpec(nrows=nrows,ncols=ncols)
 
     # manual loop over index... easier to do this for now.
@@ -1146,38 +1236,47 @@ def identifiability():
     axs[11].axis('off')
 
     gs2 = gridspec.GridSpecFromSubplotSpec(2,3,subplot_spec=gs[6:8,:],hspace=0)
-    
-    # split axes scenario d
-    axs_split = [fig.add_subplot(gs2[i,j]) for i in range(2) for j in range(3)]
-    axs_split = plot_axs_split(axs_split)
+
+    import inspect
     
     for i in range(len(models)):        
         model = models[i]
 
         # compile err for given model
-        errs = get_errs(model)
-        err_min=np.amin(errs);err_max=np.amax(errs)        
+        errs = np.array(get_errs(model))
+        err_min = np.amin(errs);err_max=np.amax(errs)        
         errs_range = np.linspace(err_min,err_max,100)
-        
+        seeds_sorted = np.argsort(errs)[::-1]
+                
         # plot all
-        max_seed = 100
-        if model == 't1e':
-            max_seed = 10
-            
-        for seed in range(max_seed):
+        xlist = []
+        ylist = []
+                
+        for seed in seeds_sorted:
             fname = lib.get_parameter_fname(model,seed,method='de')
             pars = np.loadtxt(fname)
 
-            color, s, zorder = get_scatter_params(errs,errs[seed])
-
-            if i >= 9 and i <= 11:
-                pass
-            elif i >= 3 and i <= 4:
-                axs[i].scatter(pars[0],pars[2],color=color,s=s,zorder=zorder)
-            elif i == 5 or i == 8:
-                axs[i].scatter(pars[0],pars[2],color=color,s=s,zorder=zorder)
+            xlist.append(pars[0])
+                        
+            if (i >= 3 and i <= 4) or (i == 5) or (i == 8):
+                #print(i,seed,pars)
+                ylist.append(pars[2])
             else:
-                axs[i].scatter(pars[0],pars[1],color=color,s=s,zorder=zorder)
+                ylist.append(pars[1])
+            
+        if i >= 9 and i <= 11:
+            pass
+        
+        else:
+            cbformat = matplotlib.ticker.ScalarFormatter()
+            cbformat.set_powerlimits((1e-4,10))
+
+            err_exp = np.round(np.exp(errs[seeds_sorted]),4)
+            
+            im = axs[i].scatter(xlist,ylist,c=err_exp,alpha=.8,s=5)
+            cb = fig.colorbar(im,ax=axs[i],format=cbformat,shrink=.8)
+            cb.ax.yaxis.get_offset_text().set_horizontalalignment('left')
+            cb.ax.yaxis.get_offset_text().set_position((-1,0))
 
     for i in range(len(axs)):
         axs[i].set_xlim(-.1,1.1)
@@ -1190,8 +1289,12 @@ def identifiability():
     # scenario label
     for i,s in enumerate(scenario):
         m = len(mechanism)
-        
-        axs[i*m].text(-.6,0.5,s,va='center',rotation=0,transform=axs[i*m].transAxes,
+
+        if s == 'd':
+            offset = -.49
+        else:
+            offset = -.6
+        axs[i*m].text(offset,0.5,s,va='center',rotation=0,transform=axs[i*m].transAxes,
                       size=fsizelabel+2)
         axs[i*(m-1)].set_ylim(-.1,1.1)
 
@@ -1203,7 +1306,6 @@ def identifiability():
     # remove bottom left and bottom right plots
     axs[-1].axis('off')
     axs[-2].axis('off')
-
 
     # set y labels. could do it above but more readable here maybe.    
     for i in range(len(models)):
@@ -1245,8 +1347,13 @@ def identifiability():
             axs[i].text(-.32,0.5,par_name,va='center',rotation=90,
                         transform=axs[i].transAxes,size=fsizelabel)
 
+    fig.subplots_adjust(top=.87,right=.95,left=.15,bottom=0.05,hspace=.05,wspace=.5)
+
     
-    fig.subplots_adjust(top=.95,right=.95,left=.15,bottom=0.1,hspace=.05,wspace=.4)
+    # split axes scenario d
+    axs_split = [fig.add_subplot(gs2[i,j]) for i in range(2) for j in range(3)]
+    axs_split = plot_axs_split(fig,axs,axs_split)
+
 
     # highlight every other row
     js = [3,9]
@@ -1254,7 +1361,7 @@ def identifiability():
     for j in js:
         x0 = axs[j].axes.get_position().x0; y0 = axs[j].axes.get_position().y0
         x1 = axs[j+2].axes.get_position().x1; y1 = axs[j].axes.get_position().y1
-        r1 = Rectangle((x0-shift,y0),(x1-x0+shift),(y1-y0),alpha=.1,color='gray',zorder=3)
+        r1 = Rectangle((x0-shift,y0),(x1-x0+shift),(y1-y0),alpha=.05,color='gray',zorder=3)
         #print(x0,y0,x1,y1)
         fig.add_artist(r1)#Rectangle((x0,y0),(x1-x0),(y1-y0),zorder=10)
 
@@ -1296,34 +1403,33 @@ def main():
     
     figures = [
         (experiment_figure, [], ['figs/f_experiment.png','figs/f_experiment.pdf']),
-        (data_figure, [], ['figs/f_data.png','figs/f_data.pdf']),
-        (gaussian_fit, [], ['figs/f_gaussian_fit.png','figs/f_gaussian_fit.pdf']),
-        (velocity, [], ['figs/f_velocity.png','figs/f_velocity.pdf']),
-        #(solution_schematic,[],['figs/f_solution_schematic.png','figs/f_solution_schematic.pdf']),
+        #(data_figure, [], ['figs/f_data.png','figs/f_data.pdf']),
+        #(gaussian_fit, [], ['figs/f_gaussian_fit.png','figs/f_gaussian_fit.pdf']),
         
-
-        #(cost_function, [], ['figs/f_cost_function.png','figs/f_cost_function.pdf']),
+        #(velocity, [], ['figs/f_velocity.png','figs/f_velocity.pdf']),
+        #(solution_schematic,[],['figs/f_solution_schematic.png','figs/f_solution_schematic.pdf']),
         #(identifiability,[],['figs/f_identifiability.png','figs/f_identifiability.pdf']),
+        #(cost_function, [], ['figs/f_cost_function.png','figs/f_cost_function.pdf']),
+        
         
         #(solution,['t1a',False,method],f_sol_names('t1a',method)),
         #(solution,['t1b',False,method],f_sol_names('t1b',method)),
         #(solution,['t1c',False,method],f_sol_names('t1c',method)),
         #(solution,['t1d',False,method],f_sol_names('t1d',method)),
-        
+       
         #(solution,['t1e',False,''],['figs/f_best_sol_'+str(method)+'.png','figs/f_best_sol_'+str(method)+'.pdf']),
        
         #(solution,['t2a',False,method],f_sol_names('t2a',method)),
         #(solution,['t2b',False,method],f_sol_names('t2b',method)),
         #(solution,['t2c',False,method],f_sol_names('t2c',method)),
         #(solution,['t2d',False,method],f_sol_names('t2d',method)),
-
+        
         #(solution,['jamminga',False,method],f_sol_names('ja',method)),
         #(solution,['jammingb',False,method],f_sol_names('jb',method)),
         #(solution,['jammingc',False,method],f_sol_names('jc',method)),
         #(solution,['jammingd',False,method],f_sol_names('jd',method)),
 
         #(solution,['t1e',True,method],['figs/f_validation.png','figs/f_validation.pdf']),
-
         #(proof_c,[],['f_proof_c.png','f_proof_c.pdf'])
         ]
 
