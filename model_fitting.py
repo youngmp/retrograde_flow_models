@@ -17,7 +17,6 @@ then compare I[-1,:] to I[int(TN/2),:]
 import pde
 
 import warnings
-#warnings.filterwarnings('error')
 import os
 import argparse
 
@@ -28,8 +27,7 @@ from scipy.interpolate import interp1d
 
 np.seterr(all='warn')
 
-def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
-            scenario=None,uconst=True):
+def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,uconst=True):
     """
     function for use in least squares.
     x is combination or subset of eps,df,dp.
@@ -37,23 +35,14 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
     returns L2 norm.
     """
     assert(len(x) == len(par_names))
-
-    #p.__init__()
-    # update parameter values
-    #eps,d_f,d_p = x
+    
     for i,val in enumerate(x):
-        #print(par_names[i],val)
         setattr(p,par_names[i],val)
-
 
     TN = int(p.T/p.dt)
 
-    p._run_euler(scenario)
+    p._run_euler()
     y = p.y
-
-    #print(x)
-    #if np.isnan(np.sum(x)):
-    #    raise ValueError
 
     if False:
         import matplotlib.pyplot as plt
@@ -108,11 +97,11 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
         stdout.append(p.psource)
         s1 += ', psource={:.4f}'
 
-    if scenario[:-1] == 't2':
+    if p.scenario[:-1] == 't2':
         stdout.append(p.dp1);stdout.append(p.dp2)
         s1 += ', dp1={:.4f}, dp2={:.4f}'
 
-    if scenario[:-1] == 'jamming':
+    if p.scenario[:-1] == 'jamming':
         stdout.append(p.imax)
         s1 += ', imax={:.4f}'
 
@@ -134,7 +123,6 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
                        init=[.001,1,1],
                        parfix={},ss_condition=False,
                        psource=False,
-                       scenario=None,
                        uconst=True,seed=0,
                        method='annealing'):
     
@@ -157,8 +145,7 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
     for key in parfix:
         setattr(p,key,parfix[key])
     
-    args = (p,par_names,ss_condition,psource,
-            scenario,uconst)
+    args = (p,par_names,ss_condition,psource,uconst)
 
     if method == 'annealing':
         
@@ -287,6 +274,12 @@ def main():
         bounds = [(0,.02),(0,args.dmax)]
         init = [0,.01]
         parfix = {'df':0,'us0':0}
+    
+    elif args.scenario == 't1f':
+        par_names=['eps','us0']
+        bounds = [(0,.02),(0,args.dmax)]
+        init = [0,.01]
+        parfix = {'df':0}
 
     elif args.scenario == 't2a':
         par_names = ['eps','dp1','dp2','df','us0']
@@ -381,6 +374,8 @@ def main():
     
     file_not_found = not(os.path.isfile(fname))\
                      and not(os.path.isfile(fname_err))
+
+    p.scenario = args.scenario
     
     if args.recompute or file_not_found:
         res = get_data_residuals(p,par_names=par_names,
@@ -389,7 +384,6 @@ def main():
                                  parfix=parfix,
                                  ss_condition=args.ss_condition,
                                  psource=args.psource,
-                                 scenario=args.scenario,
                                  uconst=not(args.u_nonconstant),
                                  seed=args.seed,
                                  method=args.method)

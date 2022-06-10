@@ -262,6 +262,7 @@ class PDEModel(Data):
                  imax=1,order=1,D=1,
                  interp_o=1,L=29.5,L0=10,
                  Nvel=1,us0=0.16,
+                 scenario=None,
                  u_nonconstant=False):
         
         """
@@ -291,6 +292,8 @@ class PDEModel(Data):
         self.interp_o = interp_o
         self.u_nonconstant = u_nonconstant
         self.us0 = us0
+
+        self.scenario = scenario
 
         if order == 1:
             self.rhs = self._fd1
@@ -332,7 +335,7 @@ class PDEModel(Data):
         return np.ones(len(r))
 
     
-    def _fd1(self,t,y,scenario='default'):
+    def _fd1(self,t,y):
         """
         finite diff for 1st order PDE
         t: float, time.
@@ -349,18 +352,18 @@ class PDEModel(Data):
 
         out = self.du
 
-        if scenario[:-1] == 't1' or scenario[:-1] == 'jamming':
+        if self.scenario[:-1] == 't1' or self.scenario[:-1] == 'jamming':
             tfp = self.dp*p[:-1] - self.df*f[:-1]
             out[self.N-1] = self.dp*p[-1] - self.df*f[-1]
 
-        elif scenario[:-1] == 't2':
+        elif self.scenario[:-1] == 't2':
             tfp = self.dp1*p[:-1]*f[:-1] + self.dp2*p[:-1]**2 - self.df*f[:-1]
             out[self.N-1] = self.dp1*p[-1]*f[-1] + self.dp2*p[-1]**2 - self.df*f[-1]
 
         else:
-            raise ValueError('Invalid Scenario', scenario)
+            raise ValueError('Invalid Scenario', self.scenario)
 
-        if scenario[:-1] == 'jamming':
+        if self.scenario[:-1] == 'jamming':
             pr = (p[1:]-p[:-1])/dr
             drp = self.ur[1:]*(p[1:]/r[1:]*(1-p[1:]/self.imax) + pr*(1-2*p[1:]/self.imax))
         else:
@@ -418,7 +421,7 @@ class PDEModel(Data):
         return out
 
     
-    def _run_euler(self,scenario,rep=False):
+    def _run_euler(self,rep=False):
         """
         t: time array
         y0: initial condition
@@ -474,7 +477,7 @@ class PDEModel(Data):
         
         for i in range(TN-1):
             #if i >= y[-1,i] = self.psource
-            y[:,i+1] = y[:,i] + self.dt*self.rhs(t[i],y[:,i],scenario=scenario)
+            y[:,i+1] = y[:,i] + self.dt*self.rhs(t[i],y[:,i])
             y[-1,i+1] = 0
             #y[-1] = y[-2]
 
@@ -981,7 +984,7 @@ def main():
     #0.40490838
     #=0.0268, d_f=0.0000, dp=0.0328
     pars = {'eps':4.38157039e-01,'df':4.61276382e-08,'dp':2.82497642e+00,'us0':6.17405758e-01,
-            'T':1500,'dt':.02}
+            'T':1500,'dt':.02,'scenario':scenario}
     #pars = {'eps':0.0020,'dp1':1.9939,'dp2':1.8193,'Nvel':1,'T':1500}
 
        
@@ -1037,7 +1040,7 @@ def main():
     #    setattr(p,'us'+str(i),us[i])
 
     # get numerical solution
-    p._run_euler(scenario)
+    p._run_euler()
 
 
     
