@@ -465,6 +465,7 @@ class PDEModel(Data):
             y0[self.N:] = self.control_fn_avg(self.r)*(1-self.eps)
 
         TN = int(self.T/self.dt)
+        #print('TN',TN)
         t = np.linspace(0,self.T,TN)
         y = np.zeros((2*self.N,TN))
 
