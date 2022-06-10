@@ -262,8 +262,7 @@ class PDEModel(Data):
                  imax=1,order=1,D=1,
                  interp_o=1,L=29.5,L0=10,
                  Nvel=1,us0=0.16,
-                 scenario=None,
-                 u_nonconstant=False):
+                 scenario=None):
         
         """
         uval: scale for velocity.
@@ -295,6 +294,18 @@ class PDEModel(Data):
 
         self.scenario = scenario
 
+        if self.scenario[-1] == 'e':
+            self.u_nonconstant = True
+            self.dp_nonconstant = False
+            
+        elif self.scenario[-1] == 'f':
+            self.u_nonconstant = False
+            self.dp_nonconstant = True
+            
+        else:
+            self.u_nonconstant = False
+            self.dp_nonconstant = False
+
         if order == 1:
             self.rhs = self._fd1
         elif order == 2:
@@ -309,6 +320,7 @@ class PDEModel(Data):
         self.N = N
         
         self.r, self.dr = np.linspace(self.L0,self.L,N,retstep=True)
+
         
         self.dp = dp
         self.df = df
@@ -323,18 +335,6 @@ class PDEModel(Data):
         # dummy array to speed up integration
         self.du = np.zeros(2*N)
     
-    def _u_constant(self,r):
-        """
-        speed of retrograde flow induced by actin
-        r: domain position.
-        constant case.
-        return 1, but it is scaled by uval in code.
-        needed to be compatible with user-defined velocities
-        """
-        
-        return np.ones(len(r))
-
-    
     def _fd1(self,t,y):
         """
         finite diff for 1st order PDE
@@ -345,16 +345,15 @@ class PDEModel(Data):
 
         r = self.r
         dr = self.dr
-        #u = self.u
-        ur = self.ur
+        ur = self.ur; dp = self.dp
+        
         f = y[:self.N]
         p = y[self.N:]
-
         out = self.du
 
         if self.scenario[:-1] == 't1' or self.scenario[:-1] == 'jamming':
-            tfp = self.dp*p[:-1] - self.df*f[:-1]
-            out[self.N-1] = self.dp*p[-1] - self.df*f[-1]
+            tfp = self.dp[:-1]*p[:-1] - self.df*f[:-1]
+            out[self.N-1] = self.dp[-1]*p[-1] - self.df*f[-1]
 
         elif self.scenario[:-1] == 't2':
             tfp = self.dp1*p[:-1]*f[:-1] + self.dp2*p[:-1]**2 - self.df*f[:-1]
@@ -375,51 +374,6 @@ class PDEModel(Data):
 
         return out
 
-
-    def _fd2(self,t,y,scenario='default'):
-        """
-        finite diff for 1st order PDE
-        t: float, time.
-        y: 2*N array
-        p: object of parameters
-        """
-
-        r = self.r;dr = self.dr;u = self.u;D = self.D
-        f = y[:self.N];p = y[self.N:];ur = self.ur
-        
-        tfp = self.dp*p - self.df*f
-        
-        # interior derivatives
-        drp2_i = D*(p[2:] - 2*p[1:-1] + p[:-2])/dr**2
-        drp1_i = (r[1:-1]*ur[1:-1]+D)*(p[2:]-p[:-2])/(2*r[1:-1]*dr)
-        drp0_i = ur[1:-1]*p[1:-1]/r[1:-1]
-
-        # left endpoint derivative
-        p0 = p[1] + 2*ur[0]*dr*p[0]/D
-        drp2_l = D*(p0 - 2*p[0] + p[1])/dr**2
-        drp1_l = (r[0]*ur[0]+D)*(p[1]-p0)/(2*r[0]*dr)
-        drp0_l = ur[0]*p[0]/r[0] - tfp[0]
-
-        # right endpoint derivative
-        pn1 = p[-2] - 2*ur[-1]*dr*p[-1]/D
-        drp2_r = D*(pn1 - 2*p[-1] + p[-2])/dr**2
-        drp1_r = (r[-1]*ur[-1]+D)*(pn1-p[-2])/(2*r[-1]*dr)
-        drp0_r = ur[-1]*p[-1]/r[-1] - tfp[-1]
-
-        # update interior derivatives
-        
-        out = self.du
-        out[:self.N] = tfp
-        out[self.N+1:-1] = drp2_i + drp1_i + drp0_i - tfp[1:-1]
-
-        # update left d
-        out[self.N] = drp2_l + drp1_l + drp0_l
-
-        # update right d
-        out[-1] = drp2_r + drp1_r + drp0_r
-
-        return out
-
     
     def _run_euler(self,rep=False):
         """
@@ -427,42 +381,25 @@ class PDEModel(Data):
         y0: initial condition
         """
         
-        if self.Nvel == 1:
-            if self.u_nonconstant:
-                self.ur = self._s2_vel()
-            else:
-                self.u = self._u_constant
-                self.ur = self.us0*self.u(self.r)
+        if self.u_nonconstant:
+            self.dp = self.dp*np.ones(len(self.r))
+            self.ur = self._vel_spatial()
+            
+        elif self.dp_nonconstant:
+            self.dp = self._dp_spatial()
+            self.ur = self.us0*np.ones(len(self.r))
+            
         else:
-            us = []
-            for i in range(self.Nvel):
-                us1 = getattr(self,'us'+str(i))
-                us.append(us1)
-                
-            if self.interp_o == 1:
-                kind = 'linear'
-
-            elif self.interp_o == 2:
-                kind = 'quadratic'
-
-            self.rs = np.linspace(self.L0,self.L,len(us))
-            fn = interp1d(self.rs,us,kind=kind)
-            self.ur = fn(self.r)
+            self.dp = self.dp*np.ones(len(self.r))
+            self.ur = self.us0*np.ones(len(self.r))
             
         #print(self.ur)
         y0 = np.zeros(2*self.N)
-
-
-        #y0[:self.N] = self.control_fn_avg(self.r)*self.eps
-        #y0[self.N:] = self.control_fn_avg(self.r)*(1-self.eps)
         
         if rep:
-            #y0[:self.N] = self.control_fn(self.r)*self.eps
-            #y0[self.N:] = self.control_fn(self.r)*(1-self.eps)
-            #y0[:self.N] = self.data_rep_fns['control'](self.r)*self.eps
-            #y0[self.N:] = self.data_rep_fns['control'](self.r)*(1-self.eps)
             y0[:self.N] = self.control_fn_rep(self.r)*self.eps
             y0[self.N:] = self.control_fn_rep(self.r)*(1-self.eps)
+            
         else:
             y0[:self.N] = self.control_fn_avg(self.r)*self.eps
             y0[self.N:] = self.control_fn_avg(self.r)*(1-self.eps)
@@ -497,7 +434,7 @@ class PDEModel(Data):
         self.y0 = y0
 
 
-    def _s2_vel(self):
+    def _vel_spatial(self):
         """
         take a look at velocity profile (see page 230 in personal notebook)
         """
@@ -525,6 +462,36 @@ class PDEModel(Data):
 
         return u
 
+
+    def _dp(self):
+        """
+        rate profile
+        """
+        
+        import matplotlib.pyplot as plt
+
+        r = self.r
+
+        f_last = self.data_avg_fns['24h'](r)
+        p0 = self.data_avg_fns['control'](r)*(1-self.eps)
+        f0 = self.data_avg_fns['control'](r)*self.eps        
+
+        fhat = f0-f_last
+        
+        dr = self.dr
+
+        mu = r*fhat
+        
+        #u = np.cumsum(r*(F-c))*dr/mu
+        u = self.dp*np.cumsum(mu*(1+p0/fhat))*dr/mu
+        
+        # shift back 1 to include 0 value
+        u = np.append([0],u)
+        u = u[:-1]
+
+        return u
+
+    
     def u(self,r):
         """
         spatially-dependent u
@@ -995,7 +962,7 @@ def main():
         setattr(p,'us'+str(i),us[i])
         
     if False:
-        ur = p._s2_vel()
+        ur = p._vel_spatial()
         #mu = 
         #mu = np.exp(np.cumsum((r[1:]*dF+F[1:])/dF)*dr)
         #print(mu)

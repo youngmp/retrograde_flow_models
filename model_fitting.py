@@ -27,7 +27,7 @@ from scipy.interpolate import interp1d
 
 np.seterr(all='warn')
 
-def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,uconst=True):
+def cost_fn(x,p,par_names=None,ss_condition=False,psource=False):
     """
     function for use in least squares.
     x is combination or subset of eps,df,dp.
@@ -122,8 +122,7 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
                        bounds=[(0,1),(0,100),(0,100)],
                        init=[.001,1,1],
                        parfix={},ss_condition=False,
-                       psource=False,
-                       uconst=True,seed=0,
+                       psource=False,seed=0,
                        method='annealing'):
     
     """
@@ -145,7 +144,7 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
     for key in parfix:
         setattr(p,key,parfix[key])
     
-    args = (p,par_names,ss_condition,psource,uconst)
+    args = (p,par_names,ss_condition,psource)
 
     if method == 'annealing':
         
@@ -183,10 +182,6 @@ def main():
                         help='Choose scenario. see code for scenarios',
                          default='-1',type=str)
 
-    parser.add_argument('-n','--nvel',dest='Nvel',
-                        help='choose number of velocities for nonuniform vel (different front non-constant velocity function!)',
-                        default=1,type=int)
-
     parser.add_argument('--seed',dest='seed',
                         help='choose seed for dual annealing',
                         default=0,type=int)
@@ -195,11 +190,6 @@ def main():
                         action='store_true',
                         help='Choose whether or not to force steady-state condition',
                         default=True)
-
-    parser.add_argument('--u-nonconstant',dest='u_nonconstant',
-                        action='store_true',
-                        help='Set flag to use non-constant velocity estimate',
-                        default=False)
 
     parser.add_argument('--umax',dest='umax',
                         help='set max velocity for spatial velocity',
@@ -221,7 +211,6 @@ def main():
     parser.add_argument('-r','--recompute',dest='recompute',action='store_true',
                         help='If true, recompute optimization data')
 
-
     parser.add_argument('--method',dest='method',type=str,
                         default='annealing',
                         help='select method. annealing, bh (basin hopping), or de (differential evolution)')
@@ -234,8 +223,7 @@ def main():
     # note Nvel takes precedence over u_nonconstant
     
     p = pde.PDEModel(T=1500,dt=.05,order=1,N=50,
-                     u_nonconstant=args.u_nonconstant,
-                     Nvel=args.Nvel)
+                     Nvel=args.Nvel,scenario=args.scenario)
     
     #print(args.scenario, args.scenario == 't1b')
     if args.scenario == 't1a':
@@ -375,8 +363,6 @@ def main():
     file_not_found = not(os.path.isfile(fname))\
                      and not(os.path.isfile(fname_err))
 
-    p.scenario = args.scenario
-    
     if args.recompute or file_not_found:
         res = get_data_residuals(p,par_names=par_names,
                                  bounds=bounds,
@@ -384,7 +370,6 @@ def main():
                                  parfix=parfix,
                                  ss_condition=args.ss_condition,
                                  psource=args.psource,
-                                 uconst=not(args.u_nonconstant),
                                  seed=args.seed,
                                  method=args.method)
         
