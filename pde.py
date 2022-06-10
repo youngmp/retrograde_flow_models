@@ -144,7 +144,7 @@ class Data:
 
         
     #@staticmethod
-    def _build_data_dict(self,fname='patrons20180327dynamiqueNZ_reformatted.xlsx',
+    def _build_data_dict(self,fname='data/patrons20180327dynamiqueNZ_reformatted.xlsx',
                          L0=10,L=30,normed=True):
 
         # load intensity data
