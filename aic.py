@@ -23,7 +23,7 @@ models = ['t1a','t1b','t1c','t1d','t1e',
           't2a','t2b','t2c','t2d',
           'jamminga','jammingb','jammingc','jammingd']
 
-#models = ['t1a','t1b','t1c','t1d']
+models = ['t1a','t1b','t1c','t1d','t1e']
 
 p = pde.PDEModel()
 
@@ -49,12 +49,18 @@ aic_min = 100
     #    model_names.append(str(model)+'_'+str(order))
 
 for i in range(len(models)):
-    
-    err, min_seed = lib.lowest_error_seed(models[i])    
-    residuals = np.loadtxt(lib.get_parameter_fname(models[i],min_seed))
+
+    if models[i] == 't1e':
+        seeds = 10
+    else:
+        seeds = 100
+        
+    err, min_seed = lib.lowest_error_seed(models[i],seeds=seeds,method='de')
+    #print(models[i],min_seed)
+    residuals = np.loadtxt(lib.get_parameter_fname(models[i],min_seed,method='de'))
 
     #print(models[i],'err',err,min_seed)
-    err = 10**err
+    err = np.exp(err)
     
 
     k = len(residuals)
@@ -88,6 +94,7 @@ for m in models:
     
     delta_i = aic_data[m]['delta']
     aic_data[m]['w'] = np.exp(-delta_i/2)/norm
+    aic_data[m]['w_unnorm'] = np.exp(-delta_i/2)
     
 print('{:10s} {:10s} {:10s} {:10s}'.format('scenario','k_i','aic_i','w_i'))
 for m in models:
@@ -97,3 +104,26 @@ for m in models:
     s = '{:<10s} {:<10.0f} {:<10.4f} {:<10.4f}'
     print(s.format(m,k,aic,delta))
     #print('add +1 to k')
+
+
+
+print()
+print('RSS: ')
+
+for m in models:
+    err = aic_data[m]['err']
+    print(m,'\t',err)
+    #print('add +1 to k')
+
+
+"""    
+print('evidence ratios: ')
+
+w_best = aic_data['t1e']['w_unnorm']
+for m in models:
+    w = aic_data[m]['w_unnorm']
+    #print(m,aic_data[m]['delta'])
+    print(m,w_best,w,w_best/w,np.exp(-.5*803))
+    #print('add +1 to k')
+
+"""
