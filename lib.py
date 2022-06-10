@@ -72,7 +72,8 @@ def lowest_error_seed(model='t1e',method='',seeds=10,exclude=None):
     
     err = 10
     min_seed = 0
-    
+
+
     for i in range(seeds):
         if not(i in exclude):
             fname = get_parameter_fname(model,i,err=True,method=method)
@@ -93,7 +94,7 @@ def load_pars(model,seed,method='',return_names=False):
     """
     
     fname_pre = 'data/'+model+'_residuals'
-    pars = {'T':1500,'dt':0.02,'order':1,'N':50}    
+    pars = {'T':1500,'dt':0.05,'order':1,'N':50}    
     scenario = model[-1]
     
     if model[:-1] == 't1':
