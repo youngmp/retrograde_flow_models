@@ -16,6 +16,7 @@ then compare I[-1,:] to I[int(TN/2),:]
 
 import pde
 
+import time as tt
 import warnings
 import os
 import argparse
@@ -27,7 +28,7 @@ from scipy.interpolate import interp1d
 
 np.seterr(all='warn')
 
-def cost_fn(x,p,par_names=None,ss_condition=False,psource=False):
+def cost_fn(x,p,par_names=None,ss_condition=True,psource=False):
     """
     function for use in least squares.
     x is combination or subset of eps,df,dp.
@@ -48,10 +49,13 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False):
         import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.plot(y)
+        ax.plot(y[:,0])
+        ax.plot(y[:,int(TN/4)])
+        ax.plot(y[:,int(TN/2)])
+        ax.plot(y[:,-1])
         plt.show()
         plt.close()
-        time.sleep(2)
+        tt.sleep(1)
 
     # get solution
     fsol = y[:p.N,:]
@@ -89,9 +93,13 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False):
     if np.isnan(err):
         err = 1e5
 
-    stdout = [err,p.eps,p.df,p.dp]
+    stdout = [err,p.eps,p.df]
     s1 = 'log(err)={:.4f}, eps={:.4f}, '\
-        +'d_f={:.4f}, dp={:.4f}'
+        +'df={:.4f}'
+
+    if not(p.dp_nonconstant):
+        stdout.append(p.dp)
+        s1 += ', dp={:.4f}'
 
     if psource:
         stdout.append(p.psource)
@@ -106,16 +114,12 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False):
         s1 += ', imax={:.4f}'
 
     if not(p.u_nonconstant):
-        s1 += ', us='
-        for i in range(p.Nvel):
-            #print('us'+str(i),getattr(p,'us'+str(i)))
-            stdout.append(getattr(p,'us'+str(i)))
-            
-            s1 += '{:.2f},'
-        s1 = s1[:-1]
+        stdout.append(getattr(p,'us'+str(0)))
+        s1 += ', us={:.2f}'
 
     #print(s1,stdout)
     print(s1.format(*stdout))
+
     return err
 
 def get_data_residuals(p,par_names=['eps','df','dp'],
@@ -124,7 +128,7 @@ def get_data_residuals(p,par_names=['eps','df','dp'],
                        parfix={},ss_condition=False,
                        psource=False,seed=0,
                        method='annealing'):
-    
+
     """
     fit sim to data
 
@@ -219,13 +223,11 @@ def main():
     args = parser.parse_args()
     #print(args)
 
-    # 1440 minutes in 24 h.
-    # note Nvel takes precedence over u_nonconstant
+    # 1440 minutes in 24 h.    
+    p = pde.PDEModel(T=1500,dt=.05,order=1,N=50,scenario=args.scenario)
     
-    p = pde.PDEModel(T=1500,dt=.05,order=1,N=50,
-                     Nvel=args.Nvel,scenario=args.scenario)
+    print(args)
     
-    #print(args.scenario, args.scenario == 't1b')
     if args.scenario == 't1a':
         # original model fitting eps, df, dp
         par_names = ['eps','df','dp','us0']
@@ -265,7 +267,7 @@ def main():
     
     elif args.scenario == 't1f':
         par_names=['eps','us0']
-        bounds = [(0,.02),(0,args.dmax)]
+        bounds = [(0,1),(0,args.umax)]
         init = [0,.01]
         parfix = {'df':0}
 
@@ -327,24 +329,6 @@ def main():
 
     if args.method == 'de' or args.method == 'bh':
         fname_pre += '_method='+args.method
-
-    if (args.Nvel > 1) and args.u_nonconstant:
-        raise ValueError('Incompatible flags. can only have Nvel > 1 OR u_nonconstant, but not both.')
-    elif args.Nvel > 1:
-        # u_nonconstant is for the function u(r).
-        # if nVel > 1 u is technically nonconstant but it
-        # uses the pointwise estimation of u.
-        
-        fname_pre += '_Nvel='+str(args.Nvel)
-        fname_pre += 'interp_o='+str(args.interp_o)
-
-        p.interp_o = args.interp_o
-        p.rs = np.linspace(p.L0,p.L,args.Nvel)
-
-        for i in range(1,args.Nvel):
-            par_names.append('us'+str(i))
-            bounds.append((0,args.umax))
-            init.append(.1)
     
     
     if args.psource:
