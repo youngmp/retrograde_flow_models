@@ -33,6 +33,7 @@ import lib
 
 import os
 import time
+import time as tt
 import copy
 
 import pandas as pd
@@ -107,7 +108,7 @@ class Data:
             par_init[3*i+1] = i*35/int(len(par_init)/3) # shift
             par_init[3*i+2] = 5 # width
 
-        res = lsq(cost_fn,par_init,args=(x_data,y_data))
+        res = lsq(cost_fn_gauss,par_init,args=(x_data,y_data))
 
         # from least squares above
         pars = res.x
@@ -141,7 +142,6 @@ class Data:
 
         else:
             return np.loadtxt(fname)
-
         
     #@staticmethod
     def _build_data_dict(self,fname='data/patrons20180327dynamiqueNZ_reformatted.xlsx',
@@ -289,7 +289,6 @@ class PDEModel(Data):
         self.Nvel = Nvel
         self.order = order
         self.interp_o = interp_o
-        self.u_nonconstant = u_nonconstant
         self.us0 = us0
 
         self.scenario = scenario
@@ -345,15 +344,15 @@ class PDEModel(Data):
 
         r = self.r
         dr = self.dr
-        ur = self.ur; dp = self.dp
+        ur = self.ur; dpr = self.dpr
         
         f = y[:self.N]
         p = y[self.N:]
         out = self.du
 
         if self.scenario[:-1] == 't1' or self.scenario[:-1] == 'jamming':
-            tfp = self.dp[:-1]*p[:-1] - self.df*f[:-1]
-            out[self.N-1] = self.dp[-1]*p[-1] - self.df*f[-1]
+            tfp = dpr[:-1]*p[:-1] - self.df*f[:-1]
+            out[self.N-1] = dpr[-1]*p[-1] - self.df*f[-1]
 
         elif self.scenario[:-1] == 't2':
             tfp = self.dp1*p[:-1]*f[:-1] + self.dp2*p[:-1]**2 - self.df*f[:-1]
@@ -382,15 +381,15 @@ class PDEModel(Data):
         """
         
         if self.u_nonconstant:
-            self.dp = self.dp*np.ones(len(self.r))
+            self.dpr = self.dp*np.ones(len(self.r))
             self.ur = self._vel_spatial()
             
         elif self.dp_nonconstant:
-            self.dp = self._dp_spatial()
+            self.dpr = self._dp_spatial()
             self.ur = self.us0*np.ones(len(self.r))
             
         else:
-            self.dp = self.dp*np.ones(len(self.r))
+            self.dpr = self.dp*np.ones(len(self.r))
             self.ur = self.us0*np.ones(len(self.r))
             
         #print(self.ur)
@@ -463,7 +462,7 @@ class PDEModel(Data):
         return u
 
 
-    def _dp(self):
+    def _dp_spatial(self):
         """
         rate profile
         """
@@ -476,20 +475,17 @@ class PDEModel(Data):
         p0 = self.data_avg_fns['control'](r)*(1-self.eps)
         f0 = self.data_avg_fns['control'](r)*self.eps        
 
-        fhat = f0-f_last
+        fhat = -(f0-f_last)
         
         dr = self.dr
-
-        mu = r*fhat
+        #mu = r*fhat
         
         #u = np.cumsum(r*(F-c))*dr/mu
-        u = self.dp*np.cumsum(mu*(1+p0/fhat))*dr/mu
+        q = np.cumsum(r*(fhat-p0))*dr
+        dp = r*self.us0*fhat/q
         
         # shift back 1 to include 0 value
-        u = np.append([0],u)
-        u = u[:-1]
-
-        return u
+        return dp
 
     
     def u(self,r):
@@ -533,6 +529,105 @@ class CallableGaussian(object):
     def __call__(self,x):
         return g_approx(x,self.pars)/100000
 
+
+def cost_fn(x,p,par_names=None,ss_condition=False,psource=False):
+    """
+    copy of cost function from model_fitting.
+    x is combination or subset of eps,df,dp.
+    par_names: list of variables in order of x
+    returns L2 norm.
+    """
+    assert(len(x) == len(par_names))
+    
+    for i,val in enumerate(x):
+        setattr(p,par_names[i],val)
+
+    TN = int(p.T/p.dt)
+
+    p._run_euler()
+    y = p.y
+
+    if True:
+        import matplotlib.pyplot as plt
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.plot(p.r,y[:p.N,0])
+        ax.plot(p.r,y[:p.N,int(TN/4)])
+        ax.plot(p.r,y[:p.N,int(TN/2)])
+        ax.plot(p.r,y[:p.N,-1])
+        plt.show()
+        plt.close()
+        tt.sleep(1)
+
+    # get solution
+    fsol = y[:p.N,:]
+    psol = y[p.N:,:]
+
+    I = fsol + psol
+
+    #'2h', '4h', '30min', '1h', '24h', 'control', '8h30'
+    err = 0
+
+    for hour in p.data_avg.keys():
+
+        # convert hour to index
+        if hour == 'control':
+            pass # ignore initial condition (trivial)
+        else:
+
+            time = float(hour[:-1])
+            minute = time*60
+            idx = int(minute/p.dt)
+
+            # restrict solution to observed positions
+            I_fn = interp1d(p.r,I[:,idx])
+            I_cut = I_fn(p.data_avg[hour][:,0])
+
+            data = p.data_avg[hour][:,1]
+            err0 = np.linalg.norm(data[1:-1]-I_cut[1:-1])**2
+            print(err0)
+            err += err0
+            
+
+    err = np.log10(err)
+    if ss_condition:
+        if 1e6*np.linalg.norm(I[:,int(1200/p.dt)]-I[:,int(1440/p.dt)])**2 > 1e-10:
+            err = 1e5
+
+    #err_log = np.log10(err)
+    if np.isnan(err):
+        err = 1e5
+
+    stdout = [err,p.eps,p.df]
+    s1 = 'log(err)={:.4f}, eps={:.4f}, '\
+        +'df={:.4f}'
+
+    if not(p.dp_nonconstant):
+        stdout.append(p.dp)
+        s1 += ', dp={:.4f}'
+
+    if psource:
+        stdout.append(p.psource)
+        s1 += ', psource={:.4f}'
+
+    if p.scenario[:-1] == 't2':
+        stdout.append(p.dp1);stdout.append(p.dp2)
+        s1 += ', dp1={:.4f}, dp2={:.4f}'
+
+    if p.scenario[:-1] == 'jamming':
+        stdout.append(p.imax)
+        s1 += ', imax={:.4f}'
+
+    if not(p.u_nonconstant):
+        stdout.append(getattr(p,'us'+str(0)))
+        s1 += ', us={:.2f}'
+
+    #print(s1,stdout)
+    print(s1.format(*stdout))
+
+    return err
+
+    
 def parsets(scenario='default',method=''):
        
     
@@ -899,7 +994,7 @@ def g_approx(r,pars):
 
     return tot
     
-def cost_fn(x,data_x,data_y):
+def cost_fn_gauss(x,data_x,data_y):
     """
     cost function for fitting gaussians to data
     """
@@ -926,11 +1021,8 @@ def main():
     
     from matplotlib.gridspec import GridSpec
 
-
-    #scenario = 'default'
-    #scenario = 'model2a'
-    scenario = 'jamminga'
-    method = 'annealing'
+    scenario = 't1f'
+    method = 'de'#'annealing'
     np.random.seed(3)
 
     #pars = parsets(scenario,method)
@@ -950,8 +1042,9 @@ def main():
 
     #0.40490838
     #=0.0268, d_f=0.0000, dp=0.0328
-    pars = {'eps':4.38157039e-01,'df':4.61276382e-08,'dp':2.82497642e+00,'us0':6.17405758e-01,
-            'T':1500,'dt':.02,'scenario':scenario}
+    #0.01041775
+    pars = {'eps':0.02,'df':0,'dp':0.01041775,'us0':.067,
+            'T':1500,'dt':.05,'scenario':scenario}
     #pars = {'eps':0.0020,'dp1':1.9939,'dp2':1.8193,'Nvel':1,'T':1500}
 
        
@@ -960,51 +1053,36 @@ def main():
     us = [0.01]
     for i in range(len(us)):
         setattr(p,'us'+str(i),us[i])
-        
+
+    # get cost function information
+    err = cost_fn([.02,0.067],p,par_names=['eps','us0'],ss_condition=True)
+    #err = cost_fn([0.0,0.010417365875774465],p,par_names=['eps','dp'],ss_condition=True)
+    print(err)
+    
+            
     if False:
         ur = p._vel_spatial()
-        #mu = 
-        #mu = np.exp(np.cumsum((r[1:]*dF+F[1:])/dF)*dr)
-        #print(mu)
 
         fig, axs = plt.subplots(nrows=1,ncols=1,figsize=(5,5))
 
-        axs.plot(p.r,ur)
-
-        """
-        # check out derivatives as a function of c
-        cs = np.linspace(-.1,1.2,10)
-        for c_val in cs:
-            up = 1 - c_val/F[1:] + (1/mu)*u
-            zero_crossings = np.where(np.diff(np.sign(up)))[0]
-            rs_zero = r[1:][zero_crossings]
-            
-            if len(rs_zero) > 0:
-                
-                print(c_val,rs_zero)
-                axs[1].scatter(c_val*np.ones(len(rs_zero)),rs_zero,
-                               s=10,color='tab:red')
-        #axs[1].scatter(c,)
-        axs[1].set_xlabel('Value of c')
-        axs[1].set_ylabel('r')
-        axs[1].set_xlim(cs[0],cs[-1])
-        axs[1].set_title('Zero derivatives of u(r)')
-        """
-        
+        axs.plot(p.r,ur)        
         axs.set_xlabel('r')
-        #axs.set_title('u(r) with c='+str(c))        
 
         plt.tight_layout()
         plt.show()
 
-    
 
-    #time.sleep(10)
-    #p.rs = np.linspace(p.L0,p.L,len(us))
-    #p.Nvel = len(p.rs)
+    if False:
+        dp = p._dp_spatial()
+
+        fig, axs = plt.subplots(nrows=1,ncols=1,figsize=(5,5))
+
+        axs.plot(p.r,dp)        
+        axs.set_xlabel('r')
+
+        plt.tight_layout()
+        plt.show()
     
-    #for i in range(len(us)):
-    #    setattr(p,'us'+str(i),us[i])
 
     # get numerical solution
     p._run_euler()
@@ -1037,7 +1115,7 @@ def main():
     # plot solution
     if True:
         
-        plot_sim(p)
+        #plot_sim(p)
         plot_sim_intermediate(p)
         
         #plot_ana(p)
