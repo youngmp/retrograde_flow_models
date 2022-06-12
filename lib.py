@@ -28,6 +28,9 @@ def get_parameter_fname(model,seed,err=False,method=''):
     elif model == 't1e':
         #fname_pre+='_umax=2_dmax=5'
         fname_pre+='_umax=4.0_dmax=20.0'
+    elif model == 't1f':
+        fname_pre+='_umax=4.0_dmax=20.0'
+        
     elif model == 't2a':
         fname_pre+='_umax=4.0_dmax=20.0'
 
