@@ -92,7 +92,7 @@ def cost_fn(x,p,par_names=None,ss_condition=True,psource=False):
             err = 1e5
 
     if p.model == 't1f':
-        if np.sum(p._dp_spatial()>0)>0:
+        if np.sum(p._dp_spatial()<0)>0:
             err = 1e5
 
     #err_log = np.log10(err)
