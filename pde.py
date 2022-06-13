@@ -262,7 +262,7 @@ class PDEModel(Data):
                  imax=1,order=1,D=1,
                  interp_o=1,L=29.5,L0=10,
                  Nvel=1,us0=0.16,
-                 scenario=None):
+                 model=None):
         
         """
         uval: scale for velocity.
@@ -280,6 +280,8 @@ class PDEModel(Data):
         Nvel: number of velocity points to use in nonconstant discrete velocity
         u_nonconstant: if true, use spatial velocity from PDE
         dp1 and dp2 are parameters for trapping via bundling.
+
+        scenario: str, mechanism + scenario (e.g., t1d, t2a).
         """
         
         super().__init__(L=L,L0=L0)
@@ -291,13 +293,13 @@ class PDEModel(Data):
         self.interp_o = interp_o
         self.us0 = us0
 
-        self.scenario = scenario
+        self.model = model
 
-        if self.scenario[-1] == 'e':
+        if self.model[-1] == 'e':
             self.u_nonconstant = True
             self.dp_nonconstant = False
             
-        elif self.scenario[-1] == 'f':
+        elif self.model[-1] == 'f':
             self.u_nonconstant = False
             self.dp_nonconstant = True
             
@@ -350,18 +352,18 @@ class PDEModel(Data):
         p = y[self.N:]
         out = self.du
 
-        if self.scenario[:-1] == 't1' or self.scenario[:-1] == 'jamming':
+        if self.model[:-1] == 't1' or self.model[:-1] == 'jamming':
             tfp = dpr[:-1]*p[:-1] - self.df*f[:-1]
             out[self.N-1] = dpr[-1]*p[-1] - self.df*f[-1]
 
-        elif self.scenario[:-1] == 't2':
+        elif self.model[:-1] == 't2':
             tfp = self.dp1*p[:-1]*f[:-1] + self.dp2*p[:-1]**2 - self.df*f[:-1]
             out[self.N-1] = self.dp1*p[-1]*f[-1] + self.dp2*p[-1]**2 - self.df*f[-1]
 
         else:
-            raise ValueError('Invalid Scenario', self.scenario)
+            raise ValueError('Invalid Scenario', self.model)
 
-        if self.scenario[:-1] == 'jamming':
+        if self.model[:-1] == 'jamming':
             pr = (p[1:]-p[:-1])/dr
             drp = self.ur[1:]*(p[1:]/r[1:]*(1-p[1:]/self.imax) + pr*(1-2*p[1:]/self.imax))
         else:
@@ -547,7 +549,7 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False):
     p._run_euler()
     y = p.y
 
-    if True:
+    if False:
         import matplotlib.pyplot as plt
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -610,11 +612,11 @@ def cost_fn(x,p,par_names=None,ss_condition=False,psource=False):
         stdout.append(p.psource)
         s1 += ', psource={:.4f}'
 
-    if p.scenario[:-1] == 't2':
+    if p.model[:-1] == 't2':
         stdout.append(p.dp1);stdout.append(p.dp2)
         s1 += ', dp1={:.4f}, dp2={:.4f}'
 
-    if p.scenario[:-1] == 'jamming':
+    if p.model[:-1] == 'jamming':
         stdout.append(p.imax)
         s1 += ', imax={:.4f}'
 
@@ -1021,7 +1023,7 @@ def main():
     
     from matplotlib.gridspec import GridSpec
 
-    scenario = 't1f'
+    model = 't1f'
     method = 'de'#'annealing'
     np.random.seed(3)
 
@@ -1043,21 +1045,17 @@ def main():
     #0.40490838
     #=0.0268, d_f=0.0000, dp=0.0328
     #0.01041775
-    pars = {'eps':0.02,'df':0,'dp':0.01041775,'us0':.067,
-            'T':1500,'dt':.05,'scenario':scenario}
+    pars = {'eps':0.5,'df':0,'dp':0.01041775,'us0':.067,
+            'T':1500,'dt':.05,'model':model}
     #pars = {'eps':0.0020,'dp1':1.9939,'dp2':1.8193,'Nvel':1,'T':1500}
 
        
     p = PDEModel(**pars)
 
-    us = [0.01]
-    for i in range(len(us)):
-        setattr(p,'us'+str(i),us[i])
-
     # get cost function information
-    err = cost_fn([.02,0.067],p,par_names=['eps','us0'],ss_condition=True)
+    #err = cost_fn([.02,0.067],p,par_names=['eps','us0'],ss_condition=True)
     #err = cost_fn([0.0,0.010417365875774465],p,par_names=['eps','dp'],ss_condition=True)
-    print(err)
+    #print(err)
     
             
     if False:
@@ -1072,7 +1070,7 @@ def main():
         plt.show()
 
 
-    if False:
+    if True:
         dp = p._dp_spatial()
 
         fig, axs = plt.subplots(nrows=1,ncols=1,figsize=(5,5))
