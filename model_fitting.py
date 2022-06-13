@@ -84,17 +84,23 @@ def cost_fn(x,p,par_names=None,ss_condition=True,psource=False):
             data = p.data_avg[hour][:,1]
             err += np.linalg.norm(data[1:-1]-I_cut[1:-1])**2
 
+    err_old = err
     err = np.log10(err)
+    
     if ss_condition:
         if 1e6*np.linalg.norm(I[:,int(1200/p.dt)]-I[:,int(1440/p.dt)])**2 > 1e-10:
+            err = 1e5
+
+    if p.model == 't1f':
+        if np.sum(p._dp_spatial()>0)>0:
             err = 1e5
 
     #err_log = np.log10(err)
     if np.isnan(err):
         err = 1e5
 
-    stdout = [err,p.eps,p.df]
-    s1 = 'log(err)={:.4f}, eps={:.4f}, '\
+    stdout = [err,err_old,p.eps,p.df]
+    s1 = 'log(err)={:.4f},err_old={:.6f}, eps={:.4f}, '\
         +'df={:.4f}'
 
     if not(p.dp_nonconstant):
@@ -105,11 +111,11 @@ def cost_fn(x,p,par_names=None,ss_condition=True,psource=False):
         stdout.append(p.psource)
         s1 += ', psource={:.4f}'
 
-    if p.scenario[:-1] == 't2':
+    if p.model[:-1] == 't2':
         stdout.append(p.dp1);stdout.append(p.dp2)
         s1 += ', dp1={:.4f}, dp2={:.4f}'
 
-    if p.scenario[:-1] == 'jamming':
+    if p.model[:-1] == 'jamming':
         stdout.append(p.imax)
         s1 += ', imax={:.4f}'
 
@@ -182,8 +188,8 @@ def main():
     parser.add_argument('-q','--quiet',dest='quiet',action='store_true',
                         help='If true, suppress all print statements',default=False)
     
-    parser.add_argument('-s','--scenario',dest='scenario',
-                        help='Choose scenario. see code for scenarios',
+    parser.add_argument('-s','--model',dest='model',
+                        help='Choose model. see code for models',
                          default='-1',type=str)
 
     parser.add_argument('--seed',dest='seed',
@@ -224,18 +230,18 @@ def main():
     #print(args)
 
     # 1440 minutes in 24 h.    
-    p = pde.PDEModel(T=1500,dt=.05,order=1,N=50,scenario=args.scenario)
+    p = pde.PDEModel(T=1500,dt=.05,order=1,N=50,model=args.model)
     
-    print(args)
+    #print(args)
     
-    if args.scenario == 't1a':
+    if args.model == 't1a':
         # original model fitting eps, df, dp
         par_names = ['eps','df','dp','us0']
         bounds = [(0,1),(0,args.dmax),(0,args.dmax),(0,args.umax)]
         init = [0.1,0,1,0.16]
         parfix = {}
     
-    elif args.scenario == 't1b':
+    elif args.model == 't1b':
         # purely reversible trapping
         # dp = 0        
         par_names=['eps','df','us0']
@@ -243,7 +249,7 @@ def main():
         init = [0.001,1,0.16]
         parfix = {'dp':0}
 
-    elif args.scenario == 't1c':
+    elif args.model == 't1c':
         # non-dynamical trapping, pure transport
         # df = dp = 0
         par_names=['eps','us0']
@@ -251,7 +257,7 @@ def main():
         init = [0.001,0.16]
         parfix = {'df':0,'dp':0}
 
-    elif args.scenario == 't1d':
+    elif args.model == 't1d':
         # irreversible trapping
         # df = 0
         par_names=['eps','dp','us0']
@@ -259,70 +265,70 @@ def main():
         init = [0,1,0.16]
         parfix = {'df':0}
 
-    elif args.scenario == 't1e':
+    elif args.model == 't1e':
         par_names=['eps','dp']
         bounds = [(0,.02),(0,args.dmax)]
         init = [0,.01]
         parfix = {'df':0,'us0':0}
     
-    elif args.scenario == 't1f':
+    elif args.model == 't1f':
         par_names=['eps','us0']
         bounds = [(0,1),(0,args.umax)]
         init = [0,.01]
         parfix = {'df':0}
 
-    elif args.scenario == 't2a':
+    elif args.model == 't2a':
         par_names = ['eps','dp1','dp2','df','us0']
         bounds = [(0,1),(0,args.dmax),(0,args.dmax),(0,args.dmax),(0,args.umax)]
         init = [0,1,1,1,0.16]
         parfix = {}
 
-    elif args.scenario == 't2b':
+    elif args.model == 't2b':
         par_names = ['eps','df','us0']
         bounds = [(0,1),(0,args.dmax),(0,args.umax)]
         init = [0,1,0.16]
         parfix = {'dp1':0,'dp2':0}
 
-    elif args.scenario == 't2c':
+    elif args.model == 't2c':
         par_names = ['eps','us0']
         bounds = [(0,1),(0,args.umax)]
         init = [0,0.16]
         parfix = {'dp1':0,'dp2':0,'df':0}
 
-    elif args.scenario == 't2d':
+    elif args.model == 't2d':
         par_names = ['eps','dp1','dp2','us0']
         bounds = [(0,1),(0,args.dmax),(0,args.dmax),(0,args.umax)]
         init = [0,1,1,0.16]
         parfix = {'df':0}
 
-    elif args.scenario == 'jamminga':
+    elif args.model == 'jamminga':
         par_names = ['eps','imax','us0','dp','df']
         bounds = [(0,1),(0,1),(0,args.umax),(0,args.dmax),(0,args.dmax)]
         init = [0,1,0.2,1,1]
         parfix = {}
 
-    elif args.scenario == 'jammingb':
+    elif args.model == 'jammingb':
         par_names = ['eps','imax','us0','df']
         bounds = [(0,1),(0,1),(0,args.umax),(0,args.dmax)]
         init = [0,1,0.2,1]
         parfix = {'dp':0}
 
-    elif args.scenario == 'jammingc':
+    elif args.model == 'jammingc':
         par_names = ['eps','imax','us0']
         bounds = [(0,1),(0,1),(0,args.umax)]
         init = [0,1,0.2]
         parfix = {'dp':0,'df':0}
 
-    elif args.scenario == 'jammingd':
+    elif args.model == 'jammingd':
         par_names = ['eps','imax','us0','dp']
         bounds = [(0,1),(0,1),(0,args.umax),(0,args.dmax)]
         init = [0,1,0.2,1]
         parfix = {'df':0}
 
     else:
-        raise ValueError('invalid scenario choice')
+        raise ValueError('invalid model choice')
 
-    fname_pre = p.data_dir+args.scenario+'_residuals'
+    fname_pre = p.data_dir+args.model+'_residuals'
     fname_pre += '_umax='+str(args.umax)
     fname_pre += '_dmax='+str(args.dmax)
     fname_pre += '_seed='+str(args.seed)
