@@ -97,7 +97,7 @@ def load_pars(model,seed,method='',return_names=False):
     """
     
     fname_pre = 'data/'+model+'_residuals'
-    pars = {'T':1500,'dt':0.05,'order':1,'N':50}    
+    pars = {'T':1500,'dt':0.05,'order':1,'N':50,'model':model}
     scenario = model[-1]
     
     if model[:-1] == 't1':
@@ -116,7 +116,11 @@ def load_pars(model,seed,method='',return_names=False):
             par_names = ['eps','dp','us0']
 
         elif scenario == 'e':
-            par_names = ['eps','dp'];pars['u_nonconstant']=True
+            par_names = ['eps','dp']
+
+        elif scenario == 'f':
+            par_names = ['eps','us0']
+
         
     elif model[:-1] == 't2':
         pars.update({'eps':0,'dp1':0,'dp2':0,'df':0,'us0':0})
