@@ -13,43 +13,41 @@ from SALib.analyze import sobol, fast
 from SALib.test_functions import Ishigami
 import numpy as np
 
-def load_rss_data(ne=100,nd=100,maxe=0.01,mind=0.006,maxd=0.02,exp=False,
-                  recompute=False,ss=True):
+def load_rss_data(ne=100,n2=100,maxe=0.01,min2=0.006,max2=0.02,
+                  recompute=False,ss=True,model='t1f'):
+    """
+    ne: number of epsilon grid points
+    n2: number of second parameter grid points
+    maxe: max value for eps
+    min2,max2: min and max value for second parameter
+    """
 
     eps_vals = np.linspace(0,maxe,ne)
-
-    assert(mind is not int)
-    assert(maxd is not int)
+    par2_vals = np.linspace(min2,max2,n2)
     
-    if exp:
-        assert(mind<0)
-        assert(maxd<0)
-        dp_vals  = 10**(np.linspace(mind,maxd,nd))
-    else:
-        dp_vals = np.linspace(mind,maxd,nd)
-
-    #maxd = dp_vals[-1]
-
-    pars = (ne,nd,maxe,mind,maxd,ss,exp)
-    fname = 'data/Z_ne={}_nd={}_maxe={}_mind={}_maxd={}_ss={}_exp={}.txt'.format(*pars)
+    pars = (model,ne,n2,maxe,min2,max2,ss)
+    fname = 'data/Z_model={}_ne={}_nd={}_maxe={}_min2={}_max2={}_ss={}.txt'.format(*pars)
     
     file_not_found = not(os.path.isfile(fname))
     if file_not_found:
         print('Unable to find file', fname)
     
     if recompute or file_not_found:
-        EPS,DP = np.meshgrid(eps_vals,dp_vals)
+        EPS,P2 = np.meshgrid(eps_vals,par2_vals)
         Z = np.zeros_like(EPS)
 
-        p = pde.PDEModel(T=1500,dt=.05,order=1,N=50,u_nonconstant=True,Nvel=1,df=0)
+        p = pde.PDEModel(T=1500,dt=.05,N=50,df=0,model=model)
 
-        par_names = ['eps','dp']
+        if model == 't1e':
+            par_names = ['eps','dp']
+        elif model == 't1f':
+            par_names = ['eps','us0']
 
         for i in range(np.shape(EPS)[0]):
             for j in range(np.shape(EPS)[1]):
 
-                x = [EPS[i,j],DP[i,j]]
-                exp = mf.cost_fn(x,p,par_names,ss_condition=ss,scenario='t1e')
+                x = [EPS[i,j],P2[i,j]]
+                exp = mf.cost_fn(x,p,par_names,ss_condition=ss)
 
                 if np.isinf(exp):
                     exp = -0.69
@@ -61,7 +59,7 @@ def load_rss_data(ne=100,nd=100,maxe=0.01,mind=0.006,maxd=0.02,exp=False,
     else:
         Z = np.loadtxt(fname)
 
-    return eps_vals,dp_vals,Z
+    return eps_vals,par2_vals,Z
     
 
 def main():
@@ -81,6 +79,9 @@ def main():
     parser.add_argument('--ss',dest='ss',action='store_true',
                         help='enable steady-state condition',default=True)
 
+    parser.add_argument('-m','--model',dest='model',default='t1f',
+                        help='enable steady-state condition')
+
     #parser.add_argument('--me',dest='ss',action='store_true',
     #                    help='enable steady-state condition',default=True)
     
@@ -92,21 +93,19 @@ def main():
 
     problem = {
         'num_vars': 2,
-        'names': ['eps', 'dp'],
-        'bounds': [[0, .05],
-                   [0, .05]]
+        'names': ['eps', 'us0'],
+        'bounds': [[0, .275],
+                   [0, .5]]
     }
 
     recompute = True
 
-    fname_pre = 'data/sensitivity_ss='+str(args.ss)
+    fname_pre = 'data/sensitivity_'+str(args.model)+'_ss='+str(args.ss)
     
     if args.test == 'sobol':
         fname = fname_pre+'_samples='+str(args.samples)+'_sobol.txt'
     elif args.test == 'efast':
         fname = fname_pre+'_samples='+str(args.samples)+'_efast.txt'
-
-
         
     file_not_found = not(os.path.isfile(fname))
 
@@ -121,9 +120,8 @@ def main():
         Y = np.zeros([param_values.shape[0]])
         print(np.shape(Y))
 
-        p = pde.PDEModel(T=1500,dt=.05,order=1,N=50,
-                         u_nonconstant=True,
-                         Nvel=1,df=0)
+        p = pde.PDEModel(T=1500,dt=.05,N=50,df=0,
+                         model=args.model)
 
         #def cost_fn(x,p,par_names=None,ss_condition=False,psource=False,
         #            scenario=None,uconst=True):
@@ -135,12 +133,12 @@ def main():
 
             x = [eps,dp]
             #exp = mf.cost_fn(x,p,par_names,ss_condition=False,scenario='t1e')
-            exp = mf.cost_fn(x,p,par_names,ss_condition=args.ss,scenario='t1e')
+            exp = mf.cost_fn(x,p,par_names,ss_condition=args.ss)
 
             if exp == 1e5:
                 Y[i] = exp
             else:
-                Y[i] = np.exp(exp)
+                Y[i] = 10**(exp)
 
             print(i,p_vals,Y[i])
 
