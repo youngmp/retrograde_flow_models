@@ -48,21 +48,10 @@ aic_min = 100
     #    model_names.append(str(model)+'_'+str(order))
 
 for i in range(len(models)):
-
-    if models[i] == 't1e':
-        seeds = 10
-    elif models[i] == 't1f':
-        seeds = 1
-    else:
-        seeds = 100
-        
-    err, min_seed = lib.lowest_error_seed(models[i],seeds=seeds,method='de')
-    #print(models[i],min_seed)
+    err, min_seed = lib.lowest_error_seed(models[i],seeds=100,method='de')    
     residuals = np.loadtxt(lib.get_parameter_fname(models[i],min_seed,method='de'))
 
-    #print(models[i],'err',err,min_seed)
-    err = np.exp(err)
-    
+    err = 10**(err)
 
     k = len(residuals)
     aic = n*np.log(err/n) + 2*k#*n/(n-k-1)
