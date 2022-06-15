@@ -92,32 +92,41 @@ def experiment_figure():
     # labels, axis tweaks
     axs[0].set_title(r'(a) \SI{0}{h}',loc='left',size=fsizetitle)
     axs[1].set_title(r'(b) \SI{24}{h}',loc='left',size=fsizetitle)
-    axs[2].set_title(r'(c)',loc='left',size=fsizetitle)
+    axs[2].set_title(r'(c)',x=-.12,size=fsizetitle)
 
-    axs[2].set_xlabel(r'Radius ($\si{\um}$)',fontsize=fsizelabel)
+    axs[2].xaxis.get_major_ticks()[0].set_visible(False)
+    axs[2].annotate(r'Cell Center',xy=(0, -.01), xycoords='axes fraction', xytext=(0.,-.5), arrowprops=dict(arrowstyle='->', color='k'),ha='center',fontsize=fsizelabel)
 
-    axs[2].set_ylabel(r'Fluorescence Intensity',fontsize=fsizelabel)
-
-    axs[2].tick_params(axis='both',labelsize=fsizetick)
+    axs[2].annotate(r'Cell Edge',xy=(1, -.01), xycoords='axes fraction', xytext=(1.,-.5), arrowprops=dict(arrowstyle='->', color='k',relpos=(1,0)),ha='right',fontsize=fsizelabel)
     
+    axs[2].set_xlabel(r'Radius ($\si{\um}$)',fontsize=fsizelabel)
+    axs[2].set_ylabel('Fluor. Intensity\n(a.u.)',fontsize=fsizelabel)
+
+    axs[2].tick_params(axis='both',labelsize=fsizetick)    
     axs[2].legend()
 
     axs[0].axis('off')
     axs[1].axis('off')
 
     axs[2].set_xlim(0,29.5)
-
-    #fig.subplots_adjust(top=.85,right=.98,left=-.1,bottom=0.25,hspace=0,wspace=.0)
-
-    l1,b1,w1,h1 = (.05, .25, .15, .6)
-    l2,b2,w2,h2 = (0.3, 0.25, 0.15079365079365087, 0.6)
     
-    m = 1.3
-    a = h1*(m-1)
-    #axs[0].set_position([l1,b1-a,w1*m,h1*m])
-    #axs[1].set_position([l2,b2-a,w2*m,h2*m])
+    fig.subplots_adjust(top=.93,right=.98,left=.05,bottom=0.15)
+    
+    chartBox = axs[2].get_position()
+    x_shift = .14
+    y_shift = 0
+    axs[2].set_position([chartBox.x0+x_shift,chartBox.y0+y_shift,
+                         chartBox.width-x_shift,chartBox.height-y_shift])
 
-    plt.tight_layout()
+    
+
+    #l1,b1,w1,h1 = (.05, .25, .15, .6)
+    #l2,b2,w2,h2 = (0.3, 0.25, 0.15079365079365087, 0.6)
+    
+    #m = 1.3
+    #a = h1*(m-1)
+
+    #plt.tight_layout()
     
     return fig
     
@@ -1793,14 +1802,14 @@ def main():
     method = 'de'
     
     figures = [
-        #(experiment_figure, [], ['figs/f_experiment.png','figs/f_experiment.pdf']),
+        (experiment_figure, [], ['figs/f_experiment.png','figs/f_experiment.pdf']),
         #(data_figure, [], ['figs/f_data.png','figs/f_data.pdf']),
         #(gaussian_fit, [], ['figs/f_gaussian_fit.png','figs/f_gaussian_fit.pdf']),
         
         #(velocity, [], ['figs/f_velocity.png','figs/f_velocity.pdf']),
         #(solution_schematic,[],['figs/f_solution_schematic.png','figs/f_solution_schematic.pdf']),
         #(identifiability,[],['figs/f_identifiability.png','figs/f_identifiability.pdf']),
-        (identifiability2,[],['figs/f_identifiability2.png','figs/f_identifiability2.pdf']),
+        #(identifiability2,[],['figs/f_identifiability2.png','figs/f_identifiability2.pdf']),
         #(cost_function, [False,'t1f'], ['figs/f_cost_function.png','figs/f_cost_function.pdf']),
                 
         #(solution,['t1a',False,method],f_sol_names('t1a',method)),
