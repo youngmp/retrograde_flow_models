@@ -117,16 +117,6 @@ def experiment_figure():
     y_shift = 0
     axs[2].set_position([chartBox.x0+x_shift,chartBox.y0+y_shift,
                          chartBox.width-x_shift,chartBox.height-y_shift])
-
-    
-
-    #l1,b1,w1,h1 = (.05, .25, .15, .6)
-    #l2,b2,w2,h2 = (0.3, 0.25, 0.15079365079365087, 0.6)
-    
-    #m = 1.3
-    #a = h1*(m-1)
-
-    #plt.tight_layout()
     
     return fig
     
@@ -233,6 +223,103 @@ def data_figure():
     return fig
 
 
+def data_figure2(lower=0):
+    """
+    new data figure assuming we don't perform a validation
+    figure comparing representative data, average data
+    and normalized versions of each
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib.ticker as ticker
+    
+    # load normed data
+    d = pde.Data(L0=10,L=29.5)
+
+    avg_n_dict = copy.deepcopy(d.data_avg_n)
+    rep_n_dict = copy.deepcopy(d.data_rep_n)
+
+    d = pde.Data(L0=0,L=29.5)
+
+    # load unnormed data
+    #data =  d._build_data_dict(L0=d.L0,L=d.L,normed=True)    
+    list_hours = ['control','0.5h', '1h','2h','4h','8.5h','24h']
+    
+    #fig = plt.figure()
+    fig,axs = plt.subplots(nrows=2,ncols=1,figsize=(5,7))
+    
+    for i,hour in enumerate(list_hours):
+
+        color = str((1-i/len(list_hours))/1.1)
+
+        if hour == 'control':
+            label = r'\SI{0}{h}'
+        else:
+            
+            label = r'\SI{'+hour[:-1]+'}{h}'
+
+        if hour == '24h':
+            color = 'tab:blue'
+        else:
+            color = color
+
+        # raw, avg
+        x0 = d.data_avg_raw[hour][:,0]
+        y0 = d.data_avg_raw[hour][:,1]
+        
+        axs[0].plot(x0[x0>=lower],y0[x0>=lower],label=label,color=color)
+        #axs[0].plot(x0,y0,label=label,color=color)
+        
+        # normed, avg
+        x1 = d.data_avg_raw[hour][:,0]
+        y1 = d.data_avg_raw[hour][:,1]/avg_n_dict[hour]
+        #x1 = d.data_avg[hour][:,0]
+        #y1 = d.data_avg[hour][:,1]
+        axs[1].plot(x1[x1>=lower],y1[x1>=lower],label=label,color=color)
+        #axs[1].plot(x1,y1,label=label,color=color)
+        
+    #axs[1].legend(labelspacing=-.1,bbox_to_anchor=(.55,.6),framealpha=1,ncol=2)
+    axs[0].legend(labelspacing=0)
+    
+    for i in range(2):
+            
+        #axs[i,j].set_xlabel(r'Radius ($\si{\um}$)',fontsize=fsizelabel)
+        axs[i].set_xlabel(r'Radius $r$ ($\si{\um}$)',fontsize=fsizelabel)
+        axs[i].tick_params(axis='both',labelsize=fsizetick)        
+
+        axs[i].xaxis.labelpad=0
+
+        if lower == 0:
+            axs[i].set_xlim(0,29.5)
+            axs[i].axvspan(0, 10, color='tab:red', alpha=0.1,hatch='x')
+            
+            axs[i].get_position().x1
+            axs[i].text(1/6,.07,"Discarded Region",ha='center',transform=axs[i].transAxes)
+
+    axs[0].set_title('(a) Average',loc='left',size=fsizetitle)
+    axs[1].set_title(r'\textbf{(b) Average (Normalized)}',loc='left',size=fsizetitle)
+    
+    axs[0].set_ylabel('Fluorescence Intensity (a.u.)',fontsize=fsizelabel)
+    axs[1].set_ylabel('Normalized Fluorescence',fontsize=fsizelabel)
+
+    # rescale to percent
+    ticks_y = ticker.FuncFormatter(lambda x, pos: '{0:g}\%'.format(x*100))
+    axs[1].yaxis.set_major_formatter(ticks_y)
+
+
+    axs[0].set_xlim(lower,29.5)
+    axs[1].set_xlim(lower,29.5)
+    
+    #axs[0].set_ylim(0,210)
+    #axs[1].set_ylim(0,0.0011)
+
+    #plt.tight_layout(pad=tight_layout_pad)
+    plt.tight_layout()
+
+    fig.subplots_adjust(top=.96,right=.99,left=.18,bottom=0.07,hspace=.3)    
+
+    return fig
+
+
 def gaussian_fit():
     """
     figure for fitting Gaussian to data
@@ -258,11 +345,11 @@ def gaussian_fit():
     axs[1].plot(x_data,d.control_fn_rep(x_data),label='Approx.',lw=2,color='k')
 
     axs[0].set_xlabel(r'$r$ (\si{\um})',fontsize=fsizelabel)
-    axs[0].set_ylabel(r'$\tilde I_0(r)$',fontsize=fsizelabel)
+    axs[0].set_ylabel(r'$\tilde V_0(r)$',fontsize=fsizelabel)
     axs[0].tick_params(axis='both',labelsize=fsizetick)
 
     axs[1].set_xlabel(r'$r$ (\si{\um})',fontsize=fsizelabel)
-    axs[1].set_ylabel(r'$\tilde I_0(r)$',fontsize=fsizelabel)
+    axs[1].set_ylabel(r'$\tilde V_0(r)$',fontsize=fsizelabel)
     axs[1].tick_params(axis='both',labelsize=fsizetick)
     
     axs[0].set_xlim(x_data[0],x_data[-1])
@@ -281,7 +368,42 @@ def gaussian_fit():
     #axs[0].set_ylim(0,max1+max1/10)
     plt.tight_layout()
 
-    fig.subplots_adjust(hspace=.8)
+    fig.subplots_adjust(hspace=.8,top=.88,bottom=.25)
+
+    return fig
+
+
+
+def gaussian_fit2():
+    """
+    figure for fitting Gaussian to data
+    same as above but without representative data.
+    """
+
+    import matplotlib.pyplot as plt
+    import matplotlib.ticker as mticker
+    
+    fig, axs = plt.subplots(nrows=1,ncols=1,figsize=(5,2))
+
+    d = pde.Data(recompute=False,normed=True)
+    
+    x_data = d.data_avg['control'][:,0]
+    y_data = d.data_avg['control'][:,1]
+    axs.plot(x_data,y_data,label='Data',lw=4,color='tab:green',ls='--')
+    axs.plot(x_data,d.control_fn_avg(x_data),label='Approx.',lw=2,color='k')
+
+
+    axs.set_xlabel(r'$r$ (\si{\um})',fontsize=fsizelabel)
+    axs.set_ylabel(r'$\tilde V_0(r)$',fontsize=fsizelabel)
+    axs.tick_params(axis='both',labelsize=fsizetick)
+    
+    axs.set_xlim(x_data[0],x_data[-1])
+    axs.legend(labelspacing=-.1)
+
+    #axs.set_title("(a) Average \SI{0}{h}",loc='left')
+    plt.tight_layout()
+
+    fig.subplots_adjust(hspace=.8,top=.88,bottom=.25)
 
     return fig
 
@@ -353,13 +475,13 @@ def solution_schematic():
     axs[3,1].set_title(r'(g) $t>0$',loc='left',size=fsizetitle)
     axs[4,1].set_title(r'(h) Steady-State  ($t\rightarrow \infty$)',loc='left',size=fsizetitle)
     
-    axs[2,0].set_ylabel('$F$',fontsize=fsizelabel)
-    axs[3,0].set_ylabel('$F$',fontsize=fsizelabel)
-    axs[4,0].set_ylabel('$F$',fontsize=fsizelabel)
+    axs[2,0].set_ylabel('$I$',fontsize=fsizelabel)
+    axs[3,0].set_ylabel('$I$',fontsize=fsizelabel)
+    axs[4,0].set_ylabel('$I$',fontsize=fsizelabel)
     
-    axs[2,1].set_ylabel('$P$',fontsize=fsizelabel)
-    axs[3,1].set_ylabel('$P$',fontsize=fsizelabel)
-    axs[4,1].set_ylabel('$P$',fontsize=fsizelabel)
+    axs[2,1].set_ylabel('$M$',fontsize=fsizelabel)
+    axs[3,1].set_ylabel('$M$',fontsize=fsizelabel)
+    axs[4,1].set_ylabel('$M$',fontsize=fsizelabel)
     
 
     for i in range(2):
@@ -404,15 +526,15 @@ def solution_schematic():
     
     # initial data
 
-    ax_i0.set_title(r'Initial Data $\tilde I_0(r) = F(r,0)+P(r,0)$',size=fsizetitle)
+    ax_i0.set_title(r'Initial Data $\tilde V_0(r) = I(r,0)+M(r,0)$',size=fsizetitle)
     ax_i0.plot(p.r,p.data_avg_fns['control'](p.r),lw=2,color='k')
     ax_i0.ticklabel_format(axis='y',style='scientific',scilimits=(0,0))
 
     #bbox=dict(boxstyle="round",fc='tab:blue',alpha=0.4)
-    ax_i0.annotate(r'$F(r,0) = \varepsilon\tilde I_0(r)$',xy=(.25,-.6),xycoords='axes fraction',size=15,ha='right',bbox=dict(boxstyle="round",fc='tab:blue',alpha=0.4))
+    ax_i0.annotate(r'$I(r,0) = \varepsilon\tilde V_0(r)$',xy=(.25,-.6),xycoords='axes fraction',size=15,ha='right',bbox=dict(boxstyle="round",fc='tab:blue',alpha=0.4))
     ax_i0.annotate(r'',xy=(.15, -1), xycoords='axes fraction', xytext=(0.5,-.1), arrowprops=dict(arrowstyle="simple,head_width=1,head_length=1", color='tab:blue'))
 
-    ax_i0.annotate(r'$P(r,0) = (1-\varepsilon)\tilde I_0(r)$',xy=(.75,-.6),xycoords='axes fraction',size=15,ha='left',bbox=dict(boxstyle="round",fc='tab:orange',alpha=0.4))
+    ax_i0.annotate(r'$M(r,0) = (1-\varepsilon)\tilde V_0(r)$',xy=(.75,-.6),xycoords='axes fraction',size=15,ha='left',bbox=dict(boxstyle="round",fc='tab:orange',alpha=0.4))
     ax_i0.annotate(r'',xy=(.85, -1), xycoords='axes fraction', xytext=(.5,-.1), arrowprops=dict(arrowstyle="simple,head_width=1,head_length=1", color='tab:orange'))
 
     ax_i0.set_xticks([L0,L])
@@ -420,13 +542,13 @@ def solution_schematic():
     ax_i0.set_xlim(L0,L)
     
     
-    # F to P and vice-versa diagram
+    # I to M and vice-versa diagram
     c1 = (axs[3,0].get_position().x0+axs[3,0].get_position().x1)/2
     c2 = (axs[3,1].get_position().x0+axs[3,1].get_position().x1)/2
-    plt.text(c1, .9, "$F$: Immobile Material", ha="center", va="center", size=15,
+    plt.text(c1, .9, "$I$: Immobile Material", ha="center", va="center", size=15,
              transform=fig.transFigure,bbox=dict(boxstyle="round",fc='tab:blue',alpha=0.4))
 
-    plt.text(c2, .9, "$P$: Material Subject to\n Retrograde Flow", ha="center", va="center", size=15,transform=fig.transFigure,bbox=dict(boxstyle="round",fc='tab:orange',alpha=0.4))
+    plt.text(c2, .9, "$M$: Material Subject to\n Retrograde Flow", ha="center", va="center", size=15,transform=fig.transFigure,bbox=dict(boxstyle="round",fc='tab:orange',alpha=0.4))
 
     width = .005
     head_width = 0.02
@@ -448,7 +570,7 @@ def solution_schematic():
     plt.text(x,.92,r'$d_f$ (Release)',size=fsizelabel,ha='center',transform=fig.transFigure)
 
     
-    # arrow from P to F in plots, vice-versa.
+    # arrow from M to I in plots, vice-versa.
     x = axs[3,0].get_position().x1
     y = (axs[3,0].get_position().y0+axs[3,1].get_position().y1)/2
     dx = axs[3,1].get_position().x0 - axs[3,0].get_position().x1
@@ -490,7 +612,7 @@ def solution_schematic():
                        r'\setlength{\itemindent}{-1.5em}'
                        r'\item $u$ constant'
                        r'\item $u(r)$ space-dependent'
-                       r'\item $u(I)$ conc.-dependent'
+                       r'\item $u(V)$ conc.-dependent'
                        r'\end{itemize}')
     
     axs[3,1].annotate(advection_label,(.45,.5),(.45,.5),xycoords='axes fraction',va='center')
@@ -522,7 +644,7 @@ def solution_schematic():
     print(offset)
     
     ax_i0.yaxis.offsetText.set_visible(False)
-    ax_i0.yaxis.set_label_text(r"$\tilde I_0$" + " (" + offset+")",size=fsizelabel)
+    ax_i0.yaxis.set_label_text(r"$\tilde V_0$" + " (" + offset+")",size=fsizelabel)
     ax_i0.tick_params(axis='both',labelsize=fsizetick)
 
 
@@ -570,17 +692,17 @@ def velocity():
 
     p = pde.PDEModel(**pars)
     p._run_euler('t1d')
-    I = p.y[:p.N,-1] + p.y[p.N:,-1]
-    imax = np.amax(I)
+    V = p.y[:p.N,-1] + p.y[p.N:,-1]
+    imax = np.amax(V)
 
     print(imax)
 
     p.eps = 0
 
     axs[0].plot([p.L0,p.L],[0.16,0.16],lw=2,color='k')
-    axs[1].plot(p.r,I,lw=2,color='k')
+    axs[1].plot(p.r,V,lw=2,color='k')
     axs[2].plot(p.r,p._s2_vel(),lw=2,color='k')
-    axs[3].plot(p.r,p.us0*(1-I/imax),lw=2,color='k')
+    axs[3].plot(p.r,p.us0*(1-V/imax),lw=2,color='k')
 
     for i in range(4):
         axs[i].set_xticks([p.L0,p.L])
@@ -588,9 +710,9 @@ def velocity():
         axs[i].tick_params(axis='both',labelsize=fsizetick)
 
     axs[0].set_ylabel(r'Velocity $\bar{u}$',size=fsizelabel)
-    axs[1].set_ylabel(r'Intensity $I(r,t)$',size=fsizelabel)
+    axs[1].set_ylabel(r'Intensity $V(r,t)$',size=fsizelabel)
     axs[2].set_ylabel(r'Velocity $u(r)$',size=fsizelabel)
-    axs[3].set_ylabel(r'Velocity $u(I(r,t))$',size=fsizelabel)
+    axs[3].set_ylabel(r'Velocity $u(V(r,t))$',size=fsizelabel)
     
     axs[0].set_title(r'(a) Constant',loc='left',size=fsizetitle)
     axs[1].set_title(r'(b)',loc='left',size=fsizetitle)
@@ -670,7 +792,7 @@ def solution(model='t1e',rep=False,method=''):
     p = pde.PDEModel(**pars)    
     p._run_euler(rep)
 
-    F = p.y[:p.N,:];P = p.y[p.N:,:];I = F + P
+    I = p.y[:p.N,:];M = p.y[p.N:,:];V = I + M
     
     if model == 't1e':
         dp_lo = 0.0093765
@@ -683,8 +805,8 @@ def solution(model='t1e',rep=False,method=''):
         p_hi = pde.PDEModel(**pars)    
         p_hi._run_euler(rep)
 
-        F_lo = p_lo.y[:p_lo.N,:];P_lo = p_lo.y[p_lo.N:,:];I_lo = F_lo + P_lo
-        F_hi = p_hi.y[:p_hi.N,:];P_hi = p_hi.y[p_hi.N:,:];I_hi = F_hi + P_hi
+        I_lo = p_lo.y[:p_lo.N,:];M_lo = p_lo.y[p_lo.N:,:];V_lo = I_lo + M_lo
+        I_hi = p_hi.y[:p_hi.N,:];M_hi = p_hi.y[p_hi.N:,:];V_hi = I_hi + M_hi
     
     nrows = 3
     ncols = 2
@@ -718,19 +840,19 @@ def solution(model='t1e',rep=False,method=''):
             minute = time*60
             idx = int(minute/p.dt)
         
-        axs[0,i].plot(p.r[:-1],I[:-1,idx],color='k',lw=.7)
+        axs[0,i].plot(p.r[:-1],V[:-1,idx],color='k',lw=.7)
         axs[0,i].plot(p.r[1:-1],data[1:-1],label='Data',c='tab:green',dashes=(3,1))
-        axs[1,i].plot(p.r[:-1],F[:-1,idx],color='tab:blue',lw=.7)
-        axs[2,i].plot(p.r[:-1],P[:-1,idx],color='tab:orange',lw=.7)
+        axs[1,i].plot(p.r[:-1],I[:-1,idx],color='tab:blue',lw=.7)
+        axs[2,i].plot(p.r[:-1],M[:-1,idx],color='tab:orange',lw=.7)
 
         # plot fill_between:
         if model == 't1e':
-            axs[0,i].fill_between(p.r[:-1],I_lo[:-1,idx],I_hi[:-1,idx],color='gray',alpha=.25)
-            axs[1,i].fill_between(p.r[:-1],F_lo[:-1,idx],F_hi[:-1,idx],color='tab:blue',alpha=.25)
-            axs[2,i].fill_between(p.r[:-1],P_lo[:-1,idx],P_hi[:-1,idx],color='tab:orange',alpha=.25)
+            axs[0,i].fill_between(p.r[:-1],V_lo[:-1,idx],V_hi[:-1,idx],color='gray',alpha=.25)
+            axs[1,i].fill_between(p.r[:-1],I_lo[:-1,idx],I_hi[:-1,idx],color='tab:blue',alpha=.25)
+            axs[2,i].fill_between(p.r[:-1],M_lo[:-1,idx],M_hi[:-1,idx],color='tab:orange',alpha=.25)
 
         if hour == '24h':
-            print(np.linalg.norm(P[:-1,int(20*60/p.dt)]-P[:-1,int(24*60/p.dt)])**2)
+            print(np.linalg.norm(M[:-1,int(20*60/p.dt)]-M[:-1,int(24*60/p.dt)])**2)
 
         axs[0,i].set_title(r'\SI{'+hour[:-1]+r'}{h}',size=fsizetitle,y=0.95)
         axs[-1,i].set_xticks([p.L0,p.L])
@@ -752,7 +874,7 @@ def solution(model='t1e',rep=False,method=''):
         axs[1,i].tick_params(axis='both',labelsize=fsizetick)
         axs[2,i].tick_params(axis='both',labelsize=fsizetick)
 
-    fn_labels = [r'$I$',r'$F$',r'$P$']
+    fn_labels = [r'$V$',r'$I$',r'$M$']
     for i in range(3):
         # go blow to change label size
         axs[i,0].set_ylabel(fn_labels[i],size=fsizelabel,labelpad=0)
@@ -774,10 +896,10 @@ def solution(model='t1e',rep=False,method=''):
                 p2 = pde.PDEModel(**pars)
                 p2._run_euler()
 
-                F = p2.y[:p2.N,:]
-                P = p2.y[p2.N:,:]
+                I = p2.y[:p2.N,:]
+                M = p2.y[p2.N:,:]
 
-                I = F + P
+                V = I + M
 
                 if False:
                     
@@ -791,7 +913,7 @@ def solution(model='t1e',rep=False,method=''):
                             time=float(hour[:-1]);minute=time*60;idx=int(minute/p2.dt)
 
                         #print('time',time,minute)
-                        axs2.plot(p2.r[:-1],I[:-1,idx],lw=.7)
+                        axs2.plot(p2.r[:-1],V[:-1,idx],lw=.7)
                     plt.show()
 
                 for i,hour in enumerate(keys_list):
@@ -801,9 +923,9 @@ def solution(model='t1e',rep=False,method=''):
                     else:
                         time=float(hour[:-1]);minute=time*60;idx=int(minute/p2.dt)
                     
-                    axs[0,i].plot(p2.r[:-1],I[:-1,idx],color='gray',zorder=-3,alpha=0.25,lw=.5)
-                    #axs[1,i].plot(p2.r[:-1],F[:-1,idx],color='gray',zorder=-3,alpha=0.25,lw=.5)
-                    #axs[2,i].plot(p2.r[:-1],P[:-1,idx],color='gray',zorder=-3,alpha=0.25,lw=.5)
+                    axs[0,i].plot(p2.r[:-1],V[:-1,idx],color='gray',zorder=-3,alpha=0.25,lw=.5)
+                    #axs[1,i].plot(p2.r[:-1],I[:-1,idx],color='gray',zorder=-3,alpha=0.25,lw=.5)
+                    #axs[2,i].plot(p2.r[:-1],M[:-1,idx],color='gray',zorder=-3,alpha=0.25,lw=.5)
 
     if (model == 't1e' or model == 't1f') and not(rep):
         fig.subplots_adjust(top=.95,right=.95,left=.1,bottom=0.4,hspace=.8,wspace=1)
@@ -1039,7 +1161,7 @@ def cost_function(recompute=False,model='t1f'):
 
     #plt.show()
 
-def rss(p,I):
+def rss(p,V):
     """
     return RSS of only the initial function scaled by \ve
     """
@@ -1051,11 +1173,11 @@ def rss(p,I):
             pass # ignore initial condition (trivial)
         else:
             # restrict solution to observed positions
-            I_fn = interp1d(p.r,I)
-            I_cut = I_fn(p.data_avg[hour][:,0])
+            V_fn = interp1d(p.r,V)
+            V_cut = V_fn(p.data_avg[hour][:,0])
 
             data = p.data_avg[hour][:,1]
-            err += np.linalg.norm(data[1:-1]-I_cut[1:-1])**2
+            err += np.linalg.norm(data[1:-1]-V_cut[1:-1])**2
             
     return err
 
@@ -1081,10 +1203,10 @@ def proof_c():
     ax.plot(ves,rss_vals,color='k')
     ax.scatter(ves[-1],rss_vals[-1],zorder=10,clip_on=False,color='tab:red')
 
-    ax.annotate(r'$\text{RSS}(\tilde I_0)$',xy=(ves[-1],rss_vals[-1]),xytext=(.8,.4),textcoords='axes fraction',arrowprops=dict(arrowstyle='->,head_length=0.5,head_width=0.3',connectionstyle='angle3,angleA=-35,angleB=90'),size=fsizelabel)
+    ax.annotate(r'$\text{RSS}(\tilde V_0)$',xy=(ves[-1],rss_vals[-1]),xytext=(.8,.4),textcoords='axes fraction',arrowprops=dict(arrowstyle='->,head_length=0.5,head_width=0.3',connectionstyle='angle3,angleA=-35,angleB=90'),size=fsizelabel)
 
     ax.set_xlabel(r'$\varepsilon$',size=fsizelabel)
-    ax.set_ylabel(r'$\text{RSS}(\varepsilon\tilde I_0)$',size=fsizelabel)
+    ax.set_ylabel(r'$\text{RSS}(\varepsilon\tilde V_0)$',size=fsizelabel)
 
     ax.tick_params(axis='both',labelsize=fsizetick)
     ax.set_xlim(ves[0],ves[-1])
@@ -1179,7 +1301,7 @@ def plot_axs_split(fig,axs,axs_split):
     
     models = ['t1d','t2d','jammingd']
     ylabels = [(r'$d_p^*$',r'$\bar{u}^*$'),(r'$d_{p_2}^*/d_{p_1}^*$',r'$\bar{u}^*$'),
-               (r'$d_p^*$',r'$I_\text{max}^*/u_\text{max}^*$')]
+               (r'$d_p^*$',r'$V_\text{max}^*/u_\text{max}^*$')]
     ylos = [(-2,-.4),(-.1,-.4),(-2,-.1)]
     yhis = [(22,4.4),(1.1,4.4),(22,1.1)]
     
@@ -1387,7 +1509,7 @@ def identifiability():
         elif par_names[1] == 'dp':
             par_name = r'$d_p^*$';ylo=-1;yhi=21
         elif par_names[1] == 'imax':
-            par_name = r'$I_\text{max}^*$';ylo=-.1;yhi=1.1
+            par_name = r'$V_\text{max}^*$';ylo=-.1;yhi=1.1
         elif par_names[1] == 'us0':
             par_name = r'$\bar{u}^*$';ylo=-.4;yhi=4.4
         else:
@@ -1466,7 +1588,7 @@ def plot_axs_split2(fig,axs_split,model):
     
     models = ['t1d','t2d','jammingd']
     ylabels = [(r'$d_p^*$',r'$\bar{u}^*$'),(r'$d_{p_2}^*/d_{p_1}^*$',r'$\bar{u}^*$'),
-               (r'$d_p^*$',r'$I_\text{max}^*/u_\text{max}^*$')]
+               (r'$d_p^*$',r'$V_\text{max}^*/u_\text{max}^*$')]
     ylos = [(-2,-.4),(-.1,-.4),(-2,-.1)]
     yhis = [(22,4.4),(1.1,4.4),(22,1.1)]
     
@@ -1541,7 +1663,7 @@ def plot_axs_split2(fig,axs_split,model):
         
         axs_split[0].text(ylabelpad,0.5,r'$d_p^*$',va='center',rotation=90,
                           transform=axs_split[0].transAxes,size=fsizelabel)
-        axs_split[1].text(ylabelpad,0.5,r'$I_\text{max}^*/u_\text{max}^*$',va='center',rotation=90,
+        axs_split[1].text(ylabelpad,0.5,r'$V_\text{max}^*/u_\text{max}^*$',va='center',rotation=90,
                           transform=axs_split[1].transAxes,size=fsizelabel)
 
         axs_split[0].text(0.1,0.8,'JD',va='center',
@@ -1636,7 +1758,7 @@ def identifiability2():
 
     # plot points for J
     ylims = [[(-.1,1.1),(-.4,4.4)],[(-.4,4.4),(0,0)]]
-    ylabels = [[r'$I_\text{max}^*$',r'$u_\text{max}^*$'],[r'$u_\text{max}^*$',r'']]
+    ylabels = [[r'$V_\text{max}^*$',r'$u_\text{max}^*$'],[r'$u_\text{max}^*$',r'']]
     mlabels = [['JA','JB'],['JC','JD']]
 
     for i in range(2):
@@ -1692,81 +1814,6 @@ def identifiability2():
     axs_t1d = plot_axs_split2(fig,axs_t1d,'t1d')
     axs_jd = plot_axs_split2(fig,axs_jd,'jammingd')
 
-
-    """                
-
-    # scenario label
-    for i,s in enumerate(scenario):
-        m = len(mechanism)
-
-        if s == 'd':
-            offset = -.49
-        else:
-            offset = -.6
-        axs[i*m].text(offset,0.5,s,va='center',rotation=0,transform=axs[i*m].transAxes,
-                      size=fsizelabel+2)
-        axs[i*(m-1)].set_ylim(-.1,1.1)
-
-    # set y labels. could do it above but more readable here maybe.    
-    for i in range(len(models)):
-        #i,j = idxs_plot[idx]
-        #model = idxs_model[idx]
-        model = models[i]
-
-        pars,par_names = lib.load_pars(model,0,method='de',return_names=True)
-
-        if par_names[1] == 'df':
-            par_name = r'$d_f^*$';ylo=-1;yhi=21
-        elif par_names[1] == 'dp1':
-            par_name = r'$d_{p_1}^*$';
-            if model[-1] == 'a':
-                ylo=-1;yhi=21
-            else:
-                ylo=-10;yhi=210
-                
-        elif par_names[1] == 'dp':
-            par_name = r'$d_p^*$';ylo=-1;yhi=21
-        elif par_names[1] == 'imax':
-            par_name = r'$I_\text{max}^*$';ylo=-.1;yhi=1.1
-        elif par_names[1] == 'us0':
-            par_name = r'$\bar{u}^*$';ylo=-.4;yhi=4.4
-        else:
-            par_name = par_names[1]
-
-        if i >= 3 and i <= 4:
-            par_name = r'$\bar{u}^*$';ylo=-.4;yhi=4.4
-
-        if i == 5 or i == 8:
-            par_name = r'$u_\text{max}^*$'; ylo=-.4;yhi=4.4
-            
-        if i >= 9 and i <= 11:
-            pass
-        
-        else:
-            axs[i].set_ylim(ylo,yhi)
-            axs[i].text(-.32,0.5,par_name,va='center',rotation=90,
-                        transform=axs[i].transAxes,size=fsizelabel)
-
-    fig.subplots_adjust(top=.87,right=.95,left=.15,bottom=0.05,hspace=.05,wspace=.5)
-
-    
-    # split axes scenario d
-    axs_split = [fig.add_subplot(gs2[i,j]) for i in range(2) for j in range(3)]
-    axs_split = plot_axs_split(fig,axs,axs_split)
-
-
-    # highlight every other row
-    js = [3,9]
-    shift = .14
-    for j in js:
-        x0 = axs[j].axes.get_position().x0; y0 = axs[j].axes.get_position().y0
-        x1 = axs[j+2].axes.get_position().x1; y1 = axs[j].axes.get_position().y1
-        r1 = Rectangle((x0-shift,y0),(x1-x0+shift),(y1-y0),alpha=.05,color='gray',zorder=3)
-        #print(x0,y0,x1,y1)
-        fig.add_artist(r1)#Rectangle((x0,y0),(x1-x0),(y1-y0),zorder=10)
-
-
-    """
     return fig
 
 def generate_figure(function, args, filenames, title="", title_pos=(0.5,0.95)):
@@ -1802,11 +1849,15 @@ def main():
     method = 'de'
     
     figures = [
-        (experiment_figure, [], ['figs/f_experiment.png','figs/f_experiment.pdf']),
+        #(experiment_figure, [], ['figs/f_experiment.png','figs/f_experiment.pdf']),
         #(data_figure, [], ['figs/f_data.png','figs/f_data.pdf']),
-        #(gaussian_fit, [], ['figs/f_gaussian_fit.png','figs/f_gaussian_fit.pdf']),
+        #(data_figure2, [0], ['figs/f_data0.png','figs/f_data0.pdf']),
+        #(data_figure2, [10], ['figs/f_data10.png','figs/f_data10.pdf']),
         
-        #(velocity, [], ['figs/f_velocity.png','figs/f_velocity.pdf']),
+        #(gaussian_fit, [], ['figs/f_gaussian_fit.png','figs/f_gaussian_fit.pdf']),
+        #(gaussian_fit2, [], ['figs/f_gaussian_fit2.png','figs/f_gaussian_fit2.pdf']),
+        
+        (velocity, [], ['figs/f_velocity.png','figs/f_velocity.pdf']),
         #(solution_schematic,[],['figs/f_solution_schematic.png','figs/f_solution_schematic.pdf']),
         #(identifiability,[],['figs/f_identifiability.png','figs/f_identifiability.pdf']),
         #(identifiability2,[],['figs/f_identifiability2.png','figs/f_identifiability2.pdf']),
