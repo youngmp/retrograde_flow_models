@@ -351,14 +351,16 @@ def data_figure():
     return fig
 
 
-def data_figure2(lower=0):
+def data_figure2(lower=10):
     """
     new data figure assuming we don't perform a validation
     figure comparing representative data, average data
     and normalized versions of each
     """
+    
     import matplotlib.pyplot as plt
     import matplotlib.ticker as ticker
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
     
     # load normed data
     d = pde.Data(L0=10,L=29.5)
@@ -377,7 +379,7 @@ def data_figure2(lower=0):
     
     for i,hour in enumerate(list_hours):
 
-        color = str((1-i/len(list_hours))/1.1)
+        color = str((1-i/len(list_hours))/1.3)
 
         if hour == 'control':
             label = r'\SI{0}{h}'
@@ -430,7 +432,6 @@ def data_figure2(lower=0):
     # rescale to percent
     ticks_y = ticker.FuncFormatter(lambda x, pos: '{0:g}\%'.format(x*100))
     axs[1].yaxis.set_major_formatter(ticks_y)
-
     
     lim0 = axs[0].set_xlim(lower,29.5)
     lim1 = axs[1].set_xlim(lower,29.5)
@@ -450,10 +451,33 @@ def data_figure2(lower=0):
     axs[0].set_xlim(lim0)
     axs[1].set_xlim(lim1)
 
-    #plt.tight_layout(pad=tight_layout_pad)
     plt.tight_layout()
-
     fig.subplots_adjust(top=.93,right=.96,left=.15,bottom=0.11,hspace=.5)
+
+    # Gaussian plot inset for panel (b)
+    axins = inset_axes(axs[1],width="40%", height="40%",loc=1)
+    
+    d = pde.Data(recompute=False,normed=True)
+    x_data = d.data_avg['control'][:,0]
+    y_data = d.data_avg['control'][:,1]
+
+    #axins.plot(x_data,y_data,label='Data',lw=4,color='tab:green',ls='--')
+    #axins.plot(x_data,d.control_fn_avg(x_data),label='Approx.',lw=2,color='k')
+    
+    axins.plot(x_data,y_data,label='\SI{0}{h}',lw=3,color=str(1/1.3))
+    axins.plot(x_data,d.control_fn_avg(x_data),label='Approx.',lw=1.5,color='tab:green',ls='--')
+
+    #axins.set_xlabel(r'$r$ (\si{\um})',fontsize=fsizelabel,labelpad=-11)
+    axins.set_ylabel(r'$\tilde V_0(r)$',fontsize=fsizelabel)
+    axins.tick_params(axis='both',labelsize=fsizetick)
+
+    axins.set_xlim(x_data[0],x_data[-1])
+    axins.legend(labelspacing=-.1,fontsize=8,frameon=False)
+
+    axins.tick_params(labelleft=False)
+    axins.set_xticks([10,29.5])
+    axins.set_xticklabels([r'$L_0$',r'$L$'])
+    
 
     return fig
 
@@ -519,7 +543,6 @@ def gaussian_fit2():
     """
 
     import matplotlib.pyplot as plt
-    import matplotlib.ticker as mticker
     
     fig, axs = plt.subplots(nrows=1,ncols=1,figsize=(5,2))
 
@@ -529,7 +552,6 @@ def gaussian_fit2():
     y_data = d.data_avg['control'][:,1]
     axs.plot(x_data,y_data,label='Data',lw=4,color='tab:green',ls='--')
     axs.plot(x_data,d.control_fn_avg(x_data),label='Approx.',lw=2,color='k')
-
 
     axs.set_xlabel(r'$r$ (\si{\um})',fontsize=fsizelabel)
     axs.set_ylabel(r'$\tilde V_0(r)$',fontsize=fsizelabel)
@@ -2185,7 +2207,7 @@ def main():
         #(experiment_figure, [], ['figs/f_experiment.png','figs/f_experiment.pdf']),
         #(experiment_figure2, [], ['figs/f_experiment2.png','figs/f_experiment2.pdf']),
         #(data_figure, [], ['figs/f_data.png','figs/f_data.pdf']),
-        #(data_figure2, [10], ['figs/f_data10.png','figs/f_data10.pdf']),
+        (data_figure2, [10], ['figs/f_data10.png','figs/f_data10.pdf']),
         
         #(gaussian_fit, [], ['figs/f_gaussian_fit.png','figs/f_gaussian_fit.pdf']),
         #(gaussian_fit2, [], ['figs/f_gaussian_fit2.png','figs/f_gaussian_fit2.pdf']),
