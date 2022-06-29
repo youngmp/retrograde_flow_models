@@ -13,7 +13,7 @@ from SALib.analyze import sobol, fast
 from SALib.test_functions import Ishigami
 import numpy as np
 
-def load_rss_data(ne=100,n2=100,maxe=0.01,min2=0.006,max2=0.02,
+def load_rss_data(ne=100,n2=100,mine=0,maxe=0.01,min2=0.006,max2=0.02,
                   recompute=False,ss=True,model='t1f'):
     """
     ne: number of epsilon grid points
@@ -22,7 +22,7 @@ def load_rss_data(ne=100,n2=100,maxe=0.01,min2=0.006,max2=0.02,
     min2,max2: min and max value for second parameter
     """
 
-    eps_vals = np.linspace(0,maxe,ne)
+    eps_vals = np.linspace(mine,maxe,ne)
     par2_vals = np.linspace(min2,max2,n2)
     
     pars = (model,ne,n2,maxe,min2,max2,ss)
@@ -60,7 +60,57 @@ def load_rss_data(ne=100,n2=100,maxe=0.01,min2=0.006,max2=0.02,
         Z = np.loadtxt(fname)
 
     return eps_vals,par2_vals,Z
+
+def load_rss_data_t1e(ne=100,nd=100,maxe=0.01,mind=0.006,maxd=0.02,exp=False,
+                  recompute=False,ss=True):
+
+    eps_vals = np.linspace(0,maxe,ne)
+
+    assert(mind is not int)
+    assert(maxd is not int)
     
+    if exp:
+        assert(mind<0)
+        assert(maxd<0)
+        dp_vals  = 10**(np.linspace(mind,maxd,nd))
+    else:
+        dp_vals = np.linspace(mind,maxd,nd)
+
+    #maxd = dp_vals[-1]
+
+    pars = (ne,nd,maxe,mind,maxd,ss,exp)
+    fname = 'data/Z_ne={}_nd={}_maxe={}_mind={}_maxd={}_ss={}_exp={}.txt'.format(*pars)
+    
+    file_not_found = not(os.path.isfile(fname))
+    if file_not_found:
+        print('Unable to find file', fname)
+    
+    if recompute or file_not_found:
+        EPS,DP = np.meshgrid(eps_vals,dp_vals)
+        Z = np.zeros_like(EPS)
+
+        p = pde.PDEModel(T=1500,dt=.05,order=1,N=50,u_nonconstant=True,Nvel=1,df=0)
+
+        par_names = ['eps','dp']
+
+        for i in range(np.shape(EPS)[0]):
+            for j in range(np.shape(EPS)[1]):
+
+                x = [EPS[i,j],DP[i,j]]
+                exp = mf.cost_fn(x,p,par_names,ss_condition=ss,scenario='t1e')
+
+                if np.isinf(exp):
+                    exp = -0.69
+
+                # note 0 == nan, -0.69 == infty. if ss, then 1e5 is fail.
+                Z[i,j] = exp
+
+        np.savetxt(fname,Z)
+    else:
+        Z = np.loadtxt(fname)
+
+    return eps_vals,dp_vals,Z
+
 
 def main():
     
@@ -94,8 +144,8 @@ def main():
     problem = {
         'num_vars': 2,
         'names': ['eps', 'us0'],
-        'bounds': [[0, .275],
-                   [0, .5]]
+        'bounds': [[0, .7],
+                   [0, .3]]
     }
 
     recompute = True
