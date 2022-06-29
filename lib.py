@@ -13,8 +13,11 @@ def get_parameter_fname(model,seed,err=False,method=''):
     get file name for parameters
     err: return filename for error
     """
-    
-    fname_pre = 'data/'+model+'_residuals'
+
+    if model == 't1f':
+        fname_pre = 'data/dp_negative/'+model+'_residuals'
+    else:
+        fname_pre = 'data/'+model+'_residuals'
 
     if model == 't1a':
         fname_pre+='_umax=4.0_dmax=20.0'
@@ -95,8 +98,7 @@ def load_pars(model,seed,method='',return_names=False):
     load residuals found from annealing
     use zero seed for now
     """
-    
-    fname_pre = 'data/'+model+'_residuals'
+        
     pars = {'T':1500,'dt':0.05,'order':1,'N':50,'model':model}
     scenario = model[-1]
     
@@ -159,6 +161,7 @@ def load_pars(model,seed,method='',return_names=False):
     for i,key in enumerate(par_names):
         pars[key] = res[i]
 
+        
     if return_names:
         return pars, par_names
     else:
