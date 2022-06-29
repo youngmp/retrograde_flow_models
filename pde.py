@@ -79,7 +79,6 @@ class Data:
         args = (self.data_dir,self.data_avg,'control')
         kwargs = {'normed':self.normed,'n_gauss':10,'recompute':self.recompute}
         pars_control_avg = self._load_gaussian_pars(*args,**kwargs)
-
         
         args = (self.data_dir,self.data_rep,'control')
         kwargs['rep'] = True
@@ -145,7 +144,7 @@ class Data:
         
     #@staticmethod
     def _build_data_dict(self,fname='data/patrons20180327dynamiqueNZ_reformatted.xlsx',
-                         L0=10,L=30,normed=True):
+                         L0=10,L=29.5,normed=True):
 
         # load intensity data
         data_raw = pd.read_excel(fname,engine = 'openpyxl',header=[0,1,2])
@@ -226,6 +225,7 @@ class Data:
         self.data_rep_raw = data_rep_raw
 
         self.data_avg_n = data_avg_n
+        print('avg n fn',self.data_avg_n)
         self.data_rep_n = data_rep_n
         
 
