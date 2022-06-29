@@ -20,7 +20,6 @@ import os
 
 
 models = ['t1a','t1b','t1c','t1d','t1e','t1f',
-          't2a','t2b','t2c','t2d',
           'jamminga','jammingb','jammingc','jammingd']
 
 #models = ['t1a','t1b','t1c','t1d','t1e','t1f']
