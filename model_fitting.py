@@ -91,9 +91,9 @@ def cost_fn(x,p,par_names=None,ss_condition=True,psource=False):
         if 1e6*np.linalg.norm(I[:,int(1200/p.dt)]-I[:,int(1440/p.dt)])**2 > 1e-10:
             err = 1e5
 
-    if p.model == 't1f':
-        if np.sum(p._dp_spatial()<0)>0:
-            err = 1e5
+    #if p.model == 't1f':
+    #    if np.sum(p._dp_spatial()<0)>0:
+    #        err = 1e5
 
     #err_log = np.log10(err)
     if np.isnan(err):
