@@ -951,13 +951,16 @@ def solution(model='t1e',rep=False,method=''):
 
     import matplotlib.pyplot as plt
     import matplotlib.ticker as ticker
+    from matplotlib import rc
+    mpl.rc('text',usetex=True)
+    mpl.rc('text.latex',preview=True)
 
     # best 10 seeds in order from best to worst
     best_seeds = best_10_seeds(model)
     seed = best_seeds[0]
     
     pars = lib.load_pars(model,seed,method)
-    print(model,seed,pars)
+    print(model,best_seeds,pars)
     
     p = pde.PDEModel(**pars)    
     p._run_euler(rep)
@@ -965,12 +968,12 @@ def solution(model='t1e',rep=False,method=''):
     I = p.y[:p.N,:];M = p.y[p.N:,:];V = I + M
     
     if model == 't1e':
-        dp_lo = 0.0093765
+        dp_lo = 0.0097
         pars['dp'] = dp_lo
         p_lo = pde.PDEModel(**pars)    
         p_lo._run_euler(rep)
 
-        dp_hi = 0.011617
+        dp_hi = 0.0113
         pars['dp'] = dp_hi
         p_hi = pde.PDEModel(**pars)    
         p_hi._run_euler(rep)
@@ -984,10 +987,11 @@ def solution(model='t1e',rep=False,method=''):
         u_hi = 0.12
         pars['us0'] = u_hi
         p_hi = pde.PDEModel(**pars)    
-        p_hi._run_euler(rep)    
+        p_hi._run_euler(rep)
 
-    I_lo = p_lo.y[:p_lo.N,:];M_lo = p_lo.y[p_lo.N:,:];V_lo = I_lo + M_lo
-    I_hi = p_hi.y[:p_hi.N,:];M_hi = p_hi.y[p_hi.N:,:];V_hi = I_hi + M_hi
+    if model == 't1e' or model == 't1f':
+        I_lo = p_lo.y[:p_lo.N,:];M_lo = p_lo.y[p_lo.N:,:];V_lo = I_lo + M_lo
+        I_hi = p_hi.y[:p_hi.N,:];M_hi = p_hi.y[p_hi.N:,:];V_hi = I_hi + M_hi
 
     nrows = 3
     ncols = 2
@@ -1001,7 +1005,7 @@ def solution(model='t1e',rep=False,method=''):
         #keys_list = ['control','0.5h','1h', '2h', '24h']
         keys_list = ['control','0.5h','1h', '2h','4h','8.5h','24h']
         
-    fig,axs = plt.subplots(nrows=3,ncols=ncols,figsize=(4,4),
+    fig,axs = plt.subplots(nrows=3,ncols=ncols,figsize=(5,3),
                            gridspec_kw={'wspace':0.1,'hspace':0},
                            sharey='all')
     
@@ -1020,11 +1024,14 @@ def solution(model='t1e',rep=False,method=''):
             time = float(hour[:-1])
             minute = time*60
             idx = int(minute/p.dt)
-        
+
+            
         axs[0,i].plot(p.r[:-1],V[:-1,idx],color='k',lw=.7)
         axs[0,i].plot(p.r[1:-1],data[1:-1],label='Data',c='tab:green',dashes=(3,1))
         axs[1,i].plot(p.r[:-1],I[:-1,idx],color='tab:blue',lw=.7)
         axs[2,i].plot(p.r[:-1],M[:-1,idx],color='tab:orange',lw=.7)
+
+        #axs[0,i].set_ylim(0,)
 
         # plot fill_between:
         if model == 't1e' or model == 't1f':
@@ -1039,6 +1046,7 @@ def solution(model='t1e',rep=False,method=''):
         axs[-1,i].set_xticks([p.L0,p.L])
 
         #axs[-1,i].set_xticklabels([r'$L_0$\hspace{.1in}',r'\hspace{.1in}$L$'],ha='center')
+        #axs[-1,i].set_xticklabels([r'$L_0\phantom{L}$',r'$\phantom{L_0}L$'],ha='center')
         axs[-1,i].set_xticklabels([r'$L_0$',r'$L$'],ha='center')
         
         axs[-1,i].get_xaxis().majorTicks[0].label1.set_horizontalalignment('left')
@@ -1071,12 +1079,12 @@ def solution(model='t1e',rep=False,method=''):
             if seed_idx not in [seed]:
                 
                 pars = lib.load_pars(model,seed_idx,method)
-                print(pars)
-                pars['dt'] = 0.055
+                #print(pars)
+                if model == 't1a':
+                    pars['dt'] = 0.05
+                else:
+                    pars['dt'] = 0.055
                 #pars['N'] = 100
-
-                #fn = lib.get_parameter_fname(model,seed_idx,err=True,method='de')
-                #print(seed_idx,pars,np.loadtxt(fn))
                 
                 p2 = pde.PDEModel(**pars)
                 p2._run_euler()
@@ -1109,18 +1117,23 @@ def solution(model='t1e',rep=False,method=''):
                         time=float(hour[:-1]);minute=time*60;idx=int(minute/p2.dt)
                     
                     axs[0,i].plot(p2.r[:-1],V[:-1,idx],color='gray',zorder=-3,alpha=0.25,lw=.5)
-                    #axs[1,i].plot(p2.r[:-1],I[:-1,idx],color='gray',zorder=-3,alpha=0.25,lw=.5)
-                    #axs[2,i].plot(p2.r[:-1],M[:-1,idx],color='gray',zorder=-3,alpha=0.25,lw=.5)
+                    axs[1,i].plot(p2.r[:-1],I[:-1,idx],color='gray',zorder=-3,alpha=0.25,lw=.5)
+                    axs[2,i].plot(p2.r[:-1],M[:-1,idx],color='gray',zorder=-3,alpha=0.25,lw=.5)
 
     if (model == 't1e' or model == 't1f') and not(rep):
-        fig.subplots_adjust(top=.95,right=.95,left=.18,bottom=0.4,hspace=.8,wspace=1)
+        fig.subplots_adjust(top=.895,right=.99,left=.14,bottom=0.45,hspace=.8,wspace=1)
         
     else:
-        fig.set_size_inches(4,3)
-        fig.subplots_adjust(top=.9,right=.95,left=.1,bottom=0.1,hspace=.8,wspace=1)
+        fig.set_size_inches(5,2)
+        fig.subplots_adjust(top=.88,right=.99,left=.14,bottom=0.15,hspace=.8,wspace=1)
 
     # move scientific notation to y axis label
     fig.canvas.draw()
+
+    if model == 'jammingd':
+        ylo, yhi = axs[0,0].get_ylim()
+        axs[0,0].set_ylim(ylo,yhi+yhi/9)
+        
 
     for i in range(3):
         pass
@@ -1133,7 +1146,7 @@ def solution(model='t1e',rep=False,method=''):
     if (model == 't1e' or model == 't1f') and not(rep):
         # subplot for velocity profile
         x0 = (axs[2,1].get_position().x1 + axs[2,1].get_position().x0)/2
-        y0 = .07
+        y0 = .09
         w = (axs[2,5].get_position().x1 + axs[2,5].get_position().x0)/2-x0
         h = .2
 
@@ -1156,7 +1169,7 @@ def solution(model='t1e',rep=False,method=''):
             ax_u.fill_between(p.r,p_lo._dp_spatial(),p_hi._dp_spatial(),lw=1,color='k',alpha=.25)
             
             xticklabels = [r'$L_0$',r'$L$'];xticks = [p.L0,p.L]
-            ylabel = r'$d_p(r)$'
+            ylabel = r'$\alpha(r)$'
             print('eps, us0',p.eps,p.us0)
             
         ax_u.set_xticklabels(xticklabels)
@@ -1167,8 +1180,12 @@ def solution(model='t1e',rep=False,method=''):
         ax_u.tick_params(axis='both',labelsize=fsizetick)
         #ax_u.set_ylim(0,.1)
 
-        plt.text(.04,.96,"(a)",transform=fig.transFigure,size=fsizetitle)
-        plt.text(.04,.3,"(b)",transform=fig.transFigure,size=fsizetitle)
+        if model == 't1e':
+            plt.text(.04,.95,"(c)",transform=fig.transFigure,size=fsizetitle)
+            plt.text(.04,.3,"(d)",transform=fig.transFigure,size=fsizetitle)
+        else:
+            plt.text(.04,.95,"(a)",transform=fig.transFigure,size=fsizetitle)
+            plt.text(.04,.3,"(b)",transform=fig.transFigure,size=fsizetitle)
 
     #plt.show()
     return fig
@@ -1472,8 +1489,8 @@ def cost_function_t1e(recompute=False):
     axs[0].set_xlabel(r'$\varepsilon$',size=fsizelabel)
     axs[1].set_xlabel(r'$\varepsilon$',size=fsizelabel)
     
-    axs[0].set_ylabel(r'$d_p$',size=fsizelabel)
-    axs[1].set_ylabel(r'$d_p$',size=fsizelabel)
+    axs[0].set_ylabel(r'$\alpha$',size=fsizelabel)
+    axs[1].set_ylabel(r'$\alpha$',size=fsizelabel)
     
 
     axs[0].tick_params(axis='both',labelsize=fsizetick)
@@ -1484,8 +1501,8 @@ def cost_function_t1e(recompute=False):
     axs[1].set_xlim(eps_lo,eps_hi)
     axs[1].set_ylim(dp_lo,dp_hi-.00004)
 
-    axs[0].set_title('(a) RSS',loc='left',size=fsizetitle)
-    axs[1].set_title('(b) Confidence Interval',loc='left',size=fsizetitle)
+    axs[0].set_title('(c) RSS',loc='left',size=fsizetitle)
+    axs[1].set_title('(d) Confidence Interval',loc='left',size=fsizetitle)
     
     plt.tight_layout()
     #fig.subplots_adjust(bottom=0.1)
@@ -1596,8 +1613,8 @@ def plot_axs_split(fig,axs,axs_split):
     import matplotlib
     
     models = ['t1d','t2d','jammingd']
-    ylabels = [(r'$d_p^*$',r'$\bar{u}^*$'),(r'$d_{p_2}^*/d_{p_1}^*$',r'$\bar{u}^*$'),
-               (r'$d_p^*$',r'$V_\text{max}^*/u_\text{max}^*$')]
+    ylabels = [(r'$\alpha^*$',r'$\bar{u}^*$'),(r'$d_{p_2}^*/d_{p_1}^*$',r'$\bar{u}^*$'),
+               (r'$\alpha^*$',r'$V_\text{max}^*/u_\text{max}^*$')]
     ylos = [(-2,-.4),(-.1,-.4),(-2,-.1)]
     yhis = [(22,4.4),(1.1,4.4),(22,1.1)]
     
@@ -1803,7 +1820,7 @@ def identifiability():
                 ylo=-10;yhi=210
                 
         elif par_names[1] == 'dp':
-            par_name = r'$d_p^*$';ylo=-1;yhi=21
+            par_name = r'$\alpha^*$';ylo=-1;yhi=21
         elif par_names[1] == 'imax':
             par_name = r'$V_\text{max}^*$';ylo=-.1;yhi=1.1
         elif par_names[1] == 'us0':
@@ -1883,8 +1900,8 @@ def plot_axs_split2(fig,axs_split,model):
     import matplotlib
     
     models = ['t1d','t2d','jammingd']
-    ylabels = [(r'$d_p^*$',r'$\bar{u}^*$'),(r'$d_{p_2}^*/d_{p_1}^*$',r'$\bar{u}^*$'),
-               (r'$d_p^*$',r'$V_\text{max}^*/u_\text{max}^*$')]
+    ylabels = [(r'$\alpha^*$',r'$\bar{u}^*$'),(r'$d_{p_2}^*/d_{p_1}^*$',r'$\bar{u}^*$'),
+               (r'$\alpha^*$',r'$V_\text{max}^*/u_\text{max}^*$')]
     ylos = [(-2,-.4),(-.1,-.4),(-2,-.1)]
     yhis = [(22,4.4),(1.1,4.4),(22,1.1)]
     
@@ -1946,7 +1963,7 @@ def plot_axs_split2(fig,axs_split,model):
         axs_split[0].set_ylim(-2,22)
         axs_split[1].set_ylim(-.4,4.4)
         
-        axs_split[0].text(ylabelpad,0.5,r'$d_p^*$',va='center',rotation=90,
+        axs_split[0].text(ylabelpad,0.5,r'$\alpha^*$',va='center',rotation=90,
                           transform=axs_split[0].transAxes,size=fsizelabel)
         axs_split[1].text(ylabelpad,0.5,r'$\bar{u}$',va='center',rotation=90,
                           transform=axs_split[1].transAxes,size=fsizelabel)
@@ -1958,7 +1975,7 @@ def plot_axs_split2(fig,axs_split,model):
         axs_split[0].set_ylim(-2,22)
         axs_split[1].set_ylim(-.1,1.1)
         
-        axs_split[0].text(ylabelpad,0.5,r'$d_p^*$',va='center',rotation=90,
+        axs_split[0].text(ylabelpad,0.5,r'$\alpha^*$',va='center',rotation=90,
                           transform=axs_split[0].transAxes,size=fsizelabel)
         axs_split[1].text(ylabelpad,0.5,r'\phantom{1}\\ $V_\text{max}^*/u_\text{max}^*$',va='center',rotation=90,
                           transform=axs_split[1].transAxes,size=fsizelabel)
@@ -2019,7 +2036,7 @@ def identifiability2():
 
     # plot points for T1
     ylims = [[(-2,22),(-.4,4.4)],[(-.4,4.4),(0,0)],[(-2,22),(-.4,4.4)]]
-    ylabels = [[r'$d_f^*$',r'$\bar{u}^*$'],[r'$\bar{u}^*$',r''],[r'$d_p^*$','$d_p^*$']]
+    ylabels = [[r'$d_f^*$',r'$\bar{u}^*$'],[r'$\bar{u}^*$',r''],[r'$\alpha^*$','$\alpha^*$']]
     mlabels_t1 = [['T1A','T1B'],['T1C','T1D']]
     mlabels_t3 = [['T3E','T3F']]
 
@@ -2098,7 +2115,7 @@ def identifiability2():
                     
     # T3E, F    
     ylims = [(-2,22),(-.4,4.4)]
-    ylabels = [r'$d_p^*$','$d_p^*$']
+    ylabels = [r'$\alpha^*$','$\alpha^*$']
     mlabels = ['T3E','T3F']
 
     for i in range(2):
@@ -2207,7 +2224,7 @@ def main():
         #(experiment_figure, [], ['figs/f_experiment.png','figs/f_experiment.pdf']),
         #(experiment_figure2, [], ['figs/f_experiment2.png','figs/f_experiment2.pdf']),
         #(data_figure, [], ['figs/f_data.png','figs/f_data.pdf']),
-        (data_figure2, [10], ['figs/f_data10.png','figs/f_data10.pdf']),
+        #(data_figure2, [10], ['figs/f_data10.png','figs/f_data10.pdf']),
         
         #(gaussian_fit, [], ['figs/f_gaussian_fit.png','figs/f_gaussian_fit.pdf']),
         #(gaussian_fit2, [], ['figs/f_gaussian_fit2.png','figs/f_gaussian_fit2.pdf']),
@@ -2225,7 +2242,7 @@ def main():
         #(solution,['t1c',False,method],f_sol_names('t1c',method)),
         #(solution,['t1d',False,method],f_sol_names('t1d',method)),
        
-        #(solution,['t1e',False,method],f_sol_names('t1e',method)),
+        (solution,['t1e',False,method],f_sol_names('t1e',method)),
         #(solution,['t1f',False,method],f_sol_names('t1f',method)),
        
         #(solution,['t2a',False,method],f_sol_names('t2a',method)),
