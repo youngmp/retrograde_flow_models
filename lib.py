@@ -99,7 +99,7 @@ def load_pars(model,seed,method='',return_names=False):
     use zero seed for now
     """
         
-    pars = {'T':1500,'dt':0.05,'order':1,'N':50,'model':model}
+    pars = {'T':1500,'dt':0.05,'N':50,'model':model}
     scenario = model[-1]
     
     if model[:-1] == 't1':
