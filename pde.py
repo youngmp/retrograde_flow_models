@@ -88,7 +88,6 @@ class Data:
         self.control_fn_avg = CallableGaussian(pars_control_avg)
         self.control_fn_rep = CallableGaussian(pars_control_rep)
 
-
     def _get_gaussian_res(self,x_data,y_data,time,n_gauss=3):
         """
         x_data: x values of data to be fitted with gaussians
@@ -101,6 +100,7 @@ class Data:
         #par_init = [1,0,1,1,18,1,1,25,1]
         #par_init = [1,0,1,1,10,1,1,15,1,1,20,1]
         #par_init = [1,0,1,1,5,1,1,10,1,1,15,1,1,20,1]
+        
         par_init = np.zeros(3*n_gauss)
         for i in range(int(len(par_init)/3)):
             par_init[3*i] = 100 # magnitude
@@ -225,7 +225,6 @@ class Data:
         self.data_rep_raw = data_rep_raw
 
         self.data_avg_n = data_avg_n
-        print('avg n fn',self.data_avg_n)
         self.data_rep_n = data_rep_n
         
 
