@@ -843,8 +843,6 @@ def velocity():
 
     fig = plt.figure(figsize=(5,3.5))
     gs = GridSpec(2, 2,hspace=0.6,wspace=.8)
-    #gs = GridSpec(2, 2)
-    #gs.update()
 
     ax1 = fig.add_subplot(gs[0,0])
     ax2 = fig.add_subplot(gs[0,1])
@@ -864,8 +862,6 @@ def velocity():
     V = p.y[:p.N,-1] + p.y[p.N:,-1]
     imax = np.amax(V)
 
-    print(imax)
-
     p.eps = 0
 
     axs[0].plot([p.L0,p.L],[0.16,0.16],lw=2,color='k')
@@ -884,9 +880,9 @@ def velocity():
     axs[3].set_ylabel(r'Velocity $u(V(r,t))$',size=fsizelabel)
     
     axs[0].set_title(r'(a) Constant',loc='left',size=fsizetitle)
-    axs[1].set_title(r'(b)',loc='left',size=fsizetitle)
+    axs[1].set_title(r'(b) Qty. Dep.',loc='left',size=fsizetitle)
     axs[2].set_title(r'(c) Space-Dep.',loc='left',size=fsizetitle)
-    axs[3].set_title(r'Qty. Dep.',loc='center',size=fsizetitle)
+    #axs[3].set_title(r'',loc='center',size=fsizetitle)
 
 
     fig.subplots_adjust(left=.16,right=.95,top=.93)
@@ -943,18 +939,13 @@ def best_10_seeds(model):
     else:
         raise ValueError('Invalid model',model)
 
-def solution(model='t1e',rep=False,method=''):
+def fill_sol_ax(axs,model,rep,method,keys_list):
     """
-    plot simulation data
-    including intermediate comparisons
+    axs must be 3 row 7 cols
     """
 
-    import matplotlib.pyplot as plt
     import matplotlib.ticker as ticker
-    from matplotlib import rc
-    mpl.rc('text',usetex=True)
-    mpl.rc('text.latex',preview=True)
-
+    
     # best 10 seeds in order from best to worst
     best_seeds = best_10_seeds(model)
     seed = best_seeds[0]
@@ -992,22 +983,7 @@ def solution(model='t1e',rep=False,method=''):
     if model == 't1e' or model == 't1f':
         I_lo = p_lo.y[:p_lo.N,:];M_lo = p_lo.y[p_lo.N:,:];V_lo = I_lo + M_lo
         I_hi = p_hi.y[:p_hi.N,:];M_hi = p_hi.y[p_hi.N:,:];V_hi = I_hi + M_hi
-
-    nrows = 3
-    ncols = 2
-
-    if rep:
-        ncols = 6
-        keys_list = ['control','1h','2h', '4h','8.5h', '24h']
-    else:
-        ncols = 7
-        #keys_list = ['control','2h', '4h','8.5h', '24h']
-        #keys_list = ['control','0.5h','1h', '2h', '24h']
-        keys_list = ['control','0.5h','1h', '2h','4h','8.5h','24h']
         
-    fig,axs = plt.subplots(nrows=3,ncols=ncols,figsize=(5,3),
-                           gridspec_kw={'wspace':0.1,'hspace':0},
-                           sharey='all')
     
     # plot best solution
     for i,hour in enumerate(keys_list):
@@ -1062,17 +1038,6 @@ def solution(model='t1e',rep=False,method=''):
         axs[1,i].tick_params(axis='both',labelsize=fsizetick)
         axs[2,i].tick_params(axis='both',labelsize=fsizetick)
 
-    fn_labels = [r'$V$',r'$I$',r'$M$']
-    for i in range(3):
-        # go blow to change label size
-        #axs[i,0].set_ylabel(fn_labels[i],size=fsizelabel,labelpad=0)
-        #axs[i,0].ticklabel_format(axis='y',style='scientific',scilimits=(0,0))
-        
-        # rescale to percent
-        ticks_y = ticker.FuncFormatter(lambda x, pos: '{0:g}\%'.format(x*100))
-        axs[i,0].yaxis.set_major_formatter(ticks_y)
-        axs[i,0].tick_params(axis='y',labelsize=fsizetick-2)
-
     if not(rep):
         # plot remaining seeds
         for seed_idx in best_seeds:
@@ -1120,6 +1085,63 @@ def solution(model='t1e',rep=False,method=''):
                     axs[1,i].plot(p2.r[:-1],I[:-1,idx],color='gray',zorder=-3,alpha=0.25,lw=.5)
                     axs[2,i].plot(p2.r[:-1],M[:-1,idx],color='gray',zorder=-3,alpha=0.25,lw=.5)
 
+    fn_labels = [r'$V$',r'$I$',r'$M$']
+    for i in range(3):
+        # go blow to change label size
+        axs[i,0].set_ylabel(fn_labels[i],size=fsizelabel,labelpad=0)
+        #axs[i,0].ticklabel_format(axis='y',style='scientific',scilimits=(0,0))
+        
+        # rescale to percent
+        ticks_y = ticker.FuncFormatter(lambda x, pos: '{0:g}\%'.format(x*100))
+        axs[i,0].yaxis.set_major_formatter(ticks_y)
+        axs[i,0].tick_params(axis='y',labelsize=fsizetick-2)
+
+    #axs[-1,0].get_xaxis().set_visible(False)
+
+    #axs[0,1].set_yticks([])
+
+    
+    if model == 'jammingd':
+        ylo, yhi = axs[0,0].get_ylim()
+        axs[0,0].set_ylim(ylo,yhi+yhi/9)
+
+    #for i in range(3):
+    #    for j in range(7):
+    #        if  j > 1:
+    #            print('test',i,j)
+    #            axs[i,j].get_xaxis().set_visible(False)
+    
+    return axs
+    
+def solution(model='t1e',rep=False,method=''):
+    """
+    plot simulation data
+    including intermediate comparisons
+    """
+
+    import matplotlib.pyplot as plt
+    import matplotlib.ticker as ticker
+    from matplotlib import rc
+    mpl.rc('text',usetex=True)
+    #mpl.rc('text.latex',preview=True)
+
+    
+    if rep:
+        keys_list = ['control','1h','2h', '4h','8.5h', '24h']
+        
+    else:
+        #keys_list = ['control','2h', '4h','8.5h', '24h']
+        #keys_list = ['control','0.5h','1h', '2h', '24h']
+        keys_list = ['control','0.5h','1h', '2h','4h','8.5h','24h']
+
+    ncols = len(keys_list)
+    
+    fig,axs = plt.subplots(nrows=3,ncols=ncols,figsize=(5,3),
+                           gridspec_kw={'wspace':0.1,'hspace':0},
+                           sharey='all')
+
+    axs = fill_sol_ax(axs,model,rep,method,keys_list)
+    
     if (model == 't1e' or model == 't1f') and not(rep):
         fig.subplots_adjust(top=.895,right=.99,left=.14,bottom=0.45,hspace=.8,wspace=1)
         
@@ -1188,6 +1210,93 @@ def solution(model='t1e',rep=False,method=''):
             plt.text(.04,.3,"(b)",transform=fig.transFigure,size=fsizetitle)
 
     #plt.show()
+    return fig
+
+
+
+def solution_all():
+    
+    import matplotlib.pyplot as plt
+    import matplotlib.gridspec as gridspec
+    import matplotlib.ticker as ticker
+    
+    fig = plt.figure(figsize=(10,10))
+    
+    gs = gridspec.GridSpec(5, 2, hspace=.3)
+
+    models = [['t1e','t1f'],
+              ['t1a','t1b'],
+              ['t1c','t1d'],
+              ['jamminga','jammingb'],
+              ['jammingc','jammingd'],
+              ]
+
+    titles = [['(a) T3E','(b) T3F'],
+              ['(c) T1A','(d) T1B'],
+              ['(e) T1C','(f) T1D'],
+              ['(g) T2A','(h) T2B'],
+              ['(i) T2C','(j) T2D'],
+              ]
+
+    axs_dict = {}
+
+    fig.subplots_adjust(top=.97,right=.99,left=.08,bottom=0.04,wspace=.22)
+
+    
+    for i in range(5):
+        for j in range(2):
+            
+            g = gridspec.GridSpecFromSubplotSpec(3,7,subplot_spec=gs[i,j],
+                                                 wspace=0,hspace=0)
+
+            axs = []
+
+            for n in range(3):
+                axs.append([])
+                for m in range(7):
+
+                    
+                    if n == 0 and m == 0:
+                        ax = fig.add_subplot(g[n,m])
+                        
+                    else:
+                        ax = fig.add_subplot(g[n,m],sharey=axs[0][0])
+
+                    if m > 0:
+                        #ax.set_yticks([])
+                        ax.tick_params(labelleft=False)
+
+                    axs[n].append(ax)
+
+            #axs[0][0].set_title(titles[i][j])
+            
+            md = models[i][j]
+            axs_dict[md] = np.array(axs)
+            
+            pos = axs_dict[md][0,0].get_position()
+            x0 = pos.x0; y1 = pos.y1
+
+            plt.text(x0-.07,y1+.01,titles[i][j],transform=fig.transFigure,size=fsizetitle)
+            
+            
+            #print(md)
+            #if i > 0 and j > 0:
+            #    axs_dict[md] = np.array([[fig.add_subplot(g[n,m],sharey=axs_dict[md][0,0]) for m in range(7)] for n in range(3)])
+            #else:
+            #    axs_dict[md] = np.array([[fig.add_subplot(g[n,m]) for m in range(7)] for n in range(3)])
+            #for n in range(3):
+            #    for m in range(7):
+            #        axs_dict[models[i][j]] = fig.add_subplot(g[n,m])
+
+    keys_list = ['control','0.5h','1h', '2h','4h','8.5h','24h']
+    for i in range(5):
+        for j in range(2):
+            
+            m = models[i][j]
+            axs_dict[m] = fill_sol_ax(axs_dict[m],m,False,'de',keys_list)
+
+    
+    
     return fig
 
 
@@ -1811,7 +1920,7 @@ def identifiability():
         pars,par_names = lib.load_pars(model,0,method='de',return_names=True)
 
         if par_names[1] == 'df':
-            par_name = r'$d_f^*$';ylo=-1;yhi=21
+            par_name = r'$\alpha^*$';ylo=-1;yhi=21
         elif par_names[1] == 'dp1':
             par_name = r'$d_{p_1}^*$';
             if model[-1] == 'a':
@@ -1881,9 +1990,11 @@ def collect_identifiability_data(model):
         
         xlist.append(pars[0])
         
-        if (model == 't1b') or (model == 'jammingb') or (model == 'jammingc'):
+        if (model == 't1a') or (model == 't1b') or (model == 'jammingc'):
             #print(i,seed,pars)
             ylist.append(pars[2])
+        elif (model == 'jamminga'):
+            ylist.append(pars[3])
         else:
             ylist.append(pars[1])
 
@@ -1947,9 +2058,10 @@ def plot_axs_split2(fig,axs_split,model):
     err_exp = np.round(np.exp(errs[seeds_sorted]),4)
 
     if model == 'jammingd':
-        s = 1.05
+        s = 5.05
     else:
-        s = 1
+        s = 5
+        
     im1 = axs_split[0].scatter(xlist,ylist1,c=err_exp,s=s,zorder=zorder,alpha=.8,
                                vmin=np.amin(err_exp),vmax=np.amax(err_exp)*s)
     im2 = axs_split[1].scatter(xlist,ylist2,c=err_exp,s=s,zorder=zorder,alpha=.8)
@@ -1977,7 +2089,7 @@ def plot_axs_split2(fig,axs_split,model):
         
         axs_split[0].text(ylabelpad,0.5,r'$\alpha^*$',va='center',rotation=90,
                           transform=axs_split[0].transAxes,size=fsizelabel)
-        axs_split[1].text(ylabelpad,0.5,r'\phantom{1}\\ $V_\text{max}^*/u_\text{max}^*$',va='center',rotation=90,
+        axs_split[1].text(ylabelpad,0.5,r'\phantom{1}\\ $V_m^*/u_m^*$',va='center',rotation=90,
                           transform=axs_split[1].transAxes,size=fsizelabel)
 
         axs_split[0].text(0.1,0.8,'T2D',va='center',
@@ -2036,7 +2148,7 @@ def identifiability2():
 
     # plot points for T1
     ylims = [[(-2,22),(-.4,4.4)],[(-.4,4.4),(0,0)],[(-2,22),(-.4,4.4)]]
-    ylabels = [[r'$d_f^*$',r'$\bar{u}^*$'],[r'$\bar{u}^*$',r''],[r'$\alpha^*$','$\alpha^*$']]
+    ylabels = [[r'$\alpha^*$',r'$\bar{u}^*$'],[r'$\bar{u}^*$',r''],[r'$\alpha^*$',r'$\alpha^*$']]
     mlabels_t1 = [['T1A','T1B'],['T1C','T1D']]
     mlabels_t3 = [['T3E','T3F']]
 
@@ -2073,8 +2185,8 @@ def identifiability2():
                                   transform=axs_t1[i][j].transAxes,size=fsizelabel)
     
     # plot points for J
-    ylims = [[(-.1,1.1),(-.4,4.4)],[(-.4,4.4),(0,0)]]
-    ylabels = [[r'$V_\text{max}^*$',r'$u_\text{max}^*$'],[r'$u_\text{max}^*$',r'']]
+    ylims = [[(-2,22),(-.4,4.4)],[(-.4,4.4),(0,0)]]
+    ylabels = [[r'$\alpha^*$',r'$u_m^*$'],[r'$u_m^*$',r'']]
     mlabels = [['T2A','T2B'],['T2C','T2D']]
 
     for i in range(2):
@@ -2115,7 +2227,7 @@ def identifiability2():
                     
     # T3E, F    
     ylims = [(-2,22),(-.4,4.4)]
-    ylabels = [r'$\alpha^*$','$\alpha^*$']
+    ylabels = [r'$\alpha^*$',r'$\bar u^*$']
     mlabels = ['T3E','T3F']
 
     for i in range(2):
@@ -2176,9 +2288,9 @@ def identifiability2():
     x1t3 = axs_t3[0].axes.get_position().x0
     x2t3 = axs_t3[1].axes.get_position().x1    
     
-    plt.text((x1t1+x2t1)/2,.965, '(a) T1',transform=fig.transFigure,size=fsizelabel+2,ha='center')
-    plt.text((x1t2+x2t2)/2,.965, '(b) T2', transform=fig.transFigure,size=fsizelabel+2,ha='center')
-    plt.text((x1t3+x2t3)/2,.31, '(c) T3', transform=fig.transFigure,size=fsizelabel+2,ha='center')
+    plt.text((x1t1+x2t1)/2,.965, '(a) T1',transform=fig.transFigure,size=fsizelabel,ha='center')
+    plt.text((x1t2+x2t2)/2,.965, '(b) T2', transform=fig.transFigure,size=fsizelabel,ha='center')
+    plt.text((x1t3+x2t3)/2,.31, '(c) T3', transform=fig.transFigure,size=fsizelabel,ha='center')
     
     # plot T1d, Jd
     axs_t1d = plot_axs_split2(fig,axs_t1d,'t1d')
@@ -2232,7 +2344,7 @@ def main():
         #(velocity, [], ['figs/f_velocity.png','figs/f_velocity.pdf']),
         #(solution_schematic,[],['figs/f_solution_schematic.png','figs/f_solution_schematic.pdf']),
         #(identifiability,[],['figs/f_identifiability.png','figs/f_identifiability.pdf']),
-        #(identifiability2,[],['figs/f_identifiability2.png','figs/f_identifiability2.pdf']),
+        (identifiability2,[],['figs/f_identifiability2.png','figs/f_identifiability2.pdf']),
         
         #(cost_function_t1e, [False], ['figs/f_cost_function_t1e.png','figs/f_cost_function_t1e.pdf']),
         #(cost_function_t1f, [False], ['figs/f_cost_function_t1f.png','figs/f_cost_function_t1f.pdf']),
@@ -2242,7 +2354,7 @@ def main():
         #(solution,['t1c',False,method],f_sol_names('t1c',method)),
         #(solution,['t1d',False,method],f_sol_names('t1d',method)),
        
-        (solution,['t1e',False,method],f_sol_names('t1e',method)),
+        #(solution,['t1e',False,method],f_sol_names('t1e',method)),
         #(solution,['t1f',False,method],f_sol_names('t1f',method)),
        
         #(solution,['t2a',False,method],f_sol_names('t2a',method)),
@@ -2255,8 +2367,8 @@ def main():
         #(solution,['jammingc',False,method],f_sol_names('jc',method)),
         #(solution,['jammingd',False,method],f_sol_names('jd',method)),
 
-        #(solution,['t1e',True,method],['figs/f_validation.png','figs/f_validation.pdf']),
-        #(proof_c,[],['f_proof_c.png','f_proof_c.pdf'])
+        #(solution_all,[],['figs/f_sol_all_de.png','figs/f_sol_all_de.pdf']),
+
         ]
 
     # multiprocessing code from Kendrick Shaw
