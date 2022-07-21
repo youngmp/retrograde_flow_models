@@ -15,10 +15,10 @@ fsizetitle = 13
 from matplotlib.patches import Rectangle
 
 
-import model_fitting as mf
-import sensitivity as sv
-import pde
-import lib
+import lib.model_fitting as mf
+import lib.sensitivity as sv
+import lib.pde
+import lib.lib
 import copy
 import numpy as np
 
