@@ -70,8 +70,8 @@ def experiment_figure():
     axs.append(fig.add_subplot(gs[1,:]))
     
     # plot cell images
-    img_ctrl = mpimg.imread('i_controlmicro.png')
-    img_noco = mpimg.imread('i_nocomicro.png')
+    img_ctrl = mpimg.imread('data/i_controlmicro.png')
+    img_noco = mpimg.imread('data/i_nocomicro.png')
 
     axs[0].imshow(ndimage.rotate(img_ctrl,180),aspect='equal')
     axs[1].imshow(ndimage.rotate(img_noco,180),aspect='equal')
