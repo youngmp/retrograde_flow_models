@@ -1643,19 +1643,26 @@ def f_sol_names(model,method):
 def main():
 
     method = 'de'
+
+    d = 'figs/'
+
+    if not(os.path.isdir(d)):
+        print('press enter to consent to creating figure directory at (ctrl+c to exit)',d)
+        input()
+        os.mkdir(d)
     
     figures = [
-        (experiment_figure, [], ['figs_temp/f_experiment.png','figs_temp/f_experiment.pdf']),
-        (data_figure, [10], ['figs_temp/f_data10.png','figs_temp/f_data10.pdf']),        
-        (gaussian_fit, [], ['figs_temp/f_gaussian_fit.png','figs_temp/f_gaussian_fit.pdf']),
+        (experiment_figure, [], [d+'/f_experiment.png',d+'/f_experiment.pdf']),
+        (data_figure, [10], [d+'/f_data10.png',d+'/f_data10.pdf']),        
+        (gaussian_fit, [], [d+'/f_gaussian_fit.png',d+'/f_gaussian_fit.pdf']),
         
-        (velocity, [], ['figs_temp/f_velocity.png','figs_temp/f_velocity.pdf']),
-        (solution_schematic,[],['figs_temp/f_solution_schematic.png','figs_temp/f_solution_schematic.pdf']),
-        (identifiability,[],['figs_temp/f_identifiability.png','figs_temp/f_identifiability.pdf']),
+        (velocity, [], [d+'/f_velocity.png',d+'/f_velocity.pdf']),
+        (solution_schematic,[],[d+'/f_solution_schematic.png',d+'/f_solution_schematic.pdf']),
+        (identifiability,[],[d+'/f_identifiability.png',d+'/f_identifiability.pdf']),
         
-        (cost_function_t1e, [False], ['figs_temp/f_cost_function_t1e.png','figs_temp/f_cost_function_t1e.pdf']),
-        (cost_function_t1f, [False], ['figs_temp/f_cost_function_t1f.png','figs_temp/f_cost_function_t1f.pdf']),        
-        (solution_all,[],['figs_temp/f_sol_all_de.png','figs_temp/f_sol_all_de.pdf']),
+        (cost_function_t1e, [False], [d+'/f_cost_function_t1e.png',d+'/f_cost_function_t1e.pdf']),
+        (cost_function_t1f, [False], [d+'/f_cost_function_t1f.png',d+'/f_cost_function_t1f.pdf']),        
+        (solution_all,[],[d+'/f_sol_all_de.png',d+'/f_sol_all_de.pdf']),
 
         ]
 
