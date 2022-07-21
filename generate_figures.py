@@ -1654,8 +1654,7 @@ def main():
         (identifiability,[],['figs_temp/f_identifiability.png','figs_temp/f_identifiability.pdf']),
         
         (cost_function_t1e, [False], ['figs_temp/f_cost_function_t1e.png','figs_temp/f_cost_function_t1e.pdf']),
-        (cost_function_t1f, [False], ['figs_temp/f_cost_function_t1f.png','figs_temp/f_cost_function_t1f.pdf']),
-        
+        (cost_function_t1f, [False], ['figs_temp/f_cost_function_t1f.png','figs_temp/f_cost_function_t1f.pdf']),        
         (solution_all,[],['figs_temp/f_sol_all_de.png','figs_temp/f_sol_all_de.pdf']),
 
         ]
