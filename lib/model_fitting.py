@@ -14,7 +14,7 @@ then compare I[-1,:] to I[int(TN/2),:]
 """
 
 
-import pde
+from . import pde
 
 import time as tt
 import warnings

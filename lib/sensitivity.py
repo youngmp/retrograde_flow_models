@@ -2,8 +2,8 @@
 script for running SALib examples. for efast, sensitivity analysis
 """
 
-import model_fitting as mf
-import pde
+from . import model_fitting as mf
+from . import pde
 
 import os
 import argparse

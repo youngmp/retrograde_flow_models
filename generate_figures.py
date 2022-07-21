@@ -17,8 +17,8 @@ from matplotlib.patches import Rectangle
 
 import lib.model_fitting as mf
 import lib.sensitivity as sv
-import lib.pde
-import lib.lib
+import lib.pde as pde
+import lib.lib as lib
 import copy
 import numpy as np
 

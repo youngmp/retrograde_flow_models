@@ -29,10 +29,9 @@ T(F,P) = d_p F - d_f F
 let's try no-flux at the origin? before doubling up on the domain.
 """
 
-import lib
+from . import lib
 
 import os
-import time
 import time as tt
 import copy
 
@@ -426,7 +425,7 @@ class PDEModel(Data):
             ax.plot(self.r,self.ur)
             plt.show()
             plt.close()
-            time.sleep(2)
+            tt.sleep(2)
 
 
         self.t = t
