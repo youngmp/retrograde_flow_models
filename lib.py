@@ -14,10 +14,7 @@ def get_parameter_fname(model,seed,err=False,method=''):
     err: return filename for error
     """
 
-    if model == 't1f':
-        fname_pre = 'data/dp_negative/'+model+'_residuals'
-    else:
-        fname_pre = 'data/'+model+'_residuals'
+    fname_pre = 'data/'+model+'_residuals'
 
     if model == 't1a':
         fname_pre+='_umax=4.0_dmax=20.0'
