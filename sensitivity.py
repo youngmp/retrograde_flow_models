@@ -89,7 +89,7 @@ def load_rss_data_t1e(ne=100,nd=100,maxe=0.01,mind=0.006,maxd=0.02,exp=False,
         EPS,DP = np.meshgrid(eps_vals,dp_vals)
         Z = np.zeros_like(EPS)
 
-        p = pde.PDEModel(T=1500,dt=.05,order=1,N=50,u_nonconstant=True,Nvel=1,df=0)
+        p = pde.PDEModel(T=1500,dt=.05,order=1,N=50,df=0)
 
         par_names = ['eps','dp']
 
