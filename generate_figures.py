@@ -1,14 +1,9 @@
 import matplotlib as mpl
 from scipy import ndimage
 
-#from matplotlib import rc
-#mpl.rc('text',usetex=True)
-#mpl.rc('font',family='serif', serif=['Computer Modern Roman'])
-
-#mpl.rcParams.update(pgf_with_latex)
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['text.usetex'] = True
-#mpl.rcParams['text.latex.preview'] = True
+#mpl.rcParams['text.latex.preview'] = True # sometimes needed for compatibility
 mpl.rcParams['pgf.texsystem'] = 'pdflatex'
 mpl.rcParams['text.latex.preamble'] = r'\usepackage{amsmath} \usepackage{siunitx} \usepackage{enumitem} \usepackage{xcolor}'
 
@@ -36,91 +31,6 @@ warnings.filterwarnings('ignore')
 #np.seterr(under=None)
 
 
-def experiment_figure():
-    """
-    figure for experimental setup
-    """
-    import matplotlib.pyplot as plt
-    import matplotlib.image as mpimg
-    from matplotlib.gridspec import GridSpec
-
-    fig = plt.figure(figsize=(5,5))
-
-    gs = GridSpec(2,2,height_ratios=[2,1])
-    
-    axs = []
-    axs.append(fig.add_subplot(gs[0,0]))
-    axs.append(fig.add_subplot(gs[0,1]))
-    axs.append(fig.add_subplot(gs[1,:]))
-    
-    # plot cell images
-    img_ctrl = mpimg.imread('i_controlmicro.png')
-    img_noco = mpimg.imread('i_nocomicro.png')
-
-    axs[0].imshow(ndimage.rotate(img_ctrl,180),aspect='equal')
-    axs[1].imshow(ndimage.rotate(img_noco,180),aspect='equal')
-
-    # show horizontal lines corresponding to data
-    axs[0].plot([.5,1-.08],[.5,.5],transform=axs[0].transAxes,
-                color='tab:red',ls='--',marker='o')
-    axs[1].plot([.5,1-.08],[.5,.5],transform=axs[1].transAxes,
-                color='tab:blue',ls='-',marker='o')
-    
-    
-    # plot discarded circular region
-    circle1 = plt.Circle((.5,.5),0.14,color='tab:red',alpha=.3,zorder=4,
-                         hatch='x',transform=axs[0].transAxes)
-    circle2 = plt.Circle((.5,.5),0.14,color='tab:red',alpha=.3,zorder=4,
-                         hatch='x',transform=axs[1].transAxes)
-    
-    axs[0].add_patch(circle1)
-    axs[1].add_patch(circle2)
-    
-    # plot vimentin data
-    d = pde.Data(L0=0,L=29.5)
-    x = d.data_rep_raw['control'][:,0];y = d.data_rep_raw['control'][:,1]
-    axs[2].plot(x,y,label=r'\SI{0}{h}',color='tab:red',ls='--')
-
-    x = d.data_rep_raw['24h'][:,0];y = d.data_rep_raw['24h'][:,1]
-    axs[2].plot(x,y,label=r'\SI{24}{h}',color='tab:blue',ls='-')
-
-    # plot discarded region
-    axs[2].set_xlim(0,29.5)
-    axs[2].axvspan(0, 10, color='tab:red', alpha=0.1,hatch='x')
-    axs[2].get_position().x1
-    axs[2].text(1/6+.02,.07,"Discarded Region",ha='center',transform=axs[2].transAxes)
-
-    # labels, axis tweaks
-    axs[0].set_title(r'(a) \SI{0}{h}',loc='left',size=fsizetitle)
-    axs[1].set_title(r'(b) \SI{24}{h}',loc='left',size=fsizetitle)
-    axs[2].set_title(r'(c)',x=-.12,size=fsizetitle)
-
-    axs[2].xaxis.get_major_ticks()[0].set_visible(False)
-    axs[2].annotate(r'Cell Center',xy=(0, -.01), xycoords='axes fraction', xytext=(0.,-.5), arrowprops=dict(arrowstyle='->', color='k'),ha='center',fontsize=fsizelabel)
-
-    axs[2].annotate(r'Cell Edge',xy=(1, -.01), xycoords='axes fraction', xytext=(1.,-.5), arrowprops=dict(arrowstyle='->', color='k',relpos=(1,0)),ha='right',fontsize=fsizelabel)
-    
-    axs[2].set_xlabel(r'Radius ($\si{\um}$)',fontsize=fsizelabel)
-    axs[2].set_ylabel('Fluor. Intensity\n(a.u.)',fontsize=fsizelabel)
-
-    axs[2].tick_params(axis='both',labelsize=fsizetick)    
-    axs[2].legend()
-
-    axs[0].axis('off')
-    axs[1].axis('off')
-
-    axs[2].set_xlim(0,29.5)
-    
-    fig.subplots_adjust(top=.97,right=.98,left=.1,bottom=0.15)
-    
-    chartBox = axs[2].get_position()
-    x_shift = .14
-    y_shift = 0
-    axs[2].set_position([chartBox.x0+x_shift,chartBox.y0+y_shift,
-                         chartBox.width-x_shift,chartBox.height-y_shift])
-    
-    return fig
-
 
 def get_y(radii,x,y,maxr):
     """
@@ -140,7 +50,7 @@ def get_y(radii,x,y,maxr):
     return np.array(x_list),np.array(y_list)
     
 
-def experiment_figure2():
+def experiment_figure():
     """
     figure for experimental setup
     """
@@ -182,11 +92,6 @@ def experiment_figure2():
     for i in range(len(radii2)):
         axs[1].plot(radii2[i]*np.cos(thetas)+x2,radii2[i]*np.sin(thetas)+y2,transform=axs[1].transAxes,
                     color=cmap2(colors2[i]),alpha=1,lw=2)
-
-    #axs[0].plot([.5,1-.08],[.5,.5],transform=axs[0].transAxes,
-    #            color='tab:red',ls='--',marker='o')
-    #axs[1].plot([.5,1-.08],[.5,.5],transform=axs[1].transAxes,
-    #            color='tab:blue',ls='-',marker='o')
         
     # plot discarded circular region
     circle1 = plt.Circle((.485,.5),0.14,color='tab:red',alpha=.3,zorder=4,
@@ -249,109 +154,8 @@ def experiment_figure2():
     return fig
 
 
-def data_figure():
-    """
-    figure comparing representative data, average data
-    and normalized versions of each
-    """
-    import matplotlib.pyplot as plt
 
-    # load normed data
-    d = pde.Data()
-
-    avg_n_dict = copy.deepcopy(d.data_avg_n)
-    rep_n_dict = copy.deepcopy(d.data_rep_n)
-
-    d = pde.Data(L0=0,L=29.5)
-
-    # load unnormed data
-    #data =  d._build_data_dict(L0=d.L0,L=d.L,normed=True)
-    
-    #list_hours = ['control','0.5h', '1h','2h','4h','8.5h','24h']
-    list_hours = ['control','0.5h', '1h','2h','24h']
-    #assert(len(list_hours) == len(d.data_avg.keys()))
-    #assert(len(d.data_avg.keys()) == len(d.data_rep.keys()))
-    
-    #fig = plt.figure()
-    fig,axs = plt.subplots(nrows=4,ncols=1,figsize=(5,6))
-    
-    for i,hour in enumerate(list_hours):
-
-        color = str((1-i/len(list_hours))/1.2)
-
-        if hour == 'control':
-            label = r'\SI{0}{h}'
-        else:
-            
-            label = r'\SI{'+hour[:-1]+'}{h}'
-
-        if hour == '24h':
-            color = 'tab:blue'
-        else:
-            color = color
-
-        # raw, rep
-        x = d.data_rep_raw[hour][:,0]
-        y = d.data_rep_raw[hour][:,1]
-        axs[0].plot(x,y,label=label,color=color)
-
-        # raw, avg
-        x = d.data_avg_raw[hour][:,0]
-        y = d.data_avg_raw[hour][:,1]
-        axs[1].plot(x,y,label=label,color=color)
-        
-        # normed, rep
-        x = d.data_rep_raw[hour][:,0]
-        y = d.data_rep_raw[hour][:,1]/rep_n_dict[hour]
-        #x = d.data_rep[hour][:,0]
-        #y = d.data_rep[hour][:,1]
-        axs[2].plot(x,y,label=label,color=color)
-
-        # normed, avg
-        x = d.data_avg_raw[hour][:,0]
-        y = d.data_avg_raw[hour][:,1]/avg_n_dict[hour]
-        #x = d.data_avg[hour][:,0]
-        #y = d.data_avg[hour][:,1]
-        axs[3].plot(x,y,label=label,color=color)
-
-        
-    axs[0].legend(labelspacing=-.1,bbox_to_anchor=(.8,.15),framealpha=1)
-    
-    for i in range(4):
-            
-        #axs[i,j].set_xlabel(r'Radius ($\si{\um}$)',fontsize=fsizelabel)
-        axs[i].set_xlabel(r'Radius $r$ ($\si{\um}$)',fontsize=fsizelabel)
-        axs[i].tick_params(axis='both',labelsize=fsizetick)
-        
-        axs[i].set_xlim(0,29.5)
-        axs[i].axvspan(0, 10, color='tab:red', alpha=0.1,hatch='x')
-        
-        axs[i].get_position().x1
-        axs[i].text(1/6,.07,"Discarded Region",ha='center',transform=axs[i].transAxes)
-
-        axs[i].xaxis.labelpad=0
-
-
-    axs[0].set_title('(a) Representative',loc='left',size=fsizetitle,y=.95)
-    axs[1].set_title('(b) Average',loc='left',size=fsizetitle,y=.95)
-    axs[2].set_title('(c) Representative (Normalized)',loc='left',size=fsizetitle,y=.95)
-    axs[3].set_title(r'\textbf{(d) Average (Normalized)}',loc='left',size=fsizetitle,y=.95)
-    
-    axs[0].set_ylabel('Fluor. Intensity',fontsize=fsizelabel)
-    axs[1].set_ylabel('Fluor. Intensity',fontsize=fsizelabel)
-    axs[2].set_ylabel('Norm. Fluor.',fontsize=fsizelabel)
-    axs[3].set_ylabel('Norm. Fluor.',fontsize=fsizelabel)
-
-    #plt.tight_layout(pad=tight_layout_pad)
-    plt.tight_layout()
-
-    fig.subplots_adjust(top=.96,right=.95,left=.2,bottom=0.07,hspace=.8)
-    
-
-    return fig
-
-
-def data_figure2(lower=10):
+def data_figure(lower=10):
     """
     new data figure assuming we don't perform a validation
     figure comparing representative data, average data
@@ -397,17 +201,12 @@ def data_figure2(lower=10):
         y0 = d.data_avg_raw[hour][:,1]
         
         axs[0].plot(x0[x0>=lower],y0[x0>=lower],label=label,color=color)
-        #axs[0].plot(x0,y0,label=label,color=color)
         
         # normed, avg
         x1 = d.data_avg_raw[hour][:,0]
         y1 = d.data_avg_raw[hour][:,1]/avg_n_dict[hour]
-        #x1 = d.data_avg[hour][:,0]
-        #y1 = d.data_avg[hour][:,1]
         axs[1].plot(x1[x1>=lower],y1[x1>=lower],label=label,color=color)
-        #axs[1].plot(x1,y1,label=label,color=color)
         
-    #axs[1].legend(labelspacing=-.1,bbox_to_anchor=(.55,.6),framealpha=1,ncol=2)
     axs[0].legend(labelspacing=-.1,bbox_to_anchor=(.805,.35),framealpha=1)
     
     for i in range(2):
@@ -481,62 +280,7 @@ def data_figure2(lower=10):
 
     return fig
 
-
 def gaussian_fit():
-    """
-    figure for fitting Gaussian to data
-    """
-
-    import matplotlib.pyplot as plt
-    import matplotlib.ticker as mticker
-    
-    fig, axs = plt.subplots(nrows=1,ncols=2,figsize=(5,2))
-
-    d = pde.Data(recompute=False,normed=True)
-    
-    x_data = d.data_avg['control'][:,0]
-    y_data = d.data_avg['control'][:,1]
-    axs[0].plot(x_data,y_data,label='Data',lw=4,color='tab:green',ls='--')
-    axs[0].plot(x_data,d.control_fn_avg(x_data),label='Approx.',lw=2,color='k')
-
-    max1 = np.amax(y_data)
-    
-    x_data = d.data_rep['control'][:,0]
-    y_data = d.data_rep['control'][:,1]
-    axs[1].plot(x_data,y_data,label='Data',lw=4,color='tab:green',ls='--')
-    axs[1].plot(x_data,d.control_fn_rep(x_data),label='Approx.',lw=2,color='k')
-
-    axs[0].set_xlabel(r'$r$ (\si{\um})',fontsize=fsizelabel)
-    axs[0].set_ylabel(r'$\tilde V_0(r)$',fontsize=fsizelabel)
-    axs[0].tick_params(axis='both',labelsize=fsizetick)
-
-    axs[1].set_xlabel(r'$r$ (\si{\um})',fontsize=fsizelabel)
-    axs[1].set_ylabel(r'$\tilde V_0(r)$',fontsize=fsizelabel)
-    axs[1].tick_params(axis='both',labelsize=fsizetick)
-    
-    axs[0].set_xlim(x_data[0],x_data[-1])
-    axs[1].set_xlim(x_data[0],x_data[-1])
-    axs[0].legend(labelspacing=-.1)
-
-    axs[0].set_title("(a) Average \SI{0}{h}",loc='left')
-    axs[1].set_title("(b) Representative \SI{0}{h}",loc='left')
-
-    #f = mticker.ScalarFormatter(useOffset=False, useMathText=True)
-    #g = lambda x,pos : '${}$'.format(f._formatSciNotation('%1.10e' % x))
-    #axs[0].yaxis.set_major_formatter(mticker.FuncFormatter(g))
-    #axs[1].yaxis.set_major_formatter(mticker.FuncFormatter(g))
-    #axs[0].ticklabel_format(axis='y',style='sci',scilimits=(0,0),useOffset=False)
-
-    #axs[0].set_ylim(0,max1+max1/10)
-    plt.tight_layout()
-
-    fig.subplots_adjust(hspace=.8,top=.88,bottom=.25)
-
-    return fig
-
-
-
-def gaussian_fit2():
     """
     figure for fitting Gaussian to data
     same as above but without representative data.
@@ -641,24 +385,18 @@ def solution_schematic():
     axs[2,1].set_ylabel('$M$',fontsize=fsizelabel)
     axs[3,1].set_ylabel('$M$',fontsize=fsizelabel)
     axs[4,1].set_ylabel('$M$',fontsize=fsizelabel)
-    
 
     for i in range(2):
         for j in range(2):
-            #axs[j,i].set_xticks([])
-            #axs[j,i].set_yticks([])
             axs[j,i].axis('off')
-    
 
     for i in range(2,nrows):
         for j in range(ncols):
             # remove y axis label
             axs[i,j].tick_params(axis='both',labelsize=fsizetick)
-            #axs[i,j].tick_params(axis='y',which='both',left=False,labelleft=False)
 
             # x axis label
             axs[i,j].set_xticks([L0,L])
-            #axs[i,j].set_xticklabels([r'$L_0$ (Nuclear Envelope)',r'$L$ (Cell Membrane)'])
             axs[i,j].set_xticklabels([r'$L_0$',r'$L$'])
 
             # set axis limit
@@ -669,8 +407,6 @@ def solution_schematic():
             axs[i,j].spines['top'].set_visible(False)
     
     fig.subplots_adjust(top=1,right=.95,left=.12,bottom=0.05,hspace=.8,wspace=1)
-
-    #fig.canvas.draw()
     
     ## absolute coordinate stuff.
 
@@ -757,9 +493,6 @@ def solution_schematic():
     plt.text(x-.03,y+.02,r'$\beta$ (Release)',size=fsizelabel,ha='center',transform=fig.transFigure)
     
 
-    #plt.text(x-.03,y+.05,r'(Trapping)',size=fsizelabel,ha='center',transform=fig.transFigure)
-    
-
     # advection label
     arrow_str = 'simple, head_width=.7, tail_width=.15, head_length=1'
     axs[3,1].annotate('',(.25,.4),(.45,.4),ha='left',
@@ -788,27 +521,18 @@ def solution_schematic():
 
     axs[3,1].annotate(curly_str,(.45,.4),(.45,.4),xycoords='axes fraction',size=10,va='center')
     
-    
     # time arrow
-    plt.annotate(r'',xy=(.05,.05), xycoords='figure fraction', xytext=(.05, .56), arrowprops=dict(arrowstyle="simple,head_width=1,head_length=1", color='k'))
-    
+    plt.annotate(r'',xy=(.05,.05), xycoords='figure fraction', xytext=(.05, .56), arrowprops=dict(arrowstyle="simple,head_width=1,head_length=1", color='k'))    
     plt.text(.034,.25,'Time',ha='center',transform=fig.transFigure,size=20,rotation=90)
-
 
     # update scientific notation
     fig.canvas.draw()
 
     offset = ax_i0.get_yaxis().get_offset_text().get_text()
-    #offset = ax_i0.yaxis.get_major_formatter().get_offset()
-    
-    
-    print(offset)
     
     ax_i0.yaxis.offsetText.set_visible(False)
-    #ax_i0.yaxis.set_label_text(r"$\tilde V_0$" + " (" + offset+")",size=fsizelabel)
     ax_i0.yaxis.set_label_text(r"$\tilde V_0$")
     ax_i0.tick_params(axis='both',labelsize=fsizetick)
-
     
     for i in range(2,nrows):
         for j in range(ncols):
@@ -818,21 +542,15 @@ def solution_schematic():
 
             axs[i,j].yaxis.offsetText.set_visible(False)
             ylabel = axs[i,j].yaxis.get_label().get_text()
-            #print(ylabel.__dict__)
-
             
             # rescale to percent
             ticks_y = ticker.FuncFormatter(lambda x, pos: '{0:g}\%'.format(x*100))
             axs[i,j].yaxis.set_major_formatter(ticks_y)
 
-            #axs[i,j].yaxis.set_label_text(ylabel + " (" + offset+")")
             axs[i,j].yaxis.set_label_text(ylabel)
             axs[i,j].yaxis.labelpad=-10
 
             axs[i,j].tick_params(axis='both',labelsize=fsizetick)
-            #axs[i,j].tick_params(axis='y',which='both',left=False,labelleft=False)
-
-
 
     return fig
 
@@ -852,7 +570,6 @@ def velocity():
     axs = [ax1,ax2,ax3,ax4]
 
     nrows=2;ncols=2
-    #fig,axs = plt.subplots(nrows=nrows,ncols=ncols,figsize=(6,4))
 
     pars = {'eps':1,'df':0,'dp':.01,'T':60,
             'dt':.01,'N':100,'us0':0.2,'model':'t1d'}
@@ -882,8 +599,6 @@ def velocity():
     axs[0].set_title(r'(a) Constant',loc='left',size=fsizetitle)
     axs[1].set_title(r'(b) Qty. Dep.',loc='left',size=fsizetitle)
     axs[2].set_title(r'(c) Space-Dep.',loc='left',size=fsizetitle)
-    #axs[3].set_title(r'',loc='center',size=fsizetitle)
-
 
     fig.subplots_adjust(left=.16,right=.95,top=.93)
 
@@ -1095,21 +810,10 @@ def fill_sol_ax(axs,model,rep,method,keys_list):
         ticks_y = ticker.FuncFormatter(lambda x, pos: '{0:g}\%'.format(x*100))
         axs[i,0].yaxis.set_major_formatter(ticks_y)
         axs[i,0].tick_params(axis='y',labelsize=fsizetick-2)
-
-    #axs[-1,0].get_xaxis().set_visible(False)
-
-    #axs[0,1].set_yticks([])
-
     
     if model == 'jammingd':
         ylo, yhi = axs[0,0].get_ylim()
         axs[0,0].set_ylim(ylo,yhi+yhi/9)
-
-    #for i in range(3):
-    #    for j in range(7):
-    #        if  j > 1:
-    #            print('test',i,j)
-    #            axs[i,j].get_xaxis().set_visible(False)
     
     return axs
     
@@ -1123,15 +827,11 @@ def solution(model='t1e',rep=False,method=''):
     import matplotlib.ticker as ticker
     from matplotlib import rc
     mpl.rc('text',usetex=True)
-    #mpl.rc('text.latex',preview=True)
-
     
     if rep:
         keys_list = ['control','1h','2h', '4h','8.5h', '24h']
         
     else:
-        #keys_list = ['control','2h', '4h','8.5h', '24h']
-        #keys_list = ['control','0.5h','1h', '2h', '24h']
         keys_list = ['control','0.5h','1h', '2h','4h','8.5h','24h']
 
     ncols = len(keys_list)
@@ -1156,15 +856,6 @@ def solution(model='t1e',rep=False,method=''):
         ylo, yhi = axs[0,0].get_ylim()
         axs[0,0].set_ylim(ylo,yhi+yhi/9)
         
-
-    for i in range(3):
-        pass
-        #offset = axs[i,0].get_yaxis().get_offset_text().get_text()
-     
-        #axs[i,0].yaxis.offsetText.set_visible(False)
-        #axs[i,0].yaxis.set_label_text(fn_labels[i] + " (" + offset+")",size=fsizelabel-2)
-        axs[i,0].yaxis.set_label_text(fn_labels[i],size=fsizelabel-2)
-
     if (model == 't1e' or model == 't1f') and not(rep):
         # subplot for velocity profile
         x0 = (axs[2,1].get_position().x1 + axs[2,1].get_position().x0)/2
@@ -1209,7 +900,6 @@ def solution(model='t1e',rep=False,method=''):
             plt.text(.04,.95,"(a)",transform=fig.transFigure,size=fsizetitle)
             plt.text(.04,.3,"(b)",transform=fig.transFigure,size=fsizetitle)
 
-    #plt.show()
     return fig
 
 
@@ -1277,16 +967,6 @@ def solution_all():
             x0 = pos.x0; y1 = pos.y1
 
             plt.text(x0-.07,y1+.01,titles[i][j],transform=fig.transFigure,size=fsizetitle)
-            
-            
-            #print(md)
-            #if i > 0 and j > 0:
-            #    axs_dict[md] = np.array([[fig.add_subplot(g[n,m],sharey=axs_dict[md][0,0]) for m in range(7)] for n in range(3)])
-            #else:
-            #    axs_dict[md] = np.array([[fig.add_subplot(g[n,m]) for m in range(7)] for n in range(3)])
-            #for n in range(3):
-            #    for m in range(7):
-            #        axs_dict[models[i][j]] = fig.add_subplot(g[n,m])
 
     keys_list = ['control','0.5h','1h', '2h','4h','8.5h','24h']
     for i in range(5):
@@ -1303,9 +983,6 @@ def solution_all():
 def cost_function_t1f(recompute=False,model='t1f'):
 
     from matplotlib.patches import Rectangle
-    #print()
-    #print(eps1[0],eps1[-1],dps1[0],dps1[-1])
-    #eps_vals2,dp_vals2,Z2 = load_rss_data(recompute=recompute,exp=True,ne=50,nd=50,maxe=.1,mind=-2.5,maxd=-1.,ss=False)
 
     # get cost function without steady-state assumption
     eps2,dps2,Z_no_ss = sv.load_rss_data(recompute=recompute,ne=50,n2=50,maxe=1,
@@ -1315,10 +992,6 @@ def cost_function_t1f(recompute=False,model='t1f'):
     # get cost function with ss assumption. use this to partition figure
     eps3,dps3,Z3 = sv.load_rss_data(recompute=recompute,ne=50,n2=50,mine=0,maxe=1,
                                     min2=0.01,max2=.2,ss=True,model=model)
-    
-    
-    
-
     
     
     # limit Z data in eps
@@ -1354,21 +1027,6 @@ def cost_function_t1f(recompute=False,model='t1f'):
     
     bdy_idx_x = []
     bdy_idx_y = []
-
-    # force Z data to be above boundary_idxs
-    """
-    for n in range(len(boundary_idxs[0])):
-        i = boundary_idxs[0][n]; j = boundary_idxs[1][n]
-
-        Z_fail_ss[:i,j] = Z_no_ss[:i,j]
-        Z_fail_ss[i:,j] = np.nan
-        Z_no_ss[:i,j] = np.nan
-
-        #print(i,j)
-        # construct boundary line
-        bdy_idx_x.append(j)
-        bdy_idx_y.append(i)
-    """
     
     import matplotlib.pyplot as plt
     
@@ -1378,41 +1036,17 @@ def cost_function_t1f(recompute=False,model='t1f'):
     minval = np.nanmin([np.nanmin(Z_no_ss),np.nanmin(Z_fail_ss)])
     print(np.nanmax(Z_no_ss),)
 
-    #cax1 = axs.pcolormesh(eps2,dps2,Z_u_undef,color='k')
-    cax2 = axs[0].pcolormesh(eps2,p2,Z_no_ss,vmin=minval,vmax=maxval)
-    #cax3 = axs[0].pcolormesh(eps2,p2,Z_fail_ss,vmin=minval,vmax=maxval,alpha=.9)
-    #cax3 = axs.pcolormesh(eps3,dps3,np.diff(Z3,axis=0))
-    
+    cax2 = axs[0].pcolormesh(eps2,p2,Z_no_ss,vmin=minval,vmax=maxval)    
     c2 = axs[0].contour(eps2,p2,Z_no_ss,colors='white')
-
-    #sorted_idx = np.argsort(bdy_idx_x)
-    #print(sorted_idx,np.array(bdy_idx_x)[sorted_idx])
-    #x = eps2[np.array(bdy_idx_x)[sorted_idx]]
-    #y = dps2[np.array(bdy_idx_y)[sorted_idx]+4]
-    
-    #x = np.append(x,eps2[np.array(bdy_idx_x)[sorted_idx][-1]+1])
-    #y = np.append(y,dps2[np.array(bdy_idx_y)[sorted_idx][-1]+1])
-    
-    #axs[0].fill_between(x,np.zeros(len(x))+0.025,y,alpha=.5,color='tab:red',hatch='x')
 
     # show minimum
     axs[0].scatter(0.55,0.11,color='tab:orange',marker='x',s=100,clip_on=False,lw=4,zorder=10)
-
-    # label failure regions
-    #axs[0].text(0.9,0.5,r'$\exists r$ s.t. $d_p(r)<0$',rotation=90,transform=axs[0].transAxes,size=fsizelabel,
-    #         ha='center',va='center')
     
     props = dict(boxstyle='round', facecolor='white', alpha=0.8)
-    #axs[0].text(0.4, 0.1, 'Steady-State Cond. Fails', transform=axs[0].transAxes, fontsize=12,
-    #         ha='center', bbox=props)
     
     cbar = fig.colorbar(cax2,ax=axs[0]); cbar.ax.tick_params(labelsize=fsizetick)
     cbar.formatter.set_powerlimits((0,0))
-    #cbar = fig.colorbar(cax3)
-
-    #axs[0].set_yscale('log')
     axs[0].set_ylim(0.025,.2)
-
 
     # confidence interval
     eps1,dps1,Z1 = sv.load_rss_data(recompute=recompute,ss=False,
@@ -1442,8 +1076,6 @@ def cost_function_t1f(recompute=False,model='t1f'):
     diff2 = diff1[:,idxs_ep]
 
     cax = axs[1].pcolormesh(eps1[idxs_ep],dps1[idxs_dp],diff2)
-    #axs[1].contour(eps1,dps1,diff,colors='white',levels=[5.991/n])
-    
     axs[1].contour(eps1,dps1,diff,colors='white',levels=[7.815/n])
     cbar2 = fig.colorbar(cax,ax=axs[1]); cbar2.ax.tick_params(labelsize=fsizetick)
 
@@ -1461,19 +1093,12 @@ def cost_function_t1f(recompute=False,model='t1f'):
     
     axs[0].set_title('(a) RSS',loc='left',size=fsizetitle)
     axs[1].set_title('(b) Confidence Interval',loc='left',size=fsizetitle)
-
     
     plt.tight_layout()
-    #fig.subplots_adjust(bottom=0.1)
+    
     return fig
 
-    #plt.show()
-
 def cost_function_t1e(recompute=False):
-
-    #print()
-    #print(eps1[0],eps1[-1],dps1[0],dps1[-1])
-    #eps_vals2,dp_vals2,Z2 = load_rss_data(recompute=recompute,exp=True,ne=50,nd=50,maxe=.1,mind=-2.5,maxd=-1.,ss=False)
 
     # get cost function without steady-state assumption
     eps2,dps2,Z_no_ss = sv.load_rss_data_t1e(recompute=recompute,exp=True,
@@ -1522,28 +1147,23 @@ def cost_function_t1e(recompute=False):
     fig, axs = plt.subplots(nrows=2,ncols=1,figsize=(5,7))
     
     axs[0].set_yscale('log')
-    #axs[1].set_yscale('log')
     totval = np.nansum(Z_no_ss+Z_fail_ss)
     
     maxval = np.amax([np.nanmax(Z_no_ss),np.nanmax(Z_fail_ss)])
     minval = np.amin([np.nanmin(Z_no_ss),np.nanmin(Z_fail_ss)])
 
-    #cax1 = axs.pcolormesh(eps2,dps2,Z_u_undef,color='k')
     cax2 = axs[0].pcolormesh(eps2,dps2,Z_no_ss,vmin=minval,vmax=maxval)
     cax3 = axs[0].pcolormesh(eps2,dps2,Z_fail_ss,vmin=minval,vmax=maxval,alpha=.9)
-    #cax3 = axs.pcolormesh(eps3,dps3,np.diff(Z3,axis=0))
     
     c2 = axs[0].contour(eps2,dps2,Z_no_ss,colors='white')
     c3 = axs[0].contour(eps2,dps2,Z_fail_ss,colors='white',levels=c2.levels,alpha=.5)
 
     sorted_idx = np.argsort(bdy_idx_x)
-    #print(sorted_idx,np.array(bdy_idx_x)[sorted_idx])
     x = eps2[np.array(bdy_idx_x)[sorted_idx]]
     y = dps2[np.array(bdy_idx_y)[sorted_idx]]
     
     x = np.append(x,eps2[np.array(bdy_idx_x)[sorted_idx][-1]+1])
     y = np.append(y,dps2[np.array(bdy_idx_y)[sorted_idx][-1]+1])
-    #axs.plot(x,y,color='tab:red',lw=2)
     axs[0].fill_between(x,np.zeros(len(x)),y,alpha=.3,color='tab:red',hatch='x')
 
     # show minimum
@@ -1556,12 +1176,9 @@ def cost_function_t1e(recompute=False):
     props = dict(boxstyle='round', facecolor='white', alpha=0.8)
     axs[0].text(0.4, 0.1, 'Steady-State Cond. Fails', transform=axs[0].transAxes, fontsize=14,
              ha='center', bbox=props)
-
     
     cbar = fig.colorbar(cax2,ax=axs[0]); cbar.ax.tick_params(labelsize=fsizetick)
     cbar.formatter.set_powerlimits((0,0))
-    #cbar = fig.colorbar(cax3)
-
 
     # confidence interval
     eps1,dps1,Z1 = sv.load_rss_data_t1e(recompute=recompute,ss=False,mind=8e-3,maxd=1.3e-2,maxe=0.02)
@@ -1590,17 +1207,14 @@ def cost_function_t1e(recompute=False):
     diff2 = diff1[:,idxs_ep]
 
     cax = axs[1].pcolormesh(eps1[idxs_ep],dps1[idxs_dp],diff2)
-    #axs[1].contour(eps1,dps1,diff,colors='white',levels=[5.991/n])
     axs[1].contour(eps1,dps1,diff,colors='white',levels=[7.815/n])
     cbar2 = fig.colorbar(cax,ax=axs[1]); cbar2.ax.tick_params(labelsize=fsizetick)
-    
-    #axs[1].set_yscale('log')
+
     axs[0].set_xlabel(r'$\varepsilon$',size=fsizelabel)
     axs[1].set_xlabel(r'$\varepsilon$',size=fsizelabel)
     
     axs[0].set_ylabel(r'$\alpha$',size=fsizelabel)
     axs[1].set_ylabel(r'$\alpha$',size=fsizelabel)
-    
 
     axs[0].tick_params(axis='both',labelsize=fsizetick)
     axs[1].tick_params(axis='both',labelsize=fsizetick)
@@ -1614,7 +1228,6 @@ def cost_function_t1e(recompute=False):
     axs[1].set_title('(d) Confidence Interval',loc='left',size=fsizetitle)
     
     plt.tight_layout()
-    #fig.subplots_adjust(bottom=0.1)
     
     return fig
     #plt.show()
@@ -1658,37 +1271,9 @@ def get_scatter_params(errs,err):
     color_val = cmap_val[idx2]
     s = 5
     zorder = 0
-
-    #if np.abs(err - err_max) > np.abs(err - err_min):
-    #    zorder = 10
-    #    s = 10
-    #else:
-    #    zorder = 2
-    #    s = 10
                     
     color = viridis(color_val*.9)
-            
-    """
-    #print(color_val)
-    if (err_max - err_min) < 1e-2:
-        color = viridis(.0)
-        zorder = 2
-        s = 10
-                
-    else:
-        # get min err range
-        idx2 = np.argmin(np.abs(err-errs_range))
-        color_val = cmap_val[idx2]
-
-        if np.abs(err - err_max) > np.abs(err - err_min):
-            zorder = 10
-            s = 10
-        else:
-            zorder = 2
-            s = 10
-                    
-        color = viridis(color_val*.8)
-    """
+    
     return color, s, zorder
     
 def get_errs(model):
@@ -1707,271 +1292,6 @@ def get_errs(model):
         errs.append(err)
 
     return errs
-
-def fmt(x, pos):
-    a, b = '{:.2e}'.format(x).split('e')
-    b = int(b)
-    return r'${} \times 10^{{{}}}$'.format(a, b)
-
-
-def plot_axs_split(fig,axs,axs_split):
-    """
-    axs: list of gridspec 
-    """
-
-    import matplotlib
-    
-    models = ['t1d','t2d','jammingd']
-    ylabels = [(r'$\alpha^*$',r'$\bar{u}^*$'),(r'$d_{p_2}^*/d_{p_1}^*$',r'$\bar{u}^*$'),
-               (r'$\alpha^*$',r'$V_\text{max}^*/u_\text{max}^*$')]
-    ylos = [(-2,-.4),(-.1,-.4),(-2,-.1)]
-    yhis = [(22,4.4),(1.1,4.4),(22,1.1)]
-    
-    for i in range(3):
-        axs_split[i].set_zorder(2)
-        axs_split[i].set_xlim(-.1,1.1);axs_split[i+3].set_xlim(-.1,1.1)
-        
-        axs_split[i].set_xticklabels([])
-        axs_split[i].tick_params(axis='x',direction='in')
-
-    for i,model in enumerate(models):
-        
-        # plot all
-        xlist = []
-        ylist1 = []
-        ylist2 = []
-        
-        errs = np.array(get_errs(model))
-        err_min = np.amin(errs);err_max=np.amax(errs)        
-        errs_range = np.linspace(err_min,err_max,100)
-        seeds_sorted = np.argsort(errs)[::-1]
-
-        for seed in seeds_sorted:
-            fname = lib.get_parameter_fname(model,seed,method='de')
-            pars = np.loadtxt(fname)
-            color, s, zorder = get_scatter_params(errs,errs[seed])
-
-            xlist.append(pars[0])
-            
-            if i == 0:
-                ylist1.append(pars[1])
-                ylist2.append(pars[2])
-
-            if i == 1:
-                ylist1.append(pars[2]/pars[1])
-                ylist2.append(pars[3])
-
-            if i == 2:
-                ylist1.append(pars[3])
-                ylist2.append(pars[1]/pars[2])
-
-        cbformat = matplotlib.ticker.ScalarFormatter()
-        cbformat.set_powerlimits((0,0))
-
-        err_exp = np.round(np.exp(errs[seeds_sorted]),4)
-        im1 = axs_split[i].scatter(xlist,ylist1,c=err_exp,s=s,zorder=zorder,alpha=.8)
-        im2 = axs_split[i+3].scatter(xlist,ylist2,c=err_exp,s=s,zorder=zorder,alpha=.8)
-
-        #,shrink=1,aspect=1
-        #cb = fig.colorbar(im,ax=axs[i],format=cbformat,shrink=.8)
-        cb = fig.colorbar(im1,ax=[axs_split[i],axs_split[i+3]],format=cbformat,shrink=.8)
-        cb.ax.yaxis.get_offset_text().set_horizontalalignment('left')
-        cb.ax.yaxis.get_offset_text().set_position((-1,0))
-        
-
-    # set y labels. could do it above but more readable here maybe.
-    for i in range(len(models)):
-        #i,j = idxs_plot[idx]
-        #model = idxs_model[idx]
-        model = models[i]
-
-        pars,par_names = lib.load_pars(model,0,method='de',return_names=True)
-
-        axs_split[i].set_ylim(ylos[i][0],yhis[i][0])
-        axs_split[i+3].set_ylim(ylos[i][1],yhis[i][1])
-        axs_split[i].text(-.32,0.5,ylabels[i][0],va='center',rotation=90,
-                    transform=axs_split[i].transAxes,size=fsizelabel)
-        
-        axs_split[i+3].text(-.32,0.5,ylabels[i][1],va='center',rotation=90,
-                      transform=axs_split[i+3].transAxes,size=fsizelabel)
-
-        if i+3 > 3:
-            axs_split[i+3].set_xticks([0,0.5,1])
-            
-        else:
-            axs_split[i+3].axes.get_xaxis().set_visible(False)
-
-    axs_split[-1].set_xlabel(r'$\varepsilon^*$',size=fsizelabel)
-    axs_split[-2].set_xlabel(r'$\varepsilon^*$',size=fsizelabel)
-
-    return axs_split
-
-
-def identifiability():
-    """
-    identifiable and non-id. models
-    """
-
-    import matplotlib
-    from matplotlib.patches import Rectangle
-    import matplotlib.pyplot as plt
-    from matplotlib.gridspec import GridSpec
-    import matplotlib.gridspec as gridspec
-    import matplotlib.ticker as ticker
-
-    from matplotlib import cm
-
-    nrows=2*5;ncols=3
-    fig = plt.figure(figsize=(10,10))
-    gs = GridSpec(nrows=nrows,ncols=ncols)
-
-    # manual loop over index... easier to do this for now.
-    mechanism = ['t1','t2','jamming']
-    scenario = ['a','b','c','d','e']
-    models = [mechanism[j]+scenario[i] for i in range(int(nrows/2)) for j in range(ncols)]
-
-    del models[-1];del models[-1]
-    
-    axs = [fig.add_subplot(gs[2*i:2*i+2,j]) for i in range(int(nrows/2)) for j in range(ncols)]
-    
-    # turn off corresponding axs
-    axs[9].axis('off')
-    axs[10].axis('off')
-    axs[11].axis('off')
-
-    gs2 = gridspec.GridSpecFromSubplotSpec(2,3,subplot_spec=gs[6:8,:],hspace=0)
-
-    import inspect
-    
-    for i in range(len(models)):        
-        model = models[i]
-
-        # compile err for given model
-        errs = np.array(get_errs(model))
-        err_min = np.amin(errs);err_max=np.amax(errs)        
-        errs_range = np.linspace(err_min,err_max,100)
-        seeds_sorted = np.argsort(errs)[::-1]
-                
-        # plot all
-        xlist = []
-        ylist = []
-                
-        for seed in seeds_sorted:
-            fname = lib.get_parameter_fname(model,seed,method='de')
-            pars = np.loadtxt(fname)
-
-            xlist.append(pars[0])
-                        
-            if (i >= 3 and i <= 4) or (i == 5) or (i == 8):
-                #print(i,seed,pars)
-                ylist.append(pars[2])
-            else:
-                ylist.append(pars[1])
-            
-        if i >= 9 and i <= 11:
-            pass
-        
-        else:
-            cbformat = matplotlib.ticker.ScalarFormatter()
-            cbformat.set_powerlimits((1e-4,10))
-
-            err_exp = np.round(np.exp(errs[seeds_sorted]),4)
-            
-            im = axs[i].scatter(xlist,ylist,c=err_exp,alpha=.8,s=5)
-            cb = fig.colorbar(im,ax=axs[i],format=cbformat,shrink=.8)
-            cb.ax.yaxis.get_offset_text().set_horizontalalignment('left')
-            cb.ax.yaxis.get_offset_text().set_position((-1,0))
-
-    for i in range(len(axs)):
-        axs[i].set_xlim(-.1,1.1)
-        axs[i].tick_params(axis='x',direction='in')
-            
-    axs[0].set_title('T1')
-    axs[1].set_title('T2')
-    axs[2].set_title('Jamming')
-
-    # scenario label
-    for i,s in enumerate(scenario):
-        m = len(mechanism)
-
-        if s == 'd':
-            offset = -.49
-        else:
-            offset = -.6
-        axs[i*m].text(offset,0.5,s,va='center',rotation=0,transform=axs[i*m].transAxes,
-                      size=fsizelabel+2)
-        axs[i*(m-1)].set_ylim(-.1,1.1)
-
-    # x-axis label
-    axs[-3].set_xlabel(r'$\varepsilon^*$',size=fsizelabel)
-    axs[-4].set_xlabel(r'$\varepsilon^*$',size=fsizelabel)
-    axs[-5].set_xlabel(r'$\varepsilon^*$',size=fsizelabel)
-
-    # remove bottom left and bottom right plots
-    axs[-1].axis('off')
-    axs[-2].axis('off')
-
-    # set y labels. could do it above but more readable here maybe.    
-    for i in range(len(models)):
-        #i,j = idxs_plot[idx]
-        #model = idxs_model[idx]
-        model = models[i]
-
-        pars,par_names = lib.load_pars(model,0,method='de',return_names=True)
-
-        if par_names[1] == 'df':
-            par_name = r'$\alpha^*$';ylo=-1;yhi=21
-        elif par_names[1] == 'dp1':
-            par_name = r'$d_{p_1}^*$';
-            if model[-1] == 'a':
-                ylo=-1;yhi=21
-            else:
-                ylo=-10;yhi=210
-                
-        elif par_names[1] == 'dp':
-            par_name = r'$\alpha^*$';ylo=-1;yhi=21
-        elif par_names[1] == 'imax':
-            par_name = r'$V_\text{max}^*$';ylo=-.1;yhi=1.1
-        elif par_names[1] == 'us0':
-            par_name = r'$\bar{u}^*$';ylo=-.4;yhi=4.4
-        else:
-            par_name = par_names[1]
-
-        if i >= 3 and i <= 4:
-            par_name = r'$\bar{u}^*$';ylo=-.4;yhi=4.4
-
-        if i == 5 or i == 8:
-            par_name = r'$u_\text{max}^*$'; ylo=-.4;yhi=4.4
-            
-        if i >= 9 and i <= 11:
-            pass
-        
-        else:
-            axs[i].set_ylim(ylo,yhi)
-            axs[i].text(-.32,0.5,par_name,va='center',rotation=90,
-                        transform=axs[i].transAxes,size=fsizelabel)
-
-    fig.subplots_adjust(top=.87,right=.95,left=.15,bottom=0.05,hspace=.05,wspace=.5)
-
-    
-    # split axes scenario d
-    axs_split = [fig.add_subplot(gs2[i,j]) for i in range(2) for j in range(3)]
-    axs_split = plot_axs_split(fig,axs,axs_split)
-
-
-    # highlight every other row
-    js = [3,9]
-    shift = .14
-    for j in js:
-        x0 = axs[j].axes.get_position().x0; y0 = axs[j].axes.get_position().y0
-        x1 = axs[j+2].axes.get_position().x1; y1 = axs[j].axes.get_position().y1
-        r1 = Rectangle((x0-shift,y0),(x1-x0+shift),(y1-y0),alpha=.05,color='gray',zorder=3)
-        #print(x0,y0,x1,y1)
-        fig.add_artist(r1)#Rectangle((x0,y0),(x1-x0),(y1-y0),zorder=10)
-
-
-        
-    return fig
 
 def collect_identifiability_data(model):
     
@@ -2098,7 +1418,7 @@ def plot_axs_split2(fig,axs_split,model):
     return axs_split
 
 
-def identifiability2():
+def identifiability():
     """
     identifiable and non-id. models
     """
@@ -2257,24 +1577,18 @@ def identifiability2():
 
         axs_t3[i].text(0.1,0.9,mlabels[i],va='center',
                           transform=axs_t3[i].transAxes,size=fsizelabel)
-
-        #if i < 1:
-        #    axs_t3[i].set_xticklabels([])
                         
     # x-axis labels
     axs_t1[-1][0].set_xlabel(r'$\varepsilon^*$',size=fsizelabel);axs_t1[-1][0].xaxis.labelpad=0
     axs_t1d[1].set_xlabel(r'$\varepsilon^*$',size=fsizelabel);axs_t1d[1].xaxis.labelpad=0
-    #axs_t1[-1][1].set_xlabel(r'$\varepsilon^*$',size=fsizelabel)
 
     axs_t2[-1][0].set_xlabel(r'$\varepsilon^*$',size=fsizelabel);axs_t2[-1][0].xaxis.labelpad=0
     axs_t2d[1].set_xlabel(r'$\varepsilon^*$',size=fsizelabel);axs_t2d[1].xaxis.labelpad=0
-    
 
     axs_t3[0].set_xlabel(r'$\varepsilon^*$',size=fsizelabel);axs_t3[0].xaxis.labelpad=0
     axs_t3[1].set_xlabel(r'$\varepsilon^*$',size=fsizelabel);axs_t3[1].xaxis.labelpad=0
 
-    # custom label heights
-    
+    # custom label heights    
         
     # titles    
     fig.subplots_adjust(top=.95,right=.96,left=.06,bottom=0.06,hspace=.8,wspace=.3)
@@ -2295,8 +1609,6 @@ def identifiability2():
     # plot T1d, Jd
     axs_t1d = plot_axs_split2(fig,axs_t1d,'t1d')
     axs_t2d = plot_axs_split2(fig,axs_t2d,'jammingd')
-
-    #axs_t2[0][1].yaxis.labelpad=-200
 
     return fig
 
@@ -2333,13 +1645,13 @@ def main():
     method = 'de'
     
     figures = [
-        (experiment_figure2, [], ['figs_temp/f_experiment2.png','figs_temp/f_experiment2.pdf']),
-        (data_figure2, [10], ['figs_temp/f_data10.png','figs_temp/f_data10.pdf']),        
-        (gaussian_fit2, [], ['figs_temp/f_gaussian_fit2.png','figs_temp/f_gaussian_fit2.pdf']),
+        (experiment_figure, [], ['figs_temp/f_experiment.png','figs_temp/f_experiment.pdf']),
+        (data_figure, [10], ['figs_temp/f_data10.png','figs_temp/f_data10.pdf']),        
+        (gaussian_fit, [], ['figs_temp/f_gaussian_fit.png','figs_temp/f_gaussian_fit.pdf']),
         
         (velocity, [], ['figs_temp/f_velocity.png','figs_temp/f_velocity.pdf']),
         (solution_schematic,[],['figs_temp/f_solution_schematic.png','figs_temp/f_solution_schematic.pdf']),
-        (identifiability2,[],['figs_temp/f_identifiability2.png','figs_temp/f_identifiability2.pdf']),
+        (identifiability,[],['figs_temp/f_identifiability.png','figs_temp/f_identifiability.pdf']),
         
         (cost_function_t1e, [False], ['figs_temp/f_cost_function_t1e.png','figs_temp/f_cost_function_t1e.pdf']),
         (cost_function_t1f, [False], ['figs_temp/f_cost_function_t1f.png','figs_temp/f_cost_function_t1f.pdf']),
