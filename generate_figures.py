@@ -2333,41 +2333,18 @@ def main():
     method = 'de'
     
     figures = [
-        #(experiment_figure, [], ['figs/f_experiment.png','figs/f_experiment.pdf']),
-        #(experiment_figure2, [], ['figs/f_experiment2.png','figs/f_experiment2.pdf']),
-        #(data_figure, [], ['figs/f_data.png','figs/f_data.pdf']),
-        #(data_figure2, [10], ['figs/f_data10.png','figs/f_data10.pdf']),
+        (experiment_figure2, [], ['figs_temp/f_experiment2.png','figs_temp/f_experiment2.pdf']),
+        (data_figure2, [10], ['figs_temp/f_data10.png','figs_temp/f_data10.pdf']),        
+        (gaussian_fit2, [], ['figs_temp/f_gaussian_fit2.png','figs_temp/f_gaussian_fit2.pdf']),
         
-        #(gaussian_fit, [], ['figs/f_gaussian_fit.png','figs/f_gaussian_fit.pdf']),
-        #(gaussian_fit2, [], ['figs/f_gaussian_fit2.png','figs/f_gaussian_fit2.pdf']),
+        (velocity, [], ['figs_temp/f_velocity.png','figs_temp/f_velocity.pdf']),
+        (solution_schematic,[],['figs_temp/f_solution_schematic.png','figs_temp/f_solution_schematic.pdf']),
+        (identifiability2,[],['figs_temp/f_identifiability2.png','figs_temp/f_identifiability2.pdf']),
         
-        #(velocity, [], ['figs/f_velocity.png','figs/f_velocity.pdf']),
-        #(solution_schematic,[],['figs/f_solution_schematic.png','figs/f_solution_schematic.pdf']),
-        #(identifiability,[],['figs/f_identifiability.png','figs/f_identifiability.pdf']),
-        (identifiability2,[],['figs/f_identifiability2.png','figs/f_identifiability2.pdf']),
+        (cost_function_t1e, [False], ['figs_temp/f_cost_function_t1e.png','figs_temp/f_cost_function_t1e.pdf']),
+        (cost_function_t1f, [False], ['figs_temp/f_cost_function_t1f.png','figs_temp/f_cost_function_t1f.pdf']),
         
-        #(cost_function_t1e, [False], ['figs/f_cost_function_t1e.png','figs/f_cost_function_t1e.pdf']),
-        #(cost_function_t1f, [False], ['figs/f_cost_function_t1f.png','figs/f_cost_function_t1f.pdf']),
-        
-        #(solution,['t1a',False,method],f_sol_names('t1a',method)),
-        #(solution,['t1b',False,method],f_sol_names('t1b',method)),
-        #(solution,['t1c',False,method],f_sol_names('t1c',method)),
-        #(solution,['t1d',False,method],f_sol_names('t1d',method)),
-       
-        #(solution,['t1e',False,method],f_sol_names('t1e',method)),
-        #(solution,['t1f',False,method],f_sol_names('t1f',method)),
-       
-        #(solution,['t2a',False,method],f_sol_names('t2a',method)),
-        #(solution,['t2b',False,method],f_sol_names('t2b',method)),
-        #(solution,['t2c',False,method],f_sol_names('t2c',method)),
-        #(solution,['t2d',False,method],f_sol_names('t2d',method)),
-        
-        #(solution,['jamminga',False,method],f_sol_names('ja',method)),
-        #(solution,['jammingb',False,method],f_sol_names('jb',method)),
-        #(solution,['jammingc',False,method],f_sol_names('jc',method)),
-        #(solution,['jammingd',False,method],f_sol_names('jd',method)),
-
-        #(solution_all,[],['figs/f_sol_all_de.png','figs/f_sol_all_de.pdf']),
+        (solution_all,[],['figs_temp/f_sol_all_de.png','figs_temp/f_sol_all_de.pdf']),
 
         ]
 
