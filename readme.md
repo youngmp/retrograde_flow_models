@@ -1,7 +1,9 @@
 Code for Park et al published in PRE:
+
 [![DOI - 10.1103/PhysRevE.107.054408](https://img.shields.io/badge/DOI-10.1103%2FPhysRevE.107.054408-2ea44f)](https://doi.org/10.1103/PhysRevE.107.054408)
 
 DOI for the code:
+
 [![DOI](https://zenodo.org/badge/433910797.svg)](https://zenodo.org/badge/latestdoi/433910797)
 
 run generate_figures.py using python3.
