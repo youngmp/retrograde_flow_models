@@ -1,3 +1,7 @@
+Code for Park et al published in PRE [![DOI](https://doi.org/10.1103/PhysRevE.107.054408).
+
+[![DOI](https://zenodo.org/badge/433910797.svg)](https://zenodo.org/badge/latestdoi/433910797)
+
 run generate_figures.py using python3.
 
 you will need multiprocessing, scipy, numpy, matplotlib, and pandas. Install these using pip or conda, whichever you use.
